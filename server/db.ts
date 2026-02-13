@@ -9,6 +9,7 @@ import {
   maintenanceRequests, InsertMaintenanceRequest,
   favorites, reviews, notifications, savedSearches,
   propertyAvailability, platformSettings,
+  aiConversations, aiMessages, knowledgeBase, InsertKnowledgeBase,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -523,4 +524,112 @@ export async function updateUserPassword(userId: number, passwordHash: string) {
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+}
+
+// ─── AI Conversations ──────────────────────────────────────────────
+export async function createAiConversation(userId: number, title?: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(aiConversations).values({ userId, title: title || "محادثة جديدة" });
+  return result[0].insertId;
+}
+
+export async function getAiConversations(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(aiConversations)
+    .where(eq(aiConversations.userId, userId))
+    .orderBy(desc(aiConversations.updatedAt));
+}
+
+export async function getAiConversationById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(aiConversations).where(eq(aiConversations.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function deleteAiConversation(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(aiMessages).where(eq(aiMessages.conversationId, id));
+  await db.delete(aiConversations).where(eq(aiConversations.id, id));
+}
+
+// ─── AI Messages ───────────────────────────────────────────────────
+export async function createAiMessage(data: { conversationId: number; role: "user" | "assistant"; content: string }) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(aiMessages).values(data);
+  await db.update(aiConversations).set({ updatedAt: new Date() }).where(eq(aiConversations.id, data.conversationId));
+  return result[0].insertId;
+}
+
+export async function getAiMessages(conversationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(aiMessages)
+    .where(eq(aiMessages.conversationId, conversationId))
+    .orderBy(asc(aiMessages.createdAt));
+}
+
+export async function rateAiMessage(id: number, rating: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(aiMessages).set({ rating }).where(eq(aiMessages.id, id));
+}
+
+// ─── Knowledge Base ────────────────────────────────────────────────
+export async function createKnowledgeArticle(data: InsertKnowledgeBase) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(knowledgeBase).values(data);
+  return result[0].insertId;
+}
+
+export async function getKnowledgeArticles(category?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (category) {
+    return db.select().from(knowledgeBase)
+      .where(and(eq(knowledgeBase.category, category as any), eq(knowledgeBase.isActive, true)))
+      .orderBy(desc(knowledgeBase.updatedAt));
+  }
+  return db.select().from(knowledgeBase)
+    .where(eq(knowledgeBase.isActive, true))
+    .orderBy(desc(knowledgeBase.updatedAt));
+}
+
+export async function getAllKnowledgeArticles() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(knowledgeBase).orderBy(desc(knowledgeBase.updatedAt));
+}
+
+export async function updateKnowledgeArticle(id: number, data: Partial<InsertKnowledgeBase>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(knowledgeBase).set(data).where(eq(knowledgeBase.id, id));
+}
+
+export async function deleteKnowledgeArticle(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(knowledgeBase).where(eq(knowledgeBase.id, id));
+}
+
+export async function searchKnowledgeBase(query: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const q = `%${query}%`;
+  return db.select().from(knowledgeBase)
+    .where(and(
+      eq(knowledgeBase.isActive, true),
+      or(
+        like(knowledgeBase.titleEn, q),
+        like(knowledgeBase.titleAr, q),
+        like(knowledgeBase.contentEn, q),
+        like(knowledgeBase.contentAr, q),
+      )
+    ));
 }

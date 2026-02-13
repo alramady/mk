@@ -6,6 +6,8 @@ import { z } from "zod";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import * as db from "./db";
+import { getAiResponse, seedDefaultKnowledgeBase } from "./ai-assistant";
+import { generateLeaseContractHTML } from "./lease-contract";
 
 export const appRouter = router({
   system: systemRouter,
@@ -598,6 +600,138 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => {
         return db.getAllBookings(input.limit, input.offset);
+      }),
+  }),
+
+  // ─── AI Assistant ────────────────────────────────────────────────
+  ai: router({
+    // Create or get conversations
+    conversations: protectedProcedure.query(async ({ ctx }) => {
+      return db.getAiConversations(ctx.user.id);
+    }),
+
+    newConversation: protectedProcedure
+      .input(z.object({ title: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.createAiConversation(ctx.user.id, input.title);
+        return { id };
+      }),
+
+    deleteConversation: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteAiConversation(input.id);
+        return { success: true };
+      }),
+
+    messages: protectedProcedure
+      .input(z.object({ conversationId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getAiMessages(input.conversationId);
+      }),
+
+    chat: protectedProcedure
+      .input(z.object({
+        conversationId: z.number(),
+        message: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Save user message
+        await db.createAiMessage({
+          conversationId: input.conversationId,
+          role: "user",
+          content: input.message,
+        });
+
+        // Get AI response
+        const response = await getAiResponse(
+          ctx.user.id,
+          input.conversationId,
+          input.message,
+          ctx.user.role,
+        );
+
+        // Save assistant message
+        const msgId = await db.createAiMessage({
+          conversationId: input.conversationId,
+          role: "assistant",
+          content: response,
+        });
+
+        return { response, messageId: msgId };
+      }),
+
+    rateMessage: protectedProcedure
+      .input(z.object({ messageId: z.number(), rating: z.number().min(1).max(5) }))
+      .mutation(async ({ input }) => {
+        await db.rateAiMessage(input.messageId, input.rating);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Knowledge Base ─────────────────────────────────────────────
+  knowledge: router({
+    list: protectedProcedure
+      .input(z.object({ category: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return db.getKnowledgeArticles(input?.category);
+      }),
+
+    all: adminProcedure.query(async () => {
+      return db.getAllKnowledgeArticles();
+    }),
+
+    create: adminProcedure
+      .input(z.object({
+        category: z.enum(["general", "tenant_guide", "landlord_guide", "admin_guide", "faq", "policy", "troubleshooting"]),
+        titleEn: z.string().min(1),
+        titleAr: z.string().min(1),
+        contentEn: z.string().min(1),
+        contentAr: z.string().min(1),
+        tags: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await db.createKnowledgeArticle(input);
+        return { id };
+      }),
+
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        category: z.enum(["general", "tenant_guide", "landlord_guide", "admin_guide", "faq", "policy", "troubleshooting"]).optional(),
+        titleEn: z.string().optional(),
+        titleAr: z.string().optional(),
+        contentEn: z.string().optional(),
+        contentAr: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateKnowledgeArticle(id, data as any);
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteKnowledgeArticle(input.id);
+        return { success: true };
+      }),
+
+    seed: adminProcedure.mutation(async () => {
+      await seedDefaultKnowledgeBase();
+      return { success: true };
+    }),
+  }),
+
+  // ─── Lease Contract ───────────────────────────────────────────────
+  lease: router({
+    generate: protectedProcedure
+      .input(z.object({ bookingId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { html, data } = await generateLeaseContractHTML(input.bookingId);
+        return { html, contractNumber: data.contractNumber };
       }),
   }),
 

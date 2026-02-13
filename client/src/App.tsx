@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { I18nProvider } from "./lib/i18n";
 import { lazy, Suspense } from "react";
+import AiAssistant from "./components/AiAssistant";
 import { Loader2 } from "lucide-react";
 
 // Eager load critical pages
@@ -23,6 +24,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Messages = lazy(() => import("./pages/Messages"));
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
 const MaintenanceRequest = lazy(() => import("./pages/MaintenanceRequest"));
+const LeaseContract = lazy(() => import("./pages/LeaseContract"));
 
 function PageLoader() {
   return (
@@ -50,6 +52,7 @@ function Router() {
         <Route path="/messages/:id" component={Messages} />
         <Route path="/book/:propertyId" component={BookingFlow} />
         <Route path="/maintenance/new/:bookingId" component={MaintenanceRequest} />
+        <Route path="/lease/:bookingId" component={LeaseContract} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -65,6 +68,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <AiAssistant />
           </TooltipProvider>
         </I18nProvider>
       </ThemeProvider>

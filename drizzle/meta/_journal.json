@@ -22,6 +22,13 @@
       "when": 1771018427453,
       "tag": "0002_wet_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1771019404113,
+      "tag": "0003_sweet_triton",
+      "breakpoints": true
     }
   ]
 }

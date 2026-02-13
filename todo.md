@@ -109,3 +109,37 @@
 - [x] Seed admin account (Hobart / 15001500)
 - [x] Update Navbar with login/register links
 - [x] All 103 tests passing (78 integration + 24 unit + 1 auth)
+
+## Seed Data - Saudi Properties
+- [x] Seed script with 20+ diverse properties (20 properties seeded)
+- [x] Properties across 8 Saudi cities (Riyadh, Jeddah, Dammam, Makkah, Madinah, Khobar, Abha, Tabuk)
+- [x] Multiple property types (apartments, villas, studios, duplexes, compounds, hotel apartments, furnished rooms)
+- [x] Realistic SAR pricing for each city (1,500 - 25,000)
+- [x] Arabic and English titles/descriptions
+- [x] Amenities, photos (CDN), and location data with coordinates
+- [x] Sample landlord and tenant accounts (3 landlords + 2 tenants)
+- [x] Knowledge base articles seeded (6 articles)
+- [x] 2 pending properties for admin review workflow
+
+## Digital Lease Contract
+- [x] HTML contract generation endpoint (tRPC lease.generate)
+- [x] Bilingual contract template (Arabic RTL + English)
+- [x] Ejar-compliant terms and conditions (9 clauses)
+- [x] Dynamic data population (tenant, landlord, property, dates, amounts)
+- [x] Financial breakdown table (rent, deposit, service fee, total)
+- [x] Signature blocks for both parties
+- [x] Print and download HTML functionality
+- [x] LeaseContract page with preview iframe (/lease/:bookingId)
+
+## AI Assistant (إيجار الذكي)
+- [x] System prompt with full platform knowledge (AR dialects + EN)
+- [x] tRPC endpoint for AI chat with conversation history
+- [x] Knowledge base integration with search
+- [x] Role-aware responses (tenant vs landlord vs admin guidance)
+- [x] Conversation history saved in database
+- [x] Floating chat button UI with RTL support
+- [x] Chat interface with message history
+- [x] Quick suggestion buttons
+- [x] Conversation management (new, list, continue)
+- [ ] Response rating system (1-5 stars)
+- [ ] Admin knowledge base management page

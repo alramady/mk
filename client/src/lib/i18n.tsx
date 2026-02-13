@@ -248,6 +248,25 @@ const translations = {
     "city.khobar": "الخبر",
     "city.tabuk": "تبوك",
     "city.abha": "أبها",
+
+    // AI Assistant
+    "ai.title": "إيجار الذكي",
+    "ai.subtitle": "مساعدك الذكي لكل ما يخص المنصة",
+    "ai.placeholder": "اكتب سؤالك هنا...",
+    "ai.send": "إرسال",
+    "ai.newChat": "محادثة جديدة",
+    "ai.history": "المحادثات السابقة",
+    "ai.thinking": "يفكر...",
+    "ai.welcome": "مرحباً! أنا إيجار الذكي، مساعدك في منصة إيجار. كيف أقدر أساعدك اليوم؟",
+    "ai.rateResponse": "قيّم الإجابة",
+    "ai.rated": "شكراً لتقييمك!",
+    "ai.error": "حدث خطأ، حاول مرة أخرى",
+    "ai.deleteChat": "حذف المحادثة",
+    "ai.noHistory": "لا توجد محادثات سابقة",
+    "ai.knowledgeBase": "قاعدة المعرفة",
+    "ai.addArticle": "إضافة مقال",
+    "ai.editArticle": "تعديل المقال",
+    "ai.category": "التصنيف",
   },
   en: {
     // Navigation
@@ -494,6 +513,25 @@ const translations = {
     "city.khobar": "Khobar",
     "city.tabuk": "Tabuk",
     "city.abha": "Abha",
+
+    // AI Assistant
+    "ai.title": "Ijar AI",
+    "ai.subtitle": "Your smart assistant for everything on the platform",
+    "ai.placeholder": "Type your question here...",
+    "ai.send": "Send",
+    "ai.newChat": "New Chat",
+    "ai.history": "Chat History",
+    "ai.thinking": "Thinking...",
+    "ai.welcome": "Hello! I'm Ijar AI, your assistant on the Ijar platform. How can I help you today?",
+    "ai.rateResponse": "Rate this response",
+    "ai.rated": "Thanks for your rating!",
+    "ai.error": "An error occurred, please try again",
+    "ai.deleteChat": "Delete Chat",
+    "ai.noHistory": "No previous conversations",
+    "ai.knowledgeBase": "Knowledge Base",
+    "ai.addArticle": "Add Article",
+    "ai.editArticle": "Edit Article",
+    "ai.category": "Category",
   },
 } as const;
 
