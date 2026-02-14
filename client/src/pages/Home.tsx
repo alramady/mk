@@ -11,11 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, Building2, Key, Home as HomeIcon, Shield, MapPin,
   ArrowLeft, ArrowRight, Star, Users, CheckCircle, Headphones,
-  TrendingUp, Paintbrush, UserCheck, BarChart3, Quote
+  TrendingUp, Paintbrush, UserCheck, BarChart3, Quote, Sparkles
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
+import { useScrollAnimation, useParallax } from "@/hooks/useScrollAnimation";
 
+/* ─── Animated Counter ─── */
 function AnimatedCounter({ target, suffix = "" }: { target: string; suffix?: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
@@ -53,8 +55,32 @@ function AnimatedCounter({ target, suffix = "" }: { target: string; suffix?: str
   }, [started, numericTarget]);
 
   return (
-    <div ref={ref} className="text-3xl md:text-4xl font-bold text-[#3ECFC0] font-heading">
-      {count.toLocaleString()}{hasPercent ? "%" : ""}{hasPlus ? "+" : ""}{suffix}
+    <div ref={ref} className="text-3xl md:text-4xl font-bold text-[#3ECFC0] font-heading counter-glow">
+      {count.toLocaleString("en-US")}{hasPercent ? "%" : ""}{hasPlus ? "+" : ""}{suffix}
+    </div>
+  );
+}
+
+/* ─── Scroll Section Wrapper ─── */
+function ScrollSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const { ref, isVisible } = useScrollAnimation();
+  return (
+    <div
+      ref={ref}
+      className={`animate-on-scroll ${isVisible ? "visible" : ""} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ─── Stagger Grid Wrapper ─── */
+function StaggerGrid({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const { ref, isVisible } = useScrollAnimation();
+  return (
+    <div ref={ref} className={`stagger-children ${isVisible ? "visible" : ""} ${className}`}>
+      {children}
     </div>
   );
 }
@@ -64,9 +90,21 @@ export default function Home() {
   const { get: s, getByLang: sl } = useSiteSettings();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const heroRef = useRef<HTMLDivElement>(null);
 
   const featured = trpc.property.featured.useQuery();
   const citiesQuery = trpc.cities.all.useQuery({ activeOnly: true });
+
+  // Parallax mouse tracking for hero
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    setMousePos({
+      x: (e.clientX - rect.left - rect.width / 2) / rect.width,
+      y: (e.clientY - rect.top - rect.height / 2) / rect.height,
+    });
+  }, []);
 
   const handleSearch = () => {
     setLocation(`/search?city=${encodeURIComponent(searchQuery)}`);
@@ -80,12 +118,12 @@ export default function Home() {
   ];
 
   const services = [
-    { icon: Building2, titleAr: "إدارة العقارات", titleEn: "Property Management", descAr: "إدارة شاملة لعقارك الشهري", descEn: "Complete monthly property management" },
-    { icon: Key, titleAr: "الإيجار الشهري", titleEn: "Monthly Rentals", descAr: "تأجير مرن من شهر إلى شهرين", descEn: "Flexible 1-2 month rentals" },
-    { icon: TrendingUp, titleAr: "إدارة الإيرادات", titleEn: "Revenue Management", descAr: "تسعير ذكي وتحسين العوائد", descEn: "Smart pricing and yield optimization" },
-    { icon: Paintbrush, titleAr: "العناية بالعقار", titleEn: "Property Care", descAr: "صيانة وتجديد وتصميم داخلي", descEn: "Maintenance, renovation & interior design" },
-    { icon: Headphones, titleAr: "تجربة المستأجر", titleEn: "Tenant Experience", descAr: "دعم المستأجرين على مدار الساعة", descEn: "24/7 tenant support" },
-    { icon: UserCheck, titleAr: "التحقق والأمان", titleEn: "Verification & Security", descAr: "تحقق من الهوية وعقود رقمية", descEn: "Identity verification & digital contracts" },
+    { icon: Building2, titleAr: "إدارة العقارات", titleEn: "Property Management", descAr: "إدارة شاملة لعقارك الشهري مع تقارير دورية", descEn: "Complete monthly property management with periodic reports" },
+    { icon: Key, titleAr: "الإيجار الشهري", titleEn: "Monthly Rentals", descAr: "تأجير مرن بعقود رقمية متوافقة مع إيجار", descEn: "Flexible rentals with Ejar-compliant digital contracts" },
+    { icon: TrendingUp, titleAr: "إدارة الإيرادات", titleEn: "Revenue Management", descAr: "تسعير ذكي وتحسين العوائد بناءً على السوق", descEn: "Smart pricing and yield optimization based on market data" },
+    { icon: Paintbrush, titleAr: "العناية بالعقار", titleEn: "Property Care", descAr: "صيانة وتجديد وتصميم داخلي احترافي", descEn: "Professional maintenance, renovation & interior design" },
+    { icon: Headphones, titleAr: "تجربة المستأجر", titleEn: "Tenant Experience", descAr: "دعم المستأجرين على مدار الساعة بالعربية", descEn: "24/7 Arabic tenant support" },
+    { icon: UserCheck, titleAr: "التحقق والأمان", titleEn: "Verification & Security", descAr: "تحقق من الهوية الوطنية وعقود رقمية آمنة", descEn: "National ID verification & secure digital contracts" },
   ];
 
   const steps = [
@@ -95,9 +133,9 @@ export default function Home() {
   ];
 
   const testimonials = [
-    { textAr: "منصة إيجار سهّلت علي البحث عن شقة شهرية في الرياض. الخدمة ممتازة والعقود واضحة.", textEn: "Ijar made it easy to find a monthly apartment in Riyadh. Excellent service and clear contracts.", nameAr: "أحمد المطيري", nameEn: "Ahmed Al-Mutairi", roleAr: "مستأجر - الرياض", roleEn: "Tenant - Riyadh" },
-    { textAr: "سعيدة جداً باختياري لمنصة إيجار. من البحث وحتى التوقيع، كل شيء كان سلس واحترافي.", textEn: "Very happy with Ijar. From search to signing, everything was smooth and professional.", nameAr: "سارة الحربي", nameEn: "Sara Al-Harbi", roleAr: "مستأجرة - جدة", roleEn: "Tenant - Jeddah" },
-    { textAr: "كمالك عقار، إيجار وفّرت لي إدارة كاملة لشقتي. العوائد ممتازة والتواصل مع المستأجرين سهل.", textEn: "As a property owner, Ijar provided complete management. Great returns and easy tenant communication.", nameAr: "خالد العتيبي", nameEn: "Khaled Al-Otaibi", roleAr: "مالك عقار - المدينة", roleEn: "Property Owner - Madinah" },
+    { textAr: "منصة إيجار سهّلت علي البحث عن شقة شهرية في الرياض. الخدمة ممتازة والعقود واضحة.", textEn: "Ijar made it easy to find a monthly apartment in Riyadh. Excellent service and clear contracts.", nameAr: "أحمد المطيري", nameEn: "Ahmed Al-Mutairi", roleAr: "مستأجر - الرياض", roleEn: "Tenant - Riyadh", rating: 5 },
+    { textAr: "سعيدة جداً باختياري لمنصة إيجار. من البحث وحتى التوقيع، كل شيء كان سلس واحترافي.", textEn: "Very happy with Ijar. From search to signing, everything was smooth and professional.", nameAr: "سارة الحربي", nameEn: "Sara Al-Harbi", roleAr: "مستأجرة - جدة", roleEn: "Tenant - Jeddah", rating: 5 },
+    { textAr: "كمالك عقار، إيجار وفّرت لي إدارة كاملة لشقتي. العوائد ممتازة والتواصل مع المستأجرين سهل.", textEn: "As a property owner, Ijar provided complete management. Great returns and easy tenant communication.", nameAr: "خالد العتيبي", nameEn: "Khaled Al-Otaibi", roleAr: "مالك عقار - المدينة", roleEn: "Property Owner - Madinah", rating: 5 },
   ];
 
   const ArrowIcon = dir === "rtl" ? ArrowLeft : ArrowRight;
@@ -106,38 +144,61 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      {/* Hero Section - Dark Navy */}
-      <section className="relative bg-[#0B1E2D] text-white overflow-hidden">
+      {/* ═══ Hero Section - Dark Navy with Parallax ═══ */}
+      <section
+        ref={heroRef}
+        onMouseMove={handleMouseMove}
+        className="relative bg-[#0B1E2D] text-white overflow-hidden"
+      >
+        {/* Animated background pattern */}
         <div className="absolute inset-0 pattern-bg opacity-30" />
-        {/* Subtle gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0B1E2D]/50" />
         
+        {/* Floating decorative elements */}
+        <div
+          className="absolute top-20 start-[10%] w-64 h-64 rounded-full bg-[#3ECFC0]/5 blur-3xl animate-float-slow"
+          style={{ transform: `translate(${mousePos.x * -20}px, ${mousePos.y * -20}px)` }}
+        />
+        <div
+          className="absolute bottom-10 end-[15%] w-48 h-48 rounded-full bg-[#C9A96E]/5 blur-3xl animate-float"
+          style={{ transform: `translate(${mousePos.x * 15}px, ${mousePos.y * 15}px)` }}
+        />
+        <div
+          className="absolute top-1/3 end-[5%] w-2 h-2 rounded-full bg-[#3ECFC0]/40 animate-pulse"
+          style={{ transform: `translate(${mousePos.x * -30}px, ${mousePos.y * -30}px)` }}
+        />
+        <div
+          className="absolute bottom-1/3 start-[8%] w-3 h-3 rounded-full bg-[#C9A96E]/30 animate-pulse"
+          style={{ transform: `translate(${mousePos.x * 25}px, ${mousePos.y * 25}px)`, animationDelay: '1s' }}
+        />
+
         <div className="container relative py-24 md:py-36">
           <div className="max-w-3xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 border border-[#3ECFC0]/30 rounded-full px-4 py-1.5 mb-8">
+            {/* Animated Badge */}
+            <div className="inline-flex items-center gap-2 border border-[#3ECFC0]/30 rounded-full px-4 py-1.5 mb-8 animate-slide-left glass-card">
               <span className="w-2 h-2 rounded-full bg-[#3ECFC0] animate-pulse" />
               <span className="text-sm text-[#3ECFC0]">
                 {lang === "ar" ? "الآن في المملكة العربية السعودية" : "Now in Saudi Arabia"}
               </span>
+              <Sparkles className="h-3.5 w-3.5 text-[#C9A96E] animate-pulse" />
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-heading font-extrabold mb-6 leading-tight">
-              {sl("hero.title", lang) || (lang === "ar" 
-                ? "خبير الإيجار الشهري — الآن في السعودية" 
+            <h1 className="text-4xl md:text-6xl font-heading font-extrabold mb-6 leading-tight animate-slide-right">
+              {sl("hero.title", lang) || (lang === "ar"
+                ? "خبير الإيجار الشهري — الآن في السعودية"
                 : "Monthly Rental Expert — Now in Saudi Arabia")}
             </h1>
-            <p className="text-lg md:text-xl text-white/70 mb-10 leading-relaxed max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-white/70 mb-10 leading-relaxed max-w-2xl mx-auto fade-up visible" style={{ animationDelay: '0.3s' }}>
               {sl("hero.subtitle", lang) || (lang === "ar"
                 ? "إدارة إيجارات شهرية متميزة | الرياض • جدة • المدينة المنورة"
                 : "Premium monthly rental management | Riyadh • Jeddah • Madinah")}
             </p>
 
-            {/* CTA Buttons */}
+            {/* CTA Buttons with micro-interactions */}
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Button
                 size="lg"
-                className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-base px-8 h-12"
+                className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-base px-8 h-12"
                 onClick={() => setLocation("/list-property")}
               >
                 {lang === "ar" ? "أدرج عقارك" : "List Your Property"}
@@ -146,7 +207,7 @@ export default function Home() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-[#3ECFC0]/40 text-[#3ECFC0] hover:bg-[#3ECFC0]/10 hover:text-[#3ECFC0] font-bold text-base px-8 h-12"
+                className="btn-animate border-[#3ECFC0]/40 text-[#3ECFC0] hover:bg-[#3ECFC0]/10 hover:text-[#3ECFC0] font-bold text-base px-8 h-12"
                 onClick={() => setLocation("/search")}
               >
                 {lang === "ar" ? "احجز إقامتك" : "Book Your Stay"}
@@ -156,39 +217,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="bg-white border-b border-border/50">
+      {/* ═══ Stats Section with Animated Counters ═══ */}
+      <section className="bg-white border-b border-border/50 section-transition">
         <div className="container py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <StaggerGrid className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, i) => (
-              <div key={i} className="text-center">
+              <div key={i} className="text-center group">
                 <AnimatedCounter target={stat.value} />
-                <div className="text-sm text-muted-foreground mt-2 font-medium">
+                <div className="text-sm text-muted-foreground mt-2 font-medium group-hover:text-[#3ECFC0] transition-colors duration-300">
                   {lang === "ar" ? stat.labelAr : stat.labelEn}
                 </div>
               </div>
             ))}
-          </div>
+          </StaggerGrid>
         </div>
       </section>
 
-      {/* Services Section */}
-      <section className="bg-[#f5f7fa] py-20">
+      {/* ═══ Services Section with Staggered Cards ═══ */}
+      <section className="bg-[#f5f7fa] py-20 section-transition">
         <div className="container">
-          <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-3">
-            {lang === "ar" ? "خدماتنا" : "Our Services"}
-          </h2>
-          <p className="text-muted-foreground text-center mb-12 max-w-xl mx-auto">
-            {lang === "ar" ? "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة الإيجار الشهري" : "A complete suite of services for a seamless monthly rental experience"}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ScrollSection>
+            <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-3">
+              {lang === "ar" ? "خدماتنا" : "Our Services"}
+            </h2>
+            <p className="text-muted-foreground text-center mb-12 max-w-xl mx-auto">
+              {lang === "ar" ? "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة الإيجار الشهري" : "A complete suite of services for a seamless monthly rental experience"}
+            </p>
+          </ScrollSection>
+          <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((service, i) => (
-              <Card key={i} className="group hover:shadow-lg transition-all duration-300 border-border/50 bg-white">
+              <Card key={i} className="group card-hover border-border/50 bg-white cursor-default">
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 rounded-xl bg-[#3ECFC0]/10 flex items-center justify-center mb-4 group-hover:bg-[#3ECFC0]/20 transition-colors">
-                    <service.icon className="h-6 w-6 text-[#3ECFC0]" />
+                  <div className="w-12 h-12 rounded-xl bg-[#3ECFC0]/10 flex items-center justify-center mb-4 group-hover:bg-[#3ECFC0]/20 transition-all duration-500 group-hover:scale-110">
+                    <service.icon className="h-6 w-6 text-[#3ECFC0] icon-hover transition-transform duration-300 group-hover:scale-110" />
                   </div>
-                  <h3 className="font-heading font-semibold text-lg mb-2">
+                  <h3 className="font-heading font-semibold text-lg mb-2 group-hover:text-[#3ECFC0] transition-colors duration-300">
                     {lang === "ar" ? service.titleAr : service.titleEn}
                   </h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">
@@ -197,24 +260,38 @@ export default function Home() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </StaggerGrid>
         </div>
       </section>
 
-      {/* How It Works - Dark Section */}
-      <section className="bg-[#0B1E2D] text-white py-20">
-        <div className="container">
-          <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-3">
-            {lang === "ar" ? "كيف يعمل" : "How It Works"}
-          </h2>
-          <p className="text-white/60 text-center mb-14 max-w-xl mx-auto">
-            {lang === "ar" ? "ثلاث خطوات بسيطة للحصول على سكنك الشهري المثالي" : "Three simple steps to find your perfect monthly home"}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+      {/* ═══ How It Works - Dark Section with Step Animation ═══ */}
+      <section className="bg-[#0B1E2D] text-white py-20 section-transition relative overflow-hidden">
+        <div className="absolute inset-0 pattern-bg opacity-10" />
+        <div className="container relative">
+          <ScrollSection>
+            <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-3">
+              {lang === "ar" ? "كيف يعمل" : "How It Works"}
+            </h2>
+            <p className="text-white/60 text-center mb-14 max-w-xl mx-auto">
+              {lang === "ar" ? "ثلاث خطوات بسيطة للحصول على سكنك الشهري المثالي" : "Three simple steps to find your perfect monthly home"}
+            </p>
+          </ScrollSection>
+          <StaggerGrid className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {steps.map((step, i) => (
-              <div key={i} className="text-center">
-                <div className="text-5xl font-heading font-extrabold text-[#3ECFC0]/20 mb-4">{step.num}</div>
-                <h3 className="text-xl font-heading font-semibold mb-3">
+              <div key={i} className="text-center group relative">
+                {/* Connecting line between steps */}
+                {i < steps.length - 1 && (
+                  <div className="hidden md:block absolute top-8 start-[60%] w-[80%] h-[2px] bg-gradient-to-r from-[#3ECFC0]/30 to-transparent" />
+                )}
+                <div className="relative inline-block mb-4">
+                  <div className="text-5xl font-heading font-extrabold text-[#3ECFC0]/20 group-hover:text-[#3ECFC0]/40 transition-colors duration-500">
+                    {step.num}
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-[#3ECFC0]/10 group-hover:bg-[#3ECFC0]/20 group-hover:scale-125 transition-all duration-500" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-heading font-semibold mb-3 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   {lang === "ar" ? step.titleAr : step.titleEn}
                 </h3>
                 <p className="text-white/60 text-sm leading-relaxed">
@@ -222,31 +299,33 @@ export default function Home() {
                 </p>
               </div>
             ))}
-          </div>
+          </StaggerGrid>
         </div>
       </section>
 
-      {/* Featured Properties */}
-      <section className="py-20 bg-white">
+      {/* ═══ Featured Properties with Slide Animation ═══ */}
+      <section className="py-20 bg-white section-transition">
         <div className="container">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-heading font-bold">
-                {lang === "ar" ? "عقارات مميزة" : "Featured Properties"}
-              </h2>
-              <p className="text-muted-foreground mt-1">
-                {lang === "ar" ? "اكتشف أفضل العقارات المتاحة للإيجار الشهري" : "Discover the best monthly rental properties"}
-              </p>
+          <ScrollSection>
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-heading font-bold">
+                  {lang === "ar" ? "عقارات مميزة" : "Featured Properties"}
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  {lang === "ar" ? "اكتشف أفضل العقارات المتاحة للإيجار الشهري" : "Discover the best monthly rental properties"}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setLocation("/search")}
+                className="hidden md:flex border-[#3ECFC0] text-[#3ECFC0] hover:bg-[#3ECFC0]/10 btn-animate"
+              >
+                {t("common.viewAll")}
+                <ArrowIcon className="h-4 w-4 ms-1.5" />
+              </Button>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => setLocation("/search")} 
-              className="hidden md:flex border-[#3ECFC0] text-[#3ECFC0] hover:bg-[#3ECFC0]/10"
-            >
-              {t("common.viewAll")}
-              <ArrowIcon className="h-4 w-4 ms-1.5" />
-            </Button>
-          </div>
+          </ScrollSection>
 
           {featured.isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -262,25 +341,27 @@ export default function Home() {
               ))}
             </div>
           ) : featured.data && featured.data.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {featured.data.map((prop) => (
-                <PropertyCard key={prop.id} property={prop} />
+                <div key={prop.id} className="card-hover">
+                  <PropertyCard property={prop} />
+                </div>
               ))}
-            </div>
+            </StaggerGrid>
           ) : (
             <Card className="p-12 text-center">
-              <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+              <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4 animate-float" />
               <p className="text-muted-foreground">
                 {lang === "ar" ? "لا توجد عقارات متاحة حالياً" : "No properties available yet"}
               </p>
-              <Button className="mt-4 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0" onClick={() => setLocation("/list-property")}>
+              <Button className="mt-4 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 btn-animate" onClick={() => setLocation("/list-property")}>
                 {t("nav.listProperty")}
               </Button>
             </Card>
           )}
 
           <div className="text-center mt-8 md:hidden">
-            <Button variant="outline" onClick={() => setLocation("/search")} className="border-[#3ECFC0] text-[#3ECFC0] hover:bg-[#3ECFC0]/10">
+            <Button variant="outline" onClick={() => setLocation("/search")} className="border-[#3ECFC0] text-[#3ECFC0] hover:bg-[#3ECFC0]/10 btn-animate">
               {t("common.viewAll")}
               <ArrowIcon className="h-4 w-4 ms-1.5" />
             </Button>
@@ -288,60 +369,73 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Cities Section */}
-      <section className="bg-[#f5f7fa] py-20">
+      {/* ═══ Cities Section with Hover Effects ═══ */}
+      <section className="bg-[#f5f7fa] py-20 section-transition">
         <div className="container">
-          <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-3">
-            {lang === "ar" ? "مدننا" : "Our Cities"}
-          </h2>
-          <p className="text-muted-foreground text-center mb-12">
-            {lang === "ar" ? "اكتشف العقارات المتاحة في أبرز المدن السعودية" : "Discover properties in Saudi Arabia's top cities"}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ScrollSection>
+            <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-3">
+              {lang === "ar" ? "مدننا" : "Our Cities"}
+            </h2>
+            <p className="text-muted-foreground text-center mb-12">
+              {lang === "ar" ? "اكتشف العقارات المتاحة في أبرز المدن السعودية" : "Discover properties in Saudi Arabia's top cities"}
+            </p>
+          </ScrollSection>
+          <StaggerGrid className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {(citiesQuery.data || []).slice(0, 6).map((city) => (
               <Card
                 key={city.id}
                 onClick={() => setLocation(`/search?city=${city.nameEn?.toLowerCase()}`)}
-                className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden bg-white border-border/50"
+                className="group cursor-pointer card-hover overflow-hidden bg-white border-border/50"
               >
                 <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-[#3ECFC0]/10 flex items-center justify-center shrink-0 group-hover:bg-[#3ECFC0]/20 transition-colors">
-                    <MapPin className="h-6 w-6 text-[#3ECFC0]" />
+                  <div className="w-14 h-14 rounded-xl bg-[#3ECFC0]/10 flex items-center justify-center shrink-0 group-hover:bg-[#3ECFC0]/20 group-hover:scale-110 transition-all duration-500">
+                    <MapPin className="h-6 w-6 text-[#3ECFC0] group-hover:animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-semibold text-lg">
+                    <h3 className="font-heading font-semibold text-lg group-hover:text-[#3ECFC0] transition-colors duration-300">
                       {lang === "ar" ? city.nameAr : city.nameEn}
                     </h3>
                     <p className="text-muted-foreground text-sm">
                       {lang === "ar" ? city.region || "" : city.region || ""}
                     </p>
                   </div>
+                  <ArrowIcon className="h-5 w-5 text-muted-foreground/30 ms-auto group-hover:text-[#3ECFC0] group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-all duration-300" />
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </StaggerGrid>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-white">
+      {/* ═══ Testimonials with Glassmorphism ═══ */}
+      <section className="py-20 bg-white section-transition">
         <div className="container">
-          <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-3">
-            {lang === "ar" ? "آراء عملائنا" : "What Our Clients Say"}
-          </h2>
-          <p className="text-muted-foreground text-center mb-12">
-            {lang === "ar" ? "تجارب حقيقية من مستأجرين وملاك عقارات" : "Real experiences from tenants and property owners"}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ScrollSection>
+            <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-3">
+              {lang === "ar" ? "آراء عملائنا" : "What Our Clients Say"}
+            </h2>
+            <p className="text-muted-foreground text-center mb-12">
+              {lang === "ar" ? "تجارب حقيقية من مستأجرين وملاك عقارات" : "Real experiences from tenants and property owners"}
+            </p>
+          </ScrollSection>
+          <StaggerGrid className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((item, i) => (
-              <Card key={i} className="border-border/50 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <Quote className="h-8 w-8 text-[#3ECFC0]/30 mb-4" />
+              <Card key={i} className="border-border/50 card-hover group relative overflow-hidden">
+                {/* Subtle gradient accent on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#3ECFC0]/0 to-[#3ECFC0]/0 group-hover:from-[#3ECFC0]/3 group-hover:to-transparent transition-all duration-500" />
+                <CardContent className="p-6 relative">
+                  <Quote className="h-8 w-8 text-[#3ECFC0]/30 mb-4 group-hover:text-[#3ECFC0]/50 transition-colors duration-300" />
+                  {/* Star rating */}
+                  <div className="flex gap-1 mb-3">
+                    {Array.from({ length: item.rating }).map((_, j) => (
+                      <Star key={j} className="h-4 w-4 fill-[#C9A96E] text-[#C9A96E]" />
+                    ))}
+                  </div>
                   <p className="text-foreground/80 text-sm leading-relaxed mb-6 min-h-[80px]">
                     "{lang === "ar" ? item.textAr : item.textEn}"
                   </p>
                   <div className="flex items-center gap-3 pt-4 border-t border-border/50">
-                    <div className="w-10 h-10 rounded-full bg-[#0B1E2D] flex items-center justify-center text-white font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-[#0B1E2D] flex items-center justify-center text-white font-bold text-sm group-hover:bg-[#3ECFC0] group-hover:text-[#0B1E2D] transition-all duration-500">
                       {(lang === "ar" ? item.nameAr : item.nameEn).charAt(0)}
                     </div>
                     <div>
@@ -352,14 +446,18 @@ export default function Home() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </StaggerGrid>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-[#0B1E2D] text-white py-20 relative overflow-hidden">
+      {/* ═══ CTA Section with Animated Background ═══ */}
+      <section className="bg-[#0B1E2D] text-white py-20 relative overflow-hidden section-transition">
         <div className="absolute inset-0 pattern-bg opacity-20" />
-        <div className="container relative text-center">
+        {/* Animated gradient orbs */}
+        <div className="absolute top-0 start-1/4 w-96 h-96 rounded-full bg-[#3ECFC0]/5 blur-3xl animate-float-slow" />
+        <div className="absolute bottom-0 end-1/4 w-72 h-72 rounded-full bg-[#C9A96E]/5 blur-3xl animate-float" />
+        
+        <ScrollSection className="container relative text-center">
           <h2 className="text-2xl md:text-4xl font-heading font-bold mb-4">
             {lang === "ar" ? "حقق أقصى استفادة من عقارك" : "Maximize Your Property's Potential"}
           </h2>
@@ -371,7 +469,7 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
               size="lg"
-              className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-base px-8 h-12"
+              className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-base px-8 h-12 animate-glow"
               onClick={() => setLocation("/list-property")}
             >
               {lang === "ar" ? "أدرج عقارك مجاناً" : "List Your Property Free"}
@@ -380,27 +478,14 @@ export default function Home() {
             <Button
               size="lg"
               variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 font-bold text-base px-8 h-12"
+              className="btn-animate border-white/30 text-white hover:bg-white/10 font-bold text-base px-8 h-12"
               onClick={() => setLocation("/search")}
             >
               {lang === "ar" ? "تصفح العقارات" : "Browse Properties"}
             </Button>
           </div>
-        </div>
+        </ScrollSection>
       </section>
-
-      {/* WhatsApp Floating Button */}
-      <a
-        href="https://wa.me/966504466528"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 end-6 z-50 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300"
-        title={lang === "ar" ? "تواصل عبر واتساب" : "Chat on WhatsApp"}
-      >
-        <svg className="h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-      </a>
 
       <Footer />
     </div>

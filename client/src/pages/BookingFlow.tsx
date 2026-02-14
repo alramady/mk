@@ -55,12 +55,15 @@ export default function BookingFlow() {
   const prop = property.data;
   const BackArrow = dir === "rtl" ? ArrowRight : ArrowLeft;
 
-  // Calculate costs
+  // Calculate costs - dynamic from CMS settings
+  const serviceFeePercent = parseFloat(setting("fees.serviceFeePercent", "5")) || 5;
+  const vatPercent = parseFloat(setting("fees.vatPercent", "15")) || 15;
   const monthlyRent = prop ? Number(prop.monthlyRent) : 0;
   const securityDeposit = prop ? Number(prop.securityDeposit || 0) : 0;
-  const serviceFee = Math.round(monthlyRent * 0.05); // 5% service fee
+  const serviceFee = Math.round(monthlyRent * (serviceFeePercent / 100));
+  const vatAmount = Math.round(serviceFee * (vatPercent / 100));
   const totalRent = monthlyRent * form.durationMonths;
-  const totalAmount = totalRent + securityDeposit + serviceFee;
+  const totalAmount = totalRent + securityDeposit + serviceFee + vatAmount;
 
   const moveOutDate = useMemo(() => {
     if (!form.moveInDate) return "";
@@ -201,7 +204,7 @@ export default function BookingFlow() {
                   rows={3}
                 />
               </div>
-              <Button className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold" onClick={() => setStep(2)} disabled={!form.moveInDate}>
+              <Button className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold" onClick={() => setStep(2)} disabled={!form.moveInDate}>
                 {t("common.next")}
               </Button>
             </CardContent>
@@ -225,9 +228,15 @@ export default function BookingFlow() {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("payment.serviceFee")} (5%)</span>
+                  <span className="text-muted-foreground">{t("payment.serviceFee")} ({serviceFeePercent}%)</span>
                   <span className="font-medium">{serviceFee.toLocaleString()} {t("payment.sar")}</span>
                 </div>
+                {vatAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{lang === "ar" ? `ضريبة القيمة المضافة (${vatPercent}%)` : `VAT (${vatPercent}%)`}</span>
+                    <span className="font-medium">{vatAmount.toLocaleString()} {t("payment.sar")}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>{t("common.total")}</span>
@@ -236,12 +245,12 @@ export default function BookingFlow() {
               </div>
               <div className="bg-secondary p-3 rounded-lg text-sm text-muted-foreground">
                 {lang === "ar"
-                  ? "سيتم تحصيل المبلغ بعد موافقة المالك على طلب الحجز. تشمل رسوم الخدمة ضريبة القيمة المضافة."
-                  : "Payment will be collected after the landlord approves your booking request. Service fee includes VAT."}
+                  ? "سيتم تحصيل المبلغ بعد موافقة المالك على طلب الحجز. رسوم الخدمة وضريبة القيمة المضافة قابلة للتعديل من إدارة المنصة."
+                  : "Payment will be collected after the landlord approves your booking. Service fee and VAT rates are configurable by platform admin."}
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>{t("common.back")}</Button>
-                <Button className="flex-1 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold" onClick={() => setStep(3)}>{t("common.next")}</Button>
+                <Button className="flex-1 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold" onClick={() => setStep(3)}>{t("common.next")}</Button>
               </div>
             </CardContent>
           </Card>
@@ -279,7 +288,7 @@ export default function BookingFlow() {
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>{t("common.back")}</Button>
                 <Button
-                  className="flex-1 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold"
+                  className="flex-1 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold"
                   onClick={handleSubmit}
                   disabled={createBooking.isPending}
                 >
@@ -306,7 +315,7 @@ export default function BookingFlow() {
               </p>
               <div className="flex gap-3 justify-center">
                 <Button variant="outline" onClick={() => setLocation("/dashboard")}>{t("dashboard.tenant")}</Button>
-                <Button onClick={() => setLocation("/search")} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">{t("nav.search")}</Button>
+                <Button onClick={() => setLocation("/search")} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold">{t("nav.search")}</Button>
               </div>
             </CardContent>
           </Card>

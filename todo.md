@@ -172,7 +172,7 @@
 - [x] Update Home page stats to use dynamic numbers from settings
 - [x] Update Footer to use dynamic content from settings
 - [ ] Admin CMS Page — Featured Cities (add/remove/reorder cities)
-- [ ] Update BookingFlow to use dynamic service fee from settings
+- [x] Update BookingFlow to use dynamic service fee from settings
 
 ## User Activity Tracking & Analytics
 - [x] userActivities DB table (userId, action, page, metadata, ip, timestamp)
@@ -247,7 +247,7 @@
 - [x] Update all pages to use new dark/teal theme (Login, Register, KnowledgeBase, LandlordDashboard, CityDistrict, etc.)
 - [x] Configurable rental duration (dynamic from CMS settings)
 - [x] Update booking flow validation with dynamic limits
-- [ ] WhatsApp floating button (pending)
+- [x] WhatsApp floating button (CMS-configurable)
 
 ## Configurable Rental Duration Limits
 - [x] Add rental.minMonths and rental.maxMonths to platform_settings seed defaults
@@ -256,3 +256,34 @@
 - [x] Update backend booking validation to use dynamic limits from settings
 - [x] Update property creation form to show dynamic duration info
 - [x] Write vitest tests for dynamic rental duration validation (6 tests, all passing)
+
+## WhatsApp Floating Button
+- [x] Create WhatsApp floating button component
+- [x] Add whatsapp.number to CMS settings (configurable from admin)
+- [x] Add whatsapp.message default text to CMS settings
+- [x] Position bottom-right with pulse animation
+
+## Expanded CMS Controls
+- [x] Verify rental duration limits work end-to-end (CMS → backend → frontend)
+- [x] Make service fee % dynamic from CMS in BookingFlow cost calculation
+- [x] Make VAT % dynamic from CMS in cost calculations
+- [x] Make deposit months dynamic from CMS
+- [x] Add CMS controls for primary/accent colors (in site identity tab)
+- [x] Ensure all CMS changes reflect immediately on the site
+
+## Motion & Animation Effects
+- [x] Scroll-triggered fade-in animations for sections (useScrollAnimation hook)
+- [x] Card hover effects (lift, shadow, scale)
+- [x] Staggered entrance animations for grids
+- [x] Counter animation for stats numbers (useCountUp hook)
+- [x] Parallax effect on hero section (floating particles)
+- [x] Button hover micro-interactions (btn-animate class)
+- [x] Page transition animations
+- [x] Navbar scroll effect (backdrop-blur + shadow on scroll)
+- [x] Floating elements animation in hero (animated dots)
+- [x] Smooth reveal for testimonials (scroll-triggered)
+
+## Content Update
+- [x] Update default CMS content to match Ijar monthly rental identity
+- [x] Update hero text, stats, services descriptions
+- [x] Update footer content

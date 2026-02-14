@@ -172,7 +172,7 @@ export default function Messages() {
                       onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
                       className="flex-1"
                     />
-                    <Button onClick={handleSend} disabled={!messageText.trim() || sendMessage.isPending} size="icon" className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">
+                    <Button onClick={handleSend} disabled={!messageText.trim() || sendMessage.isPending} size="icon" className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold">
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>

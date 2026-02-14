@@ -16,7 +16,7 @@ import { Link } from "wouter";
 import {
   Settings, Image, Palette, DollarSign, FileText, Users, Shield, BarChart3,
   ArrowRight, ArrowLeft, Save, Upload, RefreshCw, Globe, MapPin, BookOpen,
-  ChevronDown, ChevronUp, Eye, Trash2, Plus, Search
+  ChevronDown, ChevronUp, Eye, Trash2, Plus, Search, MessageCircle, Phone
 } from "lucide-react";
 
 export default function AdminSettings() {
@@ -248,6 +248,7 @@ export default function AdminSettings() {
             <TabsTrigger value="permissions" className="gap-2"><Shield className="h-4 w-4" />{t("perms.title")}</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2"><BarChart3 className="h-4 w-4" />{t("analytics.title")}</TabsTrigger>
             <TabsTrigger value="districts" className="gap-2"><MapPin className="h-4 w-4" />{t("districts.title")}</TabsTrigger>
+            <TabsTrigger value="whatsapp" className="gap-2"><MessageCircle className="h-4 w-4" />{lang === "ar" ? "واتساب" : "WhatsApp"}</TabsTrigger>
           </TabsList>
 
           {/* General Settings */}
@@ -459,6 +460,36 @@ export default function AdminSettings() {
               <CardContent className="space-y-6">
                 <BilingualField labelAr={t("settings.terms")} labelEn={t("settings.terms")} keyAr="terms.contentAr" keyEn="terms.contentEn" type="textarea" />
                 <BilingualField labelAr={t("settings.privacy")} labelEn={t("settings.privacy")} keyAr="privacy.contentAr" keyEn="privacy.contentEn" type="textarea" />
+
+                <Button onClick={saveSettings} disabled={updateMutation.isPending}>
+                  <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                  {t("settings.save")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* WhatsApp Settings */}
+          <TabsContent value="whatsapp">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5 text-[#25D366]" />
+                  {lang === "ar" ? "إعدادات واتساب" : "WhatsApp Settings"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <p className="text-sm text-muted-foreground">
+                  {lang === "ar" ? "تحكم في زر واتساب العائم والرسالة الافتراضية" : "Control the floating WhatsApp button and default message"}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <SettingField label={lang === "ar" ? "رقم واتساب (مع رمز الدولة)" : "WhatsApp Number (with country code)"} settingKey="whatsapp.number" placeholder="966504466528" />
+                  <SettingField label={lang === "ar" ? "رسالة ترحيبية افتراضية" : "Default Welcome Message"} settingKey="whatsapp.message" placeholder={lang === "ar" ? "مرحباً، أحتاج مساعدة بخصوص الإيجار الشهري" : "Hello, I need help with monthly rental"} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <SettingField label={lang === "ar" ? "نص الزر (عربي)" : "Button Text (Arabic)"} settingKey="whatsapp.textAr" placeholder="تواصل معنا" />
+                  <SettingField label={lang === "ar" ? "نص الزر (إنجليزي)" : "Button Text (English)"} settingKey="whatsapp.textEn" placeholder="Chat with us" />
+                </div>
 
                 <Button onClick={saveSettings} disabled={updateMutation.isPending}>
                   <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />

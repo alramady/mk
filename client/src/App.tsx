@@ -8,6 +8,7 @@ import { I18nProvider } from "./lib/i18n";
 import { SiteSettingsProvider } from "./contexts/SiteSettingsContext";
 import { lazy, Suspense } from "react";
 import AiAssistant from "./components/AiAssistant";
+import WhatsAppButton from "./components/WhatsAppButton";
 import { Loader2 } from "lucide-react";
 
 // Eager load critical pages
@@ -77,6 +78,7 @@ function App() {
             <Toaster />
             <Router />
             <AiAssistant />
+            <WhatsAppButton />
           </TooltipProvider>
           </SiteSettingsProvider>
         </I18nProvider>

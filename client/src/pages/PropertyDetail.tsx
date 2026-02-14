@@ -299,7 +299,7 @@ export default function PropertyDetail() {
                   <Separator />
 
                   <Button
-                    className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold"
+                    className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold"
                     size="lg"
                     onClick={() => {
                       if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول أولاً" : "Please sign in first"); return; }

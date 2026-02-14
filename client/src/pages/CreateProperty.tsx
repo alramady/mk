@@ -309,7 +309,7 @@ export default function CreateProperty() {
           {/* Submit */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setLocation("/")}>{t("common.cancel")}</Button>
-            <Button onClick={handleSubmit} disabled={createMut.isPending} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">
+            <Button onClick={handleSubmit} disabled={createMut.isPending} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold">
               {createMut.isPending && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
               {isEdit ? t("common.save") : t("common.create")}
             </Button>

@@ -66,7 +66,7 @@ export default function Navbar() {
             {s("site.logoUrl") ? (
               <img src={s("site.logoUrl")} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
             ) : (
-              <div className="w-9 h-9 rounded-lg bg-[#3ECFC0] flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-[#3ECFC0] flex items-center justify-center transition-transform duration-300 hover:scale-110">
                 <Building2 className="h-5 w-5 text-[#0B1E2D]" />
               </div>
             )}
@@ -133,7 +133,7 @@ export default function Navbar() {
             {/* List Property CTA */}
             {isAuthenticated && (
               <Link href="/list-property" className="hidden md:block">
-                <Button size="sm" className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">
+                <Button size="sm" className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold btn-animate">
                   <Plus className="h-4 w-4 me-1.5" />
                   {t("nav.listProperty")}
                 </Button>
@@ -198,8 +198,8 @@ export default function Navbar() {
         </div>
 
         {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/10 py-3 space-y-1">
+        <div className={`md:hidden border-t border-white/10 overflow-hidden transition-all duration-500 ease-out ${mobileMenuOpen ? "max-h-96 py-3 opacity-100" : "max-h-0 py-0 opacity-0"}`}>
+          <div className="space-y-1">
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
                 <Home className="h-4 w-4 me-2" />
@@ -235,7 +235,7 @@ export default function Navbar() {
               </>
             )}
           </div>
-        )}
+        </div>
       </div>
     </nav>
   );

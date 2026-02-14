@@ -74,7 +74,7 @@ export default function TenantDashboard() {
             ) : bookings.data && bookings.data.length > 0 ? (
               <div className="space-y-3">
                 {bookings.data.map((b) => (
-                  <Card key={b.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation(`/property/${b.propertyId}`)}>
+                  <Card key={b.id} className="card-hover transition-shadow cursor-pointer" onClick={() => setLocation(`/property/${b.propertyId}`)}>
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">

@@ -63,13 +63,13 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
   return (
     <Link href={`/property/${property.id}`}>
-      <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border-border/50 py-0 gap-0 bg-white">
+      <Card className="group overflow-hidden hover:shadow-xl hover:shadow-[#3ECFC0]/10 transition-all duration-500 cursor-pointer border-border/50 py-0 gap-0 bg-white hover:-translate-y-1">
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
             src={photo}
             alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
           />
           {/* Badges */}
           <div className="absolute top-3 start-3 flex gap-1.5">
@@ -88,7 +88,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           {/* Favorite */}
           <button
             onClick={handleFavorite}
-            className="absolute top-3 end-3 h-8 w-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white transition-colors"
+            className="absolute top-3 end-3 h-8 w-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300"
           >
             <Heart
               className={`h-4 w-4 transition-colors ${
@@ -97,7 +97,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             />
           </button>
           {/* Price tag */}
-          <div className="absolute bottom-3 start-3 bg-[#0B1E2D]/90 backdrop-blur rounded-lg px-3 py-1.5 shadow-sm">
+          <div className="absolute bottom-3 start-3 bg-[#0B1E2D]/90 backdrop-blur rounded-lg px-3 py-1.5 shadow-sm group-hover:bg-[#0B1E2D] transition-colors duration-300">
             <span className="font-bold text-[#3ECFC0] text-lg">
               {Number(property.monthlyRent).toLocaleString()} {t("payment.sar")}
             </span>
