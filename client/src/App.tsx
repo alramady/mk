@@ -28,6 +28,7 @@ const MaintenanceRequest = lazy(() => import("./pages/MaintenanceRequest"));
 const LeaseContract = lazy(() => import("./pages/LeaseContract"));
 const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const CityDistrictManagement = lazy(() => import("./pages/CityDistrictManagement"));
 
 function PageLoader() {
   return (
@@ -58,6 +59,7 @@ function Router() {
         <Route path="/lease/:bookingId" component={LeaseContract} />
         <Route path="/admin/knowledge-base" component={KnowledgeBase} />
         <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/cities" component={CityDistrictManagement} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

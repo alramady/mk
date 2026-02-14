@@ -213,3 +213,20 @@
 - [x] Admin Permissions API tests (2 tests)
 - [x] Public Settings API test (1 test)
 - [x] All 117 tests passing (4 test files)
+
+## City & District Management System
+- [x] Cities table (nameAr, nameEn, region, regionAr, latitude, longitude, imageUrl, isActive, sortOrder)
+- [x] Districts table updated with cityId FK, sortOrder, timestamps
+- [x] City CRUD endpoints (create, read, update, delete, toggle)
+- [x] District CRUD endpoints (create, read, update, delete, toggle, bulk create)
+- [x] Admin management page with tabs (Cities / Districts)
+- [x] City form dialog (add/edit with AR/EN names, region, coordinates, image, sort order)
+- [x] District form dialog (add/edit with city selection, AR/EN names, coordinates, sort order)
+- [x] Delete confirmation dialogs
+- [x] Search/filter for cities and districts
+- [x] Stats cards (total cities, active cities, total districts, active districts)
+- [x] Link from Admin Dashboard to city management
+- [x] Update search page to use only active cities/districts from DB
+- [x] Seed 8 Saudi cities with regions and coordinates
+- [x] Tests for city and district CRUD operations (13 tests, all passing)
+- [x] All 130 tests passing (5 test files)

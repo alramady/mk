@@ -61,11 +61,23 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <Link href="/admin/knowledge-base">
             <Button variant="outline" className="gap-2">
               <BookOpen className="h-4 w-4" />
               {lang === "ar" ? "قاعدة المعرفة" : "Knowledge Base"}
+            </Button>
+          </Link>
+          <Link href="/admin/cities">
+            <Button variant="outline" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              {lang === "ar" ? "إدارة المدن والأحياء" : "Cities & Districts"}
+            </Button>
+          </Link>
+          <Link href="/admin/settings">
+            <Button variant="outline" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              {lang === "ar" ? "إعدادات المنصة" : "Platform Settings"}
             </Button>
           </Link>
         </div>

@@ -894,16 +894,99 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Districts ────────────────────────────────────────────────────
-  districts: router({
-    all: publicProcedure.query(async () => {
-      return db.getAllDistricts();
+  // ─── Cities ────────────────────────────────────────────────────
+  cities: router({
+    all: publicProcedure
+      .input(z.object({ activeOnly: z.boolean().optional() }).optional())
+      .query(async ({ input }) => {
+        return db.getAllCities(input?.activeOnly ?? true);
+      }),
+
+    byId: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return db.getCityById(input.id);
+      }),
+
+    count: publicProcedure.query(async () => {
+      return { count: await db.getCityCount() };
     }),
 
-    byCity: publicProcedure
-      .input(z.object({ city: z.string() }))
+    create: adminProcedure
+      .input(z.object({
+        nameEn: z.string(),
+        nameAr: z.string(),
+        region: z.string().optional(),
+        regionAr: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
+        imageUrl: z.string().optional(),
+        isActive: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await db.createCity(input as any);
+        return { id };
+      }),
+
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        nameEn: z.string().optional(),
+        nameAr: z.string().optional(),
+        region: z.string().optional(),
+        regionAr: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
+        imageUrl: z.string().optional(),
+        isActive: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateCity(id, data as any);
+        return { success: true };
+      }),
+
+    toggle: adminProcedure
+      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ input }) => {
+        await db.toggleCityActive(input.id, input.isActive);
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteCity(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Districts ────────────────────────────────────────────────
+  districts: router({
+    all: publicProcedure
+      .input(z.object({ activeOnly: z.boolean().optional() }).optional())
       .query(async ({ input }) => {
-        return db.getDistrictsByCity(input.city);
+        return db.getAllDistricts(input?.activeOnly ?? true);
+      }),
+
+    byCity: publicProcedure
+      .input(z.object({ city: z.string(), activeOnly: z.boolean().optional() }))
+      .query(async ({ input }) => {
+        return db.getDistrictsByCity(input.city, input.activeOnly ?? true);
+      }),
+
+    byCityId: publicProcedure
+      .input(z.object({ cityId: z.number(), activeOnly: z.boolean().optional() }))
+      .query(async ({ input }) => {
+        return db.getDistrictsByCityId(input.cityId, input.activeOnly ?? true);
+      }),
+
+    byId: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return db.getDistrictById(input.id);
       }),
 
     count: publicProcedure.query(async () => {
@@ -912,21 +995,58 @@ export const appRouter = router({
 
     create: adminProcedure
       .input(z.object({
+        cityId: z.number().optional(),
         city: z.string(),
         cityAr: z.string(),
         nameEn: z.string(),
         nameAr: z.string(),
         latitude: z.string().optional(),
         longitude: z.string().optional(),
+        isActive: z.boolean().optional(),
+        sortOrder: z.number().optional(),
       }))
       .mutation(async ({ input }) => {
-        const id = await db.createDistrict(input);
+        const id = await db.createDistrict(input as any);
         return { id };
+      }),
+
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        cityId: z.number().optional(),
+        city: z.string().optional(),
+        cityAr: z.string().optional(),
+        nameEn: z.string().optional(),
+        nameAr: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
+        isActive: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateDistrict(id, data as any);
+        return { success: true };
+      }),
+
+    toggle: adminProcedure
+      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ input }) => {
+        await db.toggleDistrictActive(input.id, input.isActive);
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteDistrict(input.id);
+        return { success: true };
       }),
 
     bulkCreate: adminProcedure
       .input(z.object({
         districts: z.array(z.object({
+          cityId: z.number().optional(),
           city: z.string(),
           cityAr: z.string(),
           nameEn: z.string(),
@@ -936,7 +1056,7 @@ export const appRouter = router({
         })),
       }))
       .mutation(async ({ input }) => {
-        await db.bulkCreateDistricts(input.districts);
+        await db.bulkCreateDistricts(input.districts as any[]);
         return { success: true, count: input.districts.length };
       }),
 

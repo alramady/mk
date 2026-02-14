@@ -339,9 +339,29 @@ export const adminPermissions = mysqlTable("adminPermissions", {
 export type AdminPermission = typeof adminPermissions.$inferSelect;
 export type InsertAdminPermission = typeof adminPermissions.$inferInsert;
 
+// ─── Saudi Cities ──────────────────────────────────────────────────
+export const cities = mysqlTable("cities", {
+  id: int("id").autoincrement().primaryKey(),
+  nameEn: varchar("nameEn", { length: 100 }).notNull(),
+  nameAr: varchar("nameAr", { length: 100 }).notNull(),
+  region: varchar("region", { length: 100 }),
+  regionAr: varchar("regionAr", { length: 100 }),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  imageUrl: text("imageUrl"),
+  isActive: boolean("isActive").default(true),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type City = typeof cities.$inferSelect;
+export type InsertCity = typeof cities.$inferInsert;
+
 // ─── Saudi Districts ────────────────────────────────────────────────
 export const districts = mysqlTable("districts", {
   id: int("id").autoincrement().primaryKey(),
+  cityId: int("cityId"),
   city: varchar("city", { length: 100 }).notNull(),
   cityAr: varchar("cityAr", { length: 100 }).notNull(),
   nameEn: varchar("nameEn", { length: 100 }).notNull(),
@@ -349,6 +369,9 @@ export const districts = mysqlTable("districts", {
   latitude: decimal("latitude", { precision: 10, scale: 7 }),
   longitude: decimal("longitude", { precision: 10, scale: 7 }),
   isActive: boolean("isActive").default(true),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type District = typeof districts.$inferSelect;

@@ -36,6 +36,13 @@
       "when": 1771025153047,
       "tag": "0004_premium_imperial_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1771034287928,
+      "tag": "0005_minor_gateway",
+      "breakpoints": true
     }
   ]
 }
