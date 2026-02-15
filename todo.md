@@ -564,3 +564,24 @@
 - [x] Create server email helper (sendEmail function) with nodemailer
 - [x] Integrate email sending into booking confirmations and notifications
 - [x] Allow SMTP credentials to be configured from admin Settings panel later
+
+## Neighborhoods for New Cities
+- [x] Add Makkah neighborhoods (العزيزية، الشوقية، النسيم، العوالي، الرصيفة، الزاهر، الحمراء، بطحاء قريش، الكعكية، الهجرة)
+- [x] Add Dammam neighborhoods (الفيصلية، الشاطئ، المزروعية، الجلوية، الأنوار، الخليج، الفردوس، الندى، العزيزية، الريان)
+- [x] Add Khobar neighborhoods (الحزام الذهبي، العقربية، الخبر الشمالية، الخبر الجنوبية، الثقبة، الراكة، اليرموك، الصفا، البندرية، التحلية)
+- [x] Add Tabuk neighborhoods (الفيصلية، المروج، السليمانية، الربوة، النخيل، الورود، المصيف، العزيزية، الروضة، الريان)
+- [x] Add Abha neighborhoods (المنسك، الخالدية، الربوة، المفتاحة، الضباب، النسيم، الوردتين، الموظفين، شمسان، السد)
+
+## Admin Roles & Permissions Management
+- [x] Create permissions schema (roles table with granular permissions)
+- [x] Build admin roles/permissions management page with visual UI
+- [x] Role CRUD (create, edit, delete roles)
+- [x] Permission assignment matrix (checkboxes for each permission per role)
+- [x] User role assignment from admin panel
+
+## Push Notifications
+- [x] Add push subscription endpoint (server-side)
+- [x] Update service worker with push event listener
+- [x] Add notification permission request UI
+- [x] Integrate push notifications with booking/maintenance events
+- [x] Admin can send broadcast notifications

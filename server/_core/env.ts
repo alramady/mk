@@ -14,4 +14,7 @@ export const ENV = {
   smtpPass: process.env.SMTP_PASS ?? "",
   smtpFrom: process.env.SMTP_FROM ?? "",
   smtpSecure: process.env.SMTP_SECURE === "true",
+  // Push Notifications (VAPID)
+  vapidPublicKey: process.env.VITE_VAPID_PUBLIC_KEY ?? "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
 };

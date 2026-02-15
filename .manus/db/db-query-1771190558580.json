@@ -1,0 +1,25 @@
+{
+  "query": "SELECT id, nameEn, nameAr FROM cities ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute SELECT id, nameEn, nameAr FROM cities ORDER BY id;",
+  "rows": [
+    {
+      "id": "60007",
+      "nameEn": "Riyadh",
+      "nameAr": "الرياض"
+    },
+    {
+      "id": "60009",
+      "nameEn": "Jeddah",
+      "nameAr": "جدة"
+    },
+    {
+      "id": "60010",
+      "nameEn": "Dammam",
+      "nameAr": "الدمام"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tnameEn\tnameAr\n60007\tRiyadh\tالرياض\n60009\tJeddah\tجدة\n60010\tDammam\tالدمام\n",
+  "stderr": "",
+  "execution_time_ms": 76
+}

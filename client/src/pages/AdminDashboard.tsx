@@ -107,6 +107,12 @@ export default function AdminDashboard() {
               {lang === "ar" ? "إعدادات المنصة" : "Platform Settings"}
             </Button>
           </Link>
+          <Link href="/admin/permissions">
+            <Button variant="outline" className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10">
+              <Shield className="h-4 w-4" />
+              {lang === "ar" ? "الأدوار والصلاحيات" : "Roles & Permissions"}
+            </Button>
+          </Link>
         </div>
 
         {/* Stats */}

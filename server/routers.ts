@@ -11,6 +11,10 @@ import { generateLeaseContractHTML } from "./lease-contract";
 import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./paypal";
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, verifySmtpConnection, isSmtpConfigured } from "./email";
+import { savePushSubscription, removePushSubscription, sendPushToUser, sendPushBroadcast, isPushConfigured, getUserSubscriptionCount } from "./push";
+import { roles as rolesTable } from "../drizzle/schema";
+import { drizzle } from "drizzle-orm/mysql2";
+import { eq as eqDrizzle } from "drizzle-orm";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1761,7 +1765,137 @@ export const appRouter = router({
         await db.deleteReview(input.id);
         return { success: true };
       }),
+   }),
+
+  // ─── Push Notifications ──────────────────────────────────────────
+  push: router({
+    subscribe: protectedProcedure
+      .input(z.object({
+        endpoint: z.string(),
+        keys: z.object({ p256dh: z.string(), auth: z.string() }),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return savePushSubscription(ctx.user.id, input);
+      }),
+
+    unsubscribe: protectedProcedure
+      .input(z.object({ endpoint: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        return removePushSubscription(ctx.user.id, input.endpoint);
+      }),
+
+    status: protectedProcedure.query(async ({ ctx }) => {
+      const count = await getUserSubscriptionCount(ctx.user.id);
+      return { subscribed: count > 0, count, configured: isPushConfigured() };
+    }),
+
+    // Admin: send to specific user
+    sendToUser: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        title: z.string(),
+        body: z.string(),
+        url: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return sendPushToUser(input.userId, { title: input.title, body: input.body, url: input.url });
+      }),
+
+    // Admin: broadcast to all
+    broadcast: adminProcedure
+      .input(z.object({
+        title: z.string(),
+        body: z.string(),
+        url: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return sendPushBroadcast({ title: input.title, body: input.body, url: input.url });
+      }),
+  }),
+
+  // ─── Roles Management ───────────────────────────────────────────
+  roles: router({
+    list: adminProcedure.query(async () => {
+      const rolesDb = drizzle(process.env.DATABASE_URL!);
+      const allRoles = await rolesDb.select().from(rolesTable);
+      return allRoles.map(r => ({ ...r, permissions: typeof r.permissions === 'string' ? JSON.parse(r.permissions as string) : r.permissions }));
+    }),
+
+    getById: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const rolesDb = drizzle(process.env.DATABASE_URL!);
+        const [role] = await rolesDb.select().from(rolesTable).where(eqDrizzle(rolesTable.id, input.id));
+        if (!role) throw new Error("Role not found");
+        return { ...role, permissions: typeof role.permissions === 'string' ? JSON.parse(role.permissions as string) : role.permissions };
+      }),
+
+    create: adminProcedure
+      .input(z.object({
+        name: z.string(),
+        nameAr: z.string(),
+        description: z.string().optional(),
+        descriptionAr: z.string().optional(),
+        permissions: z.array(z.string()),
+      }))
+      .mutation(async ({ input }) => {
+        const rolesDb = drizzle(process.env.DATABASE_URL!);
+        const result = await rolesDb.insert(rolesTable).values({
+          ...input,
+          permissions: JSON.stringify(input.permissions),
+        } as any);
+        return { id: result[0].insertId, success: true };
+      }),
+
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        nameAr: z.string().optional(),
+        description: z.string().optional(),
+        descriptionAr: z.string().optional(),
+        permissions: z.array(z.string()).optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const rolesDb = drizzle(process.env.DATABASE_URL!);
+        const { id, permissions, ...rest } = input;
+        const updateData: any = { ...rest };
+        if (permissions) updateData.permissions = JSON.stringify(permissions);
+        // Prevent editing system roles name
+        const [existing] = await rolesDb.select().from(rolesTable).where(eqDrizzle(rolesTable.id, id));
+        if (existing?.isSystem) {
+          delete updateData.name;
+          delete updateData.nameAr;
+        }
+        await rolesDb.update(rolesTable).set(updateData).where(eqDrizzle(rolesTable.id, id));
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const rolesDb = drizzle(process.env.DATABASE_URL!);
+        const [existing] = await rolesDb.select().from(rolesTable).where(eqDrizzle(rolesTable.id, input.id));
+        if (existing?.isSystem) throw new Error("Cannot delete system role");
+        await rolesDb.delete(rolesTable).where(eqDrizzle(rolesTable.id, input.id));
+        return { success: true };
+      }),
+
+    // Assign role to user
+    assignToUser: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        roleId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const rolesDb = drizzle(process.env.DATABASE_URL!);
+        const [role] = await rolesDb.select().from(rolesTable).where(eqDrizzle(rolesTable.id, input.roleId));
+        if (!role) throw new Error("Role not found");
+        const perms = typeof role.permissions === 'string' ? JSON.parse(role.permissions as string) : role.permissions;
+        await db.setAdminPermissions(input.userId, perms);
+        return { success: true };
+      }),
   }),
 });
-
 export type AppRouter = typeof appRouter;

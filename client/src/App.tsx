@@ -44,6 +44,7 @@ const ContactUs = lazy(() => import("./pages/ContactUs"));
 const AdminServices = lazy(() => import("./pages/AdminServices"));
 const AdminEmergencyMaintenance = lazy(() => import("./pages/AdminEmergencyMaintenance"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const AdminPermissions = lazy(() => import("./pages/AdminPermissions"));
 
 function PageLoader() {
   return (
@@ -88,6 +89,7 @@ function Router() {
         <Route path="/admin/services" component={AdminServices} />
         <Route path="/admin/emergency-maintenance" component={AdminEmergencyMaintenance} />
         <Route path="/admin/analytics" component={AdminAnalytics} />
+        <Route path="/admin/permissions" component={AdminPermissions} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

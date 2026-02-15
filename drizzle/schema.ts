@@ -536,3 +536,31 @@ export const maintenanceUpdates = mysqlTable("maintenance_updates", {
 
 export type MaintenanceUpdate = typeof maintenanceUpdates.$inferSelect;
 export type InsertMaintenanceUpdate = typeof maintenanceUpdates.$inferInsert;
+
+// ─── Push Subscriptions ──────────────────────────────────────────────
+export const pushSubscriptions = mysqlTable("push_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+// ─── Roles ───────────────────────────────────────────────────────────
+export const roles = mysqlTable("roles", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  nameAr: varchar("nameAr", { length: 100 }).notNull(),
+  description: text("description"),
+  descriptionAr: text("descriptionAr"),
+  permissions: json("permissions").$type<string[]>().notNull(),
+  isSystem: boolean("isSystem").default(false),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Role = typeof roles.$inferSelect;
+export type InsertRole = typeof roles.$inferInsert;

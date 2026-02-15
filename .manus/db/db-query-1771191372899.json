@@ -1,0 +1,42 @@
+{
+  "query": "SELECT city, COUNT(*) as cnt FROM districts GROUP BY city;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute SELECT city, COUNT(*) as cnt FROM districts GROUP BY city;",
+  "rows": [
+    {
+      "city": "Abha",
+      "cnt": "15"
+    },
+    {
+      "city": "Riyadh",
+      "cnt": "45"
+    },
+    {
+      "city": "Makkah",
+      "cnt": "20"
+    },
+    {
+      "city": "Dammam",
+      "cnt": "20"
+    },
+    {
+      "city": "Khobar",
+      "cnt": "18"
+    },
+    {
+      "city": "Tabuk",
+      "cnt": "15"
+    },
+    {
+      "city": "Madinah",
+      "cnt": "25"
+    },
+    {
+      "city": "Jeddah",
+      "cnt": "35"
+    }
+  ],
+  "messages": [],
+  "stdout": "city\tcnt\nAbha\t15\nRiyadh\t45\nMakkah\t20\nDammam\t20\nKhobar\t18\nTabuk\t15\nMadinah\t25\nJeddah\t35\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

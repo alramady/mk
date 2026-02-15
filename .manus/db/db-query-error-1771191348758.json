@@ -1,0 +1,8 @@
+{
+  "query": "SELECT c.name_en, COUNT(d.id) as district_count FROM cities c LEFT JOIN districts d ON d.city_id = c.id GROUP BY c.id, c.name_en ORDER BY c.sort_order;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute SELECT c.name_en, COUNT(d.id) as district_count FROM cities c LEFT JOIN districts d ON d.city_id = c.id GROUP BY c.id, c.name_en ORDER BY c.sort_order;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'd.city_id' in 'on clause'"
+  ]
+}

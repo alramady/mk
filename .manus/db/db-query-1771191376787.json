@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, name, nameAr, isSystem FROM roles;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute SELECT id, name, nameAr, isSystem FROM roles;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Super Admin",
+      "nameAr": "مدير عام",
+      "isSystem": "1"
+    },
+    {
+      "id": "2",
+      "name": "Property Manager",
+      "nameAr": "مدير عقارات",
+      "isSystem": "1"
+    },
+    {
+      "id": "3",
+      "name": "Accountant",
+      "nameAr": "محاسب",
+      "isSystem": "1"
+    },
+    {
+      "id": "4",
+      "name": "Support Agent",
+      "nameAr": "موظف دعم",
+      "isSystem": "1"
+    },
+    {
+      "id": "5",
+      "name": "Viewer",
+      "nameAr": "مشاهد",
+      "isSystem": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tnameAr\tisSystem\n1\tSuper Admin\tمدير عام\t1\n2\tProperty Manager\tمدير عقارات\t1\n3\tAccountant\tمحاسب\t1\n4\tSupport Agent\tموظف دعم\t1\n5\tViewer\tمشاهد\t1\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}
