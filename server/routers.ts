@@ -1032,7 +1032,7 @@ export const appRouter = router({
         return db.getActivityLog(input ?? undefined);
       }),
 
-    userPreferences: adminProcedure
+    userPreferences: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
       .input(z.object({ userId: z.number() }))
       .query(async ({ input }) => {
         return db.getUserPreferences(input.userId);
@@ -1041,17 +1041,17 @@ export const appRouter = router({
 
   // Admin Permissions
   permissions: router({
-    list: adminProcedure.query(async () => {
+    list: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS).query(async () => {
       return db.getAllAdminPermissions();
     }),
 
-    get: adminProcedure
+    get: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
       .input(z.object({ userId: z.number() }))
       .query(async ({ input }) => {
         return db.getAdminPermissions(input.userId);
       }),
 
-    set: adminProcedure
+    set: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
       .input(z.object({
         userId: z.number(),
         permissions: z.array(z.string()),
@@ -1066,7 +1066,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
       .input(z.object({ userId: z.number() }))
       .mutation(async ({ input }) => {
         const existing = await db.getAdminPermissions(input.userId);
@@ -1201,7 +1201,7 @@ export const appRouter = router({
       return { count: await db.getDistrictCount() };
     }),
 
-    create: adminProcedure
+    create: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({
         cityId: z.number().optional(),
         city: z.string(),
@@ -1218,7 +1218,7 @@ export const appRouter = router({
         return { id };
       }),
 
-    update: adminProcedure
+    update: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({
         id: z.number(),
         cityId: z.number().optional(),
@@ -1244,14 +1244,14 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteDistrict(input.id);
         return { success: true };
       }),
 
-    bulkCreate: adminProcedure
+    bulkCreate: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({
         districts: z.array(z.object({
           cityId: z.number().optional(),
@@ -1268,7 +1268,7 @@ export const appRouter = router({
         return { success: true, count: input.districts.length };
       }),
 
-    deleteByCity: adminProcedure
+    deleteByCity: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({ city: z.string() }))
       .mutation(async ({ input }) => {
         await db.deleteDistrictsByCity(input.city);
@@ -1287,7 +1287,7 @@ export const appRouter = router({
     getByProperty: publicProcedure.input(z.object({ propertyId: z.number() })).query(async ({ input }) => {
       return await db.getPropertyManagerByProperty(input.propertyId);
     }),
-    create: adminProcedure
+    create: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({
         name: z.string().min(1), nameAr: z.string().min(1),
         phone: z.string().min(1), whatsapp: z.string().optional(),
@@ -1299,7 +1299,7 @@ export const appRouter = router({
         const id = await db.createPropertyManager(input as any);
         return { success: true, id };
       }),
-    update: adminProcedure
+    update: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({
         id: z.number(),
         name: z.string().optional(), nameAr: z.string().optional(),
@@ -1314,19 +1314,19 @@ export const appRouter = router({
         await db.updatePropertyManager(id, data as any);
         return { success: true };
       }),
-    delete: adminProcedure
+    delete: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deletePropertyManager(input.id);
         return { success: true };
       }),
-    assign: adminProcedure
+    assign: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ managerId: z.number(), propertyIds: z.array(z.number()) }))
       .mutation(async ({ input }) => {
         await db.assignManagerToProperties(input.managerId, input.propertyIds);
         return { success: true };
       }),
-    getAssignments: adminProcedure
+    getAssignments: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ managerId: z.number() }))
       .query(async ({ input }) => {
         return await db.getManagerAssignments(input.managerId);
@@ -1336,7 +1336,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return await db.getManagerWithProperties(input.id);
       }),
-    listWithCounts: adminProcedure.query(async () => {
+    listWithCounts: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES).query(async () => {
       return await db.getAllManagersWithCounts();
     }),
     uploadPhoto: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
@@ -1407,7 +1407,7 @@ export const appRouter = router({
         return { url };
       }),
     // Generate edit link for a manager (admin)
-    generateEditLink: adminProcedure
+    generateEditLink: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ managerId: z.number() }))
       .mutation(async ({ input }) => {
         const manager = await db.getPropertyManagerById(input.managerId);
@@ -1443,12 +1443,12 @@ export const appRouter = router({
     myRequests: protectedProcedure.query(async ({ ctx }) => {
       return await db.getUserInspectionRequests(ctx.user.id);
     }),
-    listAll: adminProcedure
+    listAll: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
       .input(z.object({ status: z.string().optional() }).optional())
       .query(async ({ input }) => {
         return await db.getAllInspectionRequests(input?.status);
       }),
-    updateStatus: adminProcedure
+    updateStatus: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
       .input(z.object({
         id: z.number(),
         status: z.enum(["pending", "confirmed", "completed", "cancelled", "no_show"]),
@@ -1489,10 +1489,10 @@ export const appRouter = router({
         } catch { /* best-effort */ }
         return { id, success: true };
       }),
-    list: adminProcedure.query(async () => {
+    list: adminWithPermission(PERMISSIONS.MANAGE_CMS).query(async () => {
       return db.getContactMessages();
     }),
-    updateStatus: adminProcedure
+    updateStatus: adminWithPermission(PERMISSIONS.MANAGE_CMS)
       .input(z.object({ id: z.number(), status: z.enum(["read", "replied"]) }))
       .mutation(async ({ input }) => {
         await db.updateContactMessageStatus(input.id, input.status);
@@ -1503,7 +1503,7 @@ export const appRouter = router({
   // ─── Platform Services ──────────────────────────────────────────────
   services: router({
     // Admin: list all services
-    listAll: adminProcedure.query(async () => {
+    listAll: adminWithPermission(PERMISSIONS.MANAGE_SERVICES).query(async () => {
       return await db.getAllPlatformServices();
     }),
     // Public: list active services
@@ -1511,7 +1511,7 @@ export const appRouter = router({
       return await db.getActivePlatformServices();
     }),
     // Admin: create service
-    create: adminProcedure
+    create: adminWithPermission(PERMISSIONS.MANAGE_SERVICES)
       .input(z.object({
         nameAr: z.string().min(1), nameEn: z.string().min(1),
         descriptionAr: z.string().optional(), descriptionEn: z.string().optional(),
@@ -1522,7 +1522,7 @@ export const appRouter = router({
         return await db.createPlatformService(input as any);
       }),
     // Admin: update service
-    update: adminProcedure
+    update: adminWithPermission(PERMISSIONS.MANAGE_SERVICES)
       .input(z.object({
         id: z.number(),
         nameAr: z.string().optional(), nameEn: z.string().optional(),
@@ -1536,7 +1536,7 @@ export const appRouter = router({
         return { success: true };
       }),
     // Admin: delete service
-    delete: adminProcedure
+    delete: adminWithPermission(PERMISSIONS.MANAGE_SERVICES)
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deletePlatformService(input.id);
@@ -1563,11 +1563,11 @@ export const appRouter = router({
       return await db.getServiceRequestsByTenant(ctx.user.id);
     }),
     // Admin: all requests
-    listAll: adminProcedure.query(async () => {
+    listAll: adminWithPermission(PERMISSIONS.MANAGE_SERVICES).query(async () => {
       return await db.getAllServiceRequests();
     }),
     // Admin: update request status
-    updateStatus: adminProcedure
+    updateStatus: adminWithPermission(PERMISSIONS.MANAGE_SERVICES)
       .input(z.object({
         id: z.number(),
         status: z.enum(["pending", "approved", "in_progress", "completed", "cancelled"]),
@@ -1605,7 +1605,7 @@ export const appRouter = router({
       return await db.getEmergencyMaintenanceByTenant(ctx.user.id);
     }),
     // Admin: all emergency requests
-    listAll: adminProcedure.query(async () => {
+    listAll: adminWithPermission(PERMISSIONS.MANAGE_MAINTENANCE).query(async () => {
       return await db.getAllEmergencyMaintenance();
     }),
     // Admin/anyone: get single request with updates
@@ -1617,7 +1617,7 @@ export const appRouter = router({
         return { ticket, updates };
       }),
     // Admin: update status and add update message
-    updateStatus: adminProcedure
+    updateStatus: adminWithPermission(PERMISSIONS.MANAGE_MAINTENANCE)
       .input(z.object({
         id: z.number(),
         status: z.enum(["open", "assigned", "in_progress", "resolved", "closed"]),
@@ -1637,7 +1637,7 @@ export const appRouter = router({
           maintenanceId: input.id,
           message: input.message,
           messageAr: input.messageAr || undefined,
-          updatedBy: ctx.user.displayName || ctx.user.name || "Admin",
+          updatedBy: ctx.user!.displayName || ctx.user!.name || "Admin",
           newStatus: input.status,
         } as any);
         // Notify owner about status change
@@ -1670,15 +1670,15 @@ export const appRouter = router({
   // ─── Email / SMTP ──────────────────────────────────────────────────
   email: router({
     // Admin: verify SMTP connection
-    verifySmtp: adminProcedure.query(async () => {
+    verifySmtp: adminWithPermission(PERMISSIONS.MANAGE_CMS).query(async () => {
       return await verifySmtpConnection();
     }),
     // Admin: check if SMTP is configured
-    status: adminProcedure.query(async () => {
+    status: adminWithPermission(PERMISSIONS.MANAGE_CMS).query(async () => {
       return { configured: isSmtpConfigured() };
     }),
     // Admin: send test email
-    sendTest: adminProcedure
+    sendTest: adminWithPermission(PERMISSIONS.MANAGE_CMS)
       .input(z.object({ to: z.string().email() }))
       .mutation(async ({ input }) => {
         const { sendEmail } = await import("./email");
@@ -1761,20 +1761,20 @@ export const appRouter = router({
       }),
 
     // Admin
-    all: adminProcedure
+    all: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }).optional())
       .query(async ({ input }) => {
         return db.getAllReviews(input?.limit, input?.offset);
       }),
 
-    togglePublished: adminProcedure
+    togglePublished: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ id: z.number(), isPublished: z.boolean() }))
       .mutation(async ({ input }) => {
         await db.updateReviewPublished(input.id, input.isPublished);
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteReview(input.id);
@@ -1805,7 +1805,7 @@ export const appRouter = router({
     }),
 
     // Admin: send to specific user
-    sendToUser: adminProcedure
+    sendToUser: adminWithPermission(PERMISSIONS.SEND_NOTIFICATIONS)
       .input(z.object({
         userId: z.number(),
         title: z.string(),
@@ -1836,7 +1836,7 @@ export const appRouter = router({
       return allRoles.map(r => ({ ...r, permissions: typeof r.permissions === 'string' ? JSON.parse(r.permissions as string) : r.permissions }));
     }),
 
-    getById: adminProcedure
+    getById: adminWithPermission(PERMISSIONS.MANAGE_ROLES)
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const rolesDb = drizzle(process.env.DATABASE_URL!);
@@ -1845,7 +1845,7 @@ export const appRouter = router({
         return { ...role, permissions: typeof role.permissions === 'string' ? JSON.parse(role.permissions as string) : role.permissions };
       }),
 
-    create: adminProcedure
+    create: adminWithPermission(PERMISSIONS.MANAGE_ROLES)
       .input(z.object({
         name: z.string(),
         nameAr: z.string(),
@@ -1862,7 +1862,7 @@ export const appRouter = router({
         return { id: result[0].insertId, success: true };
       }),
 
-    update: adminProcedure
+    update: adminWithPermission(PERMISSIONS.MANAGE_ROLES)
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -1887,7 +1887,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: adminWithPermission(PERMISSIONS.MANAGE_ROLES)
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const rolesDb = drizzle(process.env.DATABASE_URL!);
