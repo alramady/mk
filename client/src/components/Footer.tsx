@@ -1,6 +1,6 @@
 import { useI18n } from "@/lib/i18n";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
-import { Building2, Mail, Phone, MapPin } from "lucide-react";
+import { KeyRound, Mail, Phone, MapPin } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Footer() {
@@ -8,9 +8,9 @@ export default function Footer() {
   const { get: s, getByLang: sl } = useSiteSettings();
   const year = new Date().getFullYear();
 
-  const siteName = sl("site.name", lang, lang === "ar" ? "إيجار" : "Ijar");
+  const siteName = s("site.nameEn") || "Monthly Key";
   const aboutText = sl("footer.about", lang) || t("footer.aboutText");
-  const email = s("footer.email", "info@ijar.sa");
+  const email = s("footer.email", "info@monthlykey.sa");
   const phone = s("footer.phone", "+966500000000");
   const address = sl("footer.address", lang);
   const twitter = s("footer.twitter");
@@ -28,7 +28,7 @@ export default function Footer() {
                 <img src={s("site.logoUrl")} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
               ) : (
                 <div className="w-9 h-9 rounded-lg bg-[#3ECFC0] flex items-center justify-center">
-                  <Building2 className="h-5 w-5 text-[#0B1E2D]" />
+                  <KeyRound className="h-5 w-5 text-[#0B1E2D]" />
                 </div>
               )}
               <span className="text-xl font-bold font-heading">{siteName}</span>

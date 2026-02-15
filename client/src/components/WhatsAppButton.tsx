@@ -10,7 +10,7 @@ export default function WhatsAppButton() {
   const [pulse, setPulse] = useState(true);
 
   const whatsappNumber = s("whatsapp.number", "966504466528");
-  const whatsappMessage = s("whatsapp.message", lang === "ar" ? "مرحباً، أحتاج مساعدة بخصوص الإيجار الشهري" : "Hello, I need help with monthly rental");
+  const whatsappMessage = s("whatsapp.message", lang === "ar" ? "مرحباً، أحتاج مساعدة من Monthly Key" : "Hello, I need help with monthly rental");
   const tooltipText = lang === "ar" ? s("whatsapp.textAr", "تواصل معنا") : s("whatsapp.textEn", "Chat with us");
 
   useEffect(() => {

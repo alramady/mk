@@ -1,0 +1,9 @@
+{
+  "query": "INSERT IGNORE INTO platformSettings (settingKey, settingValue) VALUES ('payment.enabled', 'false'), ('payment.cashEnabled', 'true'), ('payment.paypalClientId', ''), ('payment.paypalSecret', ''), ('payment.paypalMode', 'sandbox'), ('payment.currency', 'SAR');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute INSERT IGNORE INTO platformSettings (settingKey, settingValue) VALUES ('payment.enabled', 'false'), ('payment.cashEnabled', 'true'), ('payment.paypalClientId', ''), ('payment.paypalSecret', ''), ('payment.paypalMode', 'sandbox'), ('payment.currency', 'SAR');",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 69
+}

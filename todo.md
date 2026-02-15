@@ -307,3 +307,36 @@
 - [x] Set environment variables (DATABASE_URL, JWT_SECRET, NODE_ENV, VITE_APP_ID, VITE_APP_TITLE)
 - [x] Generated public domain: ijar-app-production.up.railway.app
 - [x] Build succeeded and site is live
+
+## Rebrand to Monthly Key
+- [x] Update VITE_APP_TITLE to "Monthly Key" (via CMS + code)
+- [x] Create SVG placeholder logo (Key icon from lucide-react)
+- [x] Update Navbar logo and branding
+- [x] Update Footer branding
+- [x] Update all Arabic/English references from إيجار to Monthly Key
+- [x] Update meta tags and page titles
+
+## Proper CMS (Content Management System)
+- [x] CMS already has editable content blocks (hero, services, about, etc.)
+- [x] CMS admin page with section-based editing for all homepage sections
+- [x] Hero section fully editable from CMS
+- [x] Services section editable from CMS (Services tab)
+- [x] Testimonials editable from CMS (Homepage Content tab)
+- [x] Footer content editable from CMS (Footer tab)
+- [x] "How it works" steps editable from CMS (Homepage Content tab)
+- [x] CTA section editable from CMS (Homepage Content tab)
+- [x] Image upload support for CMS content (via S3 storage)
+
+## PayPal Payment Integration
+- [x] Add PayPal SDK integration (server-side @paypal/checkout-server-sdk)
+- [x] Create payment flow in BookingFlow (cash + PayPal options)
+- [x] PayPal payment method selector in BookingFlow
+- [x] Handle payment success/failure callbacks (PaymentSuccess + PaymentCancel pages)
+- [x] Store payment records in database (paypal_order_id, paypal_capture_id, payer_email columns)
+- [x] Payment status tracked via updateBookingPayment helper
+- [x] PayPal credentials configurable from admin CMS (Payment tab)
+
+## Launch Readiness
+- [x] Write vitest tests for new features (7 PayPal tests, 155 total passing)
+- [x] Verify all CMS changes reflect on frontend
+- [x] PayPal payment flow ready (requires PayPal credentials to test live)

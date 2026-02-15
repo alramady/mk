@@ -879,3 +879,47 @@ export async function getDistrictCount() {
   const result = await db.select({ count: sql<number>`COUNT(*)` }).from(districts);
   return result[0]?.count ?? 0;
 }
+
+
+// ─── PayPal Payment Helpers ──────────────────────────────────────────
+export async function updateBookingPayment(bookingId: number, data: {
+  paypalOrderId?: string;
+  paypalCaptureId?: string;
+  paymentStatus?: string;
+  payerEmail?: string;
+  paidAmount?: string;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  // Update or create payment record
+  const existing = await db.select().from(payments).where(eq(payments.bookingId, bookingId)).limit(1);
+  if (existing.length > 0) {
+    await db.update(payments).set({
+      paypalOrderId: data.paypalOrderId || existing[0].paypalOrderId,
+      paypalCaptureId: data.paypalCaptureId || existing[0].paypalCaptureId,
+      payerEmail: data.payerEmail || existing[0].payerEmail,
+      status: data.paymentStatus === "paid" ? "completed" : data.paymentStatus === "pending" ? "pending" : existing[0].status,
+      paymentMethod: "paypal",
+      paidAt: data.paymentStatus === "paid" ? new Date() : existing[0].paidAt,
+    }).where(eq(payments.id, existing[0].id));
+  } else {
+    // Get booking details to create payment
+    const booking = await db.select().from(bookings).where(eq(bookings.id, bookingId)).limit(1);
+    if (booking.length > 0) {
+      await db.insert(payments).values({
+        bookingId,
+        tenantId: booking[0].tenantId,
+        landlordId: booking[0].landlordId,
+        type: "rent",
+        amount: data.paidAmount || booking[0].totalAmount || "0",
+        currency: "SAR",
+        status: data.paymentStatus === "paid" ? "completed" : "pending",
+        paypalOrderId: data.paypalOrderId,
+        paypalCaptureId: data.paypalCaptureId,
+        payerEmail: data.payerEmail,
+        paymentMethod: "paypal",
+        paidAt: data.paymentStatus === "paid" ? new Date() : null,
+      });
+    }
+  }
+}

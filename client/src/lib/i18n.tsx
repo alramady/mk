@@ -18,7 +18,7 @@ const translations = {
 
     // Hero
     "hero.title": "ابحث عن سكنك الشهري المثالي",
-    "hero.subtitle": "منصة إيجار تربط المستأجرين بأفضل العقارات للإيجار الشهري في المملكة العربية السعودية",
+    "hero.subtitle": "منصة Monthly Key تربط المستأجرين بأفضل العقارات للإيجار الشهري في المملكة العربية السعودية",
     "hero.searchPlaceholder": "ابحث بالمدينة أو الحي...",
     "hero.cta": "ابدأ البحث",
 
@@ -220,8 +220,8 @@ const translations = {
     "auth.registerSubtitle": "أنشئ حسابك للبدء في استخدام المنصة",
 
     // Footer
-    "footer.about": "عن إيجار",
-    "footer.aboutText": "منصة إيجار هي المنصة الرائدة للتأجير الشهري في المملكة العربية السعودية",
+    "footer.about": "عن Monthly Key",
+    "footer.aboutText": "Monthly Key هي المنصة الرائدة للتأجير الشهري في المملكة العربية السعودية",
     "footer.quickLinks": "روابط سريعة",
     "footer.support": "الدعم",
     "footer.contact": "اتصل بنا",
@@ -250,14 +250,14 @@ const translations = {
     "city.abha": "أبها",
 
     // AI Assistant
-    "ai.title": "إيجار الذكي",
-    "ai.subtitle": "مساعدك الذكي لكل ما يخص المنصة",
+    "ai.title": "Monthly Key الذكي",
+    "ai.subtitle": "مساعدك الذكي لكل ما يخص Monthly Key",
     "ai.placeholder": "اكتب سؤالك هنا...",
     "ai.send": "إرسال",
     "ai.newChat": "محادثة جديدة",
     "ai.history": "المحادثات السابقة",
     "ai.thinking": "يفكر...",
-    "ai.welcome": "مرحباً! أنا إيجار الذكي، مساعدك في منصة إيجار. كيف أقدر أساعدك اليوم؟",
+    "ai.welcome": "مرحباً! أنا المساعد الذكي في Monthly Key. كيف أقدر أساعدك اليوم؟",
     "ai.rateResponse": "قيّم الإجابة",
     "ai.rated": "شكراً لتقييمك!",
     "ai.error": "حدث خطأ، حاول مرة أخرى",
@@ -655,8 +655,8 @@ const translations = {
     "auth.registerSubtitle": "Create your account to get started",
 
     // Footer
-    "footer.about": "About Ijar",
-    "footer.aboutText": "Ijar is the leading monthly rental platform in Saudi Arabia",
+    "footer.about": "About Monthly Key",
+    "footer.aboutText": "Monthly Key is the leading monthly rental platform in Saudi Arabia",
     "footer.quickLinks": "Quick Links",
     "footer.support": "Support",
     "footer.contact": "Contact Us",
@@ -685,14 +685,14 @@ const translations = {
     "city.abha": "Abha",
 
     // AI Assistant
-    "ai.title": "Ijar AI",
+    "ai.title": "Monthly Key AI",
     "ai.subtitle": "Your smart assistant for everything on the platform",
     "ai.placeholder": "Type your question here...",
     "ai.send": "Send",
     "ai.newChat": "New Chat",
     "ai.history": "Chat History",
     "ai.thinking": "Thinking...",
-    "ai.welcome": "Hello! I'm Ijar AI, your assistant on the Ijar platform. How can I help you today?",
+    "ai.welcome": "Hello! I'm your Monthly Key AI assistant. How can I help you today?",
     "ai.rateResponse": "Rate this response",
     "ai.rated": "Thanks for your rating!",
     "ai.error": "An error occurred, please try again",
@@ -889,7 +889,7 @@ const I18nContext = createContext<I18nContextType | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Language>(() => {
-    const saved = localStorage.getItem("ijar-lang");
+    const saved = localStorage.getItem("monthlykey-lang");
     return (saved === "en" ? "en" : "ar") as Language;
   });
 
@@ -897,7 +897,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const setLang = useCallback((newLang: Language) => {
     setLangState(newLang);
-    localStorage.setItem("ijar-lang", newLang);
+    localStorage.setItem("monthlykey-lang", newLang);
     document.documentElement.lang = newLang;
     document.documentElement.dir = newLang === "ar" ? "rtl" : "ltr";
   }, []);

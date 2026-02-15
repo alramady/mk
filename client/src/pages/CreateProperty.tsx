@@ -248,7 +248,7 @@ export default function CreateProperty() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><Label>{lang === "ar" ? "الحد الأدنى للإقامة (أشهر)" : "Min Stay (months)"}</Label><Input type="number" min={platformMinMonths} max={platformMaxMonths} value={form.minStayMonths} onChange={e => setForm(p => ({ ...p, minStayMonths: Math.max(platformMinMonths, Math.min(platformMaxMonths, Number(e.target.value))) }))} /></div>
                 <div><Label>{lang === "ar" ? "الحد الأقصى للإقامة (أشهر)" : "Max Stay (months)"}</Label><Input type="number" min={platformMinMonths} max={platformMaxMonths} value={form.maxStayMonths} onChange={e => setForm(p => ({ ...p, maxStayMonths: Math.max(platformMinMonths, Math.min(platformMaxMonths, Number(e.target.value))) }))} /></div>
-                <p className="text-xs text-muted-foreground col-span-2">{lang === "ar" ? `المنصة تسمح بالإيجار من ${platformMinMonths} إلى ${platformMaxMonths} أشهر` : `Platform allows rentals from ${platformMinMonths} to ${platformMaxMonths} months`}</p>
+                <p className="text-xs text-muted-foreground col-span-2">{lang === "ar" ? `المنصة تسمح بالتأجير من ${platformMinMonths} إلى ${platformMaxMonths} أشهر` : `Platform allows rentals from ${platformMinMonths} to ${platformMaxMonths} months`}</p>
               </div>
               <div className="flex items-center gap-3">
                 <Switch checked={form.instantBook} onCheckedChange={v => setForm(p => ({ ...p, instantBook: v }))} />

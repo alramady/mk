@@ -41,9 +41,30 @@ export default function BookingFlow() {
     tenantNotes: "",
   });
 
+  const paymentSettings = trpc.payment.getPaymentSettings.useQuery();
+  const createPayPalOrder = trpc.payment.createPayPalOrder.useMutation();
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "paypal">("cash");
+
   const createBooking = trpc.booking.create.useMutation({
-    onSuccess: (data) => {
-      setStep(4); // Success step
+    onSuccess: async (data) => {
+      if (paymentMethod === "paypal" && paymentSettings.data?.enabled && paymentSettings.data?.hasCredentials) {
+        // Create PayPal order and redirect
+        try {
+          const order = await createPayPalOrder.mutateAsync({
+            bookingId: data.id!,
+            amount: totalAmount,
+            description: `Monthly Key - ${title} (${form.durationMonths} ${lang === "ar" ? "شهر" : "months"})`,
+            origin: window.location.origin,
+          });
+          if (order.approvalUrl) {
+            window.location.href = order.approvalUrl;
+            return;
+          }
+        } catch (err: any) {
+          toast.error(err.message || "PayPal error");
+        }
+      }
+      setStep(4);
       toast.success(lang === "ar" ? "تم إرسال طلب الحجز بنجاح" : "Booking request submitted successfully");
     },
     onError: (err) => toast.error(err.message),
@@ -280,6 +301,55 @@ export default function BookingFlow() {
                   <span className="text-primary">{totalAmount.toLocaleString()} {t("payment.sar")}</span>
                 </div>
               </div>
+              {/* Payment Method Selection */}
+              {paymentSettings.data?.enabled && paymentSettings.data?.hasCredentials && (
+                <div className="space-y-3">
+                  <Label className="font-semibold">{lang === "ar" ? "طريقة الدفع" : "Payment Method"}</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {paymentSettings.data?.cashEnabled !== false && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("cash")}
+                        className={`border-2 rounded-lg p-4 text-start transition-all ${
+                          paymentMethod === "cash" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            paymentMethod === "cash" ? "border-primary" : "border-muted-foreground"
+                          }`}>
+                            {paymentMethod === "cash" && <div className="w-3 h-3 rounded-full bg-primary" />}
+                          </div>
+                          <div>
+                            <p className="font-semibold">{lang === "ar" ? "الدفع عند الاستلام" : "Cash on Delivery"}</p>
+                            <p className="text-xs text-muted-foreground">{lang === "ar" ? "ادفع عند تسليم المفتاح" : "Pay when you receive the key"}</p>
+                          </div>
+                        </div>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("paypal")}
+                      className={`border-2 rounded-lg p-4 text-start transition-all ${
+                        paymentMethod === "paypal" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === "paypal" ? "border-primary" : "border-muted-foreground"
+                        }`}>
+                          {paymentMethod === "paypal" && <div className="w-3 h-3 rounded-full bg-primary" />}
+                        </div>
+                        <div>
+                          <p className="font-semibold">PayPal</p>
+                          <p className="text-xs text-muted-foreground">{lang === "ar" ? "ادفع إلكترونياً عبر PayPal" : "Pay online via PayPal"}</p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-primary/5 border border-primary/20 p-3 rounded-lg text-sm">
                 {lang === "ar"
                   ? "بالنقر على 'تأكيد الحجز'، أنت توافق على شروط وأحكام المنصة وسياسة الإلغاء."

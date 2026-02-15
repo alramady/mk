@@ -81,7 +81,7 @@ export default function LeaseContract() {
               </h1>
               <p className="text-muted-foreground text-sm">
                 {lang === "ar"
-                  ? "إنشاء وتصدير عقد إيجار ثنائي اللغة متوافق مع نظام إيجار"
+                  ? "إنشاء وتصدير عقد إيجار ثنائي اللغة متوافق مع الأنظمة"
                   : "Generate and export a bilingual lease contract compliant with Ejar system"}
               </p>
             </div>

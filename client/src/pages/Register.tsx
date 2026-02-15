@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { Loader2, Building2, Eye, EyeOff } from "lucide-react";
+import { Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Register() {
@@ -83,10 +83,10 @@ export default function Register() {
         <div className="text-center mb-6">
           <Link href="/" className="inline-flex items-center gap-3">
             <div className="w-12 h-12 bg-[#0B1E2D] rounded-xl flex items-center justify-center">
-              <Building2 className="w-7 h-7 text-white" />
+              <KeyRound className="w-7 h-7 text-white" />
             </div>
             <span className="text-3xl font-bold text-[#0B1E2D] font-heading">
-              إيجار
+              Monthly Key
             </span>
           </Link>
         </div>

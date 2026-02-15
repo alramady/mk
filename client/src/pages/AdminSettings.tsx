@@ -16,7 +16,8 @@ import { Link } from "wouter";
 import {
   Settings, Image, Palette, DollarSign, FileText, Users, Shield, BarChart3,
   ArrowRight, ArrowLeft, Save, Upload, RefreshCw, Globe, MapPin, BookOpen,
-  ChevronDown, ChevronUp, Eye, Trash2, Plus, Search, MessageCircle, Phone
+  ChevronDown, ChevronUp, Eye, Trash2, Plus, Search, MessageCircle, Phone,
+  CreditCard, LayoutGrid, Home as HomeIcon
 } from "lucide-react";
 
 export default function AdminSettings() {
@@ -248,6 +249,9 @@ export default function AdminSettings() {
             <TabsTrigger value="permissions" className="gap-2"><Shield className="h-4 w-4" />{t("perms.title")}</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2"><BarChart3 className="h-4 w-4" />{t("analytics.title")}</TabsTrigger>
             <TabsTrigger value="districts" className="gap-2"><MapPin className="h-4 w-4" />{t("districts.title")}</TabsTrigger>
+            <TabsTrigger value="services" className="gap-2"><LayoutGrid className="h-4 w-4" />{lang === "ar" ? "الخدمات" : "Services"}</TabsTrigger>
+            <TabsTrigger value="homepage" className="gap-2"><HomeIcon className="h-4 w-4" />{lang === "ar" ? "الصفحة الرئيسية" : "Homepage"}</TabsTrigger>
+            <TabsTrigger value="payment" className="gap-2"><CreditCard className="h-4 w-4" />{lang === "ar" ? "الدفع" : "Payment"}</TabsTrigger>
             <TabsTrigger value="whatsapp" className="gap-2"><MessageCircle className="h-4 w-4" />{lang === "ar" ? "واتساب" : "WhatsApp"}</TabsTrigger>
           </TabsList>
 
@@ -428,7 +432,7 @@ export default function AdminSettings() {
               <CardContent className="space-y-6">
                 <BilingualField labelAr={t("settings.aboutText")} labelEn={t("settings.aboutText")} keyAr="footer.aboutAr" keyEn="footer.aboutEn" type="textarea" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <SettingField label={t("settings.email")} settingKey="footer.email" placeholder="info@ijar.sa" />
+                  <SettingField label={t("settings.email")} settingKey="footer.email" placeholder="info@monthlykey.sa" />
                   <SettingField label={t("settings.phone")} settingKey="footer.phone" placeholder="+966500000000" />
                 </div>
                 <BilingualField labelAr={t("settings.address")} labelEn={t("settings.address")} keyAr="footer.addressAr" keyEn="footer.addressEn" />
@@ -469,6 +473,203 @@ export default function AdminSettings() {
             </Card>
           </TabsContent>
 
+          {/* Services Section CMS */}
+          <TabsContent value="services">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LayoutGrid className="h-5 w-5" />
+                  {lang === "ar" ? "إدارة الخدمات" : "Services Management"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <BilingualField labelAr="عنوان قسم الخدمات" labelEn="Services Section Title" keyAr="services.titleAr" keyEn="services.titleEn" />
+                <BilingualField labelAr="وصف قسم الخدمات" labelEn="Services Section Description" keyAr="services.descAr" keyEn="services.descEn" type="textarea" />
+                
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="border rounded-lg p-4 space-y-4">
+                    <h3 className="font-semibold text-primary">
+                      {lang === "ar" ? `الخدمة ${i}` : `Service ${i}`}
+                    </h3>
+                    <BilingualField labelAr="اسم الخدمة" labelEn="Service Name" keyAr={`service.${i}.titleAr`} keyEn={`service.${i}.titleEn`} />
+                    <BilingualField labelAr="وصف الخدمة" labelEn="Service Description" keyAr={`service.${i}.descAr`} keyEn={`service.${i}.descEn`} type="textarea" />
+                    <SettingField label={lang === "ar" ? "أيقونة (lucide icon name)" : "Icon (lucide icon name)"} settingKey={`service.${i}.icon`} placeholder="building-2" />
+                  </div>
+                ))}
+
+                <Button onClick={saveSettings} disabled={updateMutation.isPending} className="w-full md:w-auto">
+                  <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                  {t("settings.save")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Homepage Content CMS */}
+          <TabsContent value="homepage">
+            <div className="space-y-6">
+              {/* How It Works */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <HomeIcon className="h-5 w-5" />
+                    {lang === "ar" ? "كيف يعمل" : "How It Works"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="border rounded-lg p-4 space-y-4">
+                      <h3 className="font-semibold text-primary">
+                        {lang === "ar" ? `الخطوة ${i}` : `Step ${i}`}
+                      </h3>
+                      <BilingualField labelAr="العنوان" labelEn="Title" keyAr={`step.${i}.titleAr`} keyEn={`step.${i}.titleEn`} />
+                      <BilingualField labelAr="الوصف" labelEn="Description" keyAr={`step.${i}.descAr`} keyEn={`step.${i}.descEn`} type="textarea" />
+                    </div>
+                  ))}
+                  <Button onClick={saveSettings} disabled={updateMutation.isPending}>
+                    <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                    {t("settings.save")}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Testimonials */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{lang === "ar" ? "آراء العملاء" : "Testimonials"}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="border rounded-lg p-4 space-y-4">
+                      <h3 className="font-semibold text-primary">
+                        {lang === "ar" ? `الشهادة ${i}` : `Testimonial ${i}`}
+                      </h3>
+                      <BilingualField labelAr="النص" labelEn="Text" keyAr={`testimonial.${i}.textAr`} keyEn={`testimonial.${i}.textEn`} type="textarea" />
+                      <BilingualField labelAr="الاسم" labelEn="Name" keyAr={`testimonial.${i}.nameAr`} keyEn={`testimonial.${i}.nameEn`} />
+                      <BilingualField labelAr="الدور" labelEn="Role" keyAr={`testimonial.${i}.roleAr`} keyEn={`testimonial.${i}.roleEn`} />
+                      <SettingField label={lang === "ar" ? "التقييم (1-5)" : "Rating (1-5)"} settingKey={`testimonial.${i}.rating`} type="number" placeholder="5" />
+                    </div>
+                  ))}
+                  <Button onClick={saveSettings} disabled={updateMutation.isPending}>
+                    <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                    {t("settings.save")}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* CTA Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{lang === "ar" ? "قسم الدعوة للإجراء" : "Call to Action Section"}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <BilingualField labelAr="عنوان CTA" labelEn="CTA Title" keyAr="cta.titleAr" keyEn="cta.titleEn" />
+                  <BilingualField labelAr="وصف CTA" labelEn="CTA Description" keyAr="cta.descAr" keyEn="cta.descEn" type="textarea" />
+                  <BilingualField labelAr="نص الزر" labelEn="Button Text" keyAr="cta.btnAr" keyEn="cta.btnEn" />
+                  <Button onClick={saveSettings} disabled={updateMutation.isPending}>
+                    <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                    {t("settings.save")}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Payment Settings */}
+          <TabsContent value="payment">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  {lang === "ar" ? "إعدادات الدفع" : "Payment Settings"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    {lang === "ar" ? "PayPal الدفع عبر" : "PayPal Payment"}
+                  </h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {lang === "ar" 
+                      ? "قم بإدخال بيانات PayPal الخاصة بك لتفعيل الدفع الإلكتروني. يمكنك الحصول على البيانات من developer.paypal.com" 
+                      : "Enter your PayPal credentials to enable online payments. Get credentials from developer.paypal.com"}
+                  </p>
+                </div>
+
+                <SettingField 
+                  label={lang === "ar" ? "PayPal Client ID" : "PayPal Client ID"} 
+                  settingKey="payment.paypalClientId" 
+                  placeholder="AYSq3RDGsmBLJE-otTkBtM-jBRd1TCQwFf9RGfwddNXWz0uFU9ztymylOhRS" 
+                />
+                <SettingField 
+                  label={lang === "ar" ? "PayPal Secret Key" : "PayPal Secret Key"} 
+                  settingKey="payment.paypalSecret" 
+                  placeholder="EGnHDxD_qRPdaLdZz8iCr8N7_MzF-YHPTkjs6NKYQvQSBngp4PTTVWkPZRbL" 
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>{lang === "ar" ? "الوضع" : "Mode"}</Label>
+                    <Select 
+                      value={settings["payment.paypalMode"] || "sandbox"} 
+                      onValueChange={(v) => updateSetting("payment.paypalMode", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sandbox">{lang === "ar" ? "تجريبي (Sandbox)" : "Sandbox (Testing)"}</SelectItem>
+                        <SelectItem value="live">{lang === "ar" ? "إنتاجي (Live)" : "Live (Production)"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <SettingField 
+                    label={lang === "ar" ? "العملة" : "Currency"} 
+                    settingKey="payment.currency" 
+                    placeholder="SAR" 
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>{lang === "ar" ? "تفعيل الدفع الإلكتروني" : "Enable Online Payment"}</Label>
+                    <Select 
+                      value={settings["payment.enabled"] || "false"} 
+                      onValueChange={(v) => updateSetting("payment.enabled", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">{lang === "ar" ? "مفعل" : "Enabled"}</SelectItem>
+                        <SelectItem value="false">{lang === "ar" ? "معطل" : "Disabled"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{lang === "ar" ? "الدفع عند الاستلام" : "Cash on Delivery"}</Label>
+                    <Select 
+                      value={settings["payment.cashEnabled"] || "true"} 
+                      onValueChange={(v) => updateSetting("payment.cashEnabled", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">{lang === "ar" ? "مفعل" : "Enabled"}</SelectItem>
+                        <SelectItem value="false">{lang === "ar" ? "معطل" : "Disabled"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Button onClick={saveSettings} disabled={updateMutation.isPending} className="w-full md:w-auto">
+                  <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                  {t("settings.save")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* WhatsApp Settings */}
           <TabsContent value="whatsapp">
             <Card>
@@ -484,7 +685,7 @@ export default function AdminSettings() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <SettingField label={lang === "ar" ? "رقم واتساب (مع رمز الدولة)" : "WhatsApp Number (with country code)"} settingKey="whatsapp.number" placeholder="966504466528" />
-                  <SettingField label={lang === "ar" ? "رسالة ترحيبية افتراضية" : "Default Welcome Message"} settingKey="whatsapp.message" placeholder={lang === "ar" ? "مرحباً، أحتاج مساعدة بخصوص الإيجار الشهري" : "Hello, I need help with monthly rental"} />
+                  <SettingField label={lang === "ar" ? "رسالة ترحيبية افتراضية" : "Default Welcome Message"} settingKey="whatsapp.message" placeholder={lang === "ar" ? "مرحباً، أحتاج مساعدة من Monthly Key" : "Hello, I need help with monthly rental"} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <SettingField label={lang === "ar" ? "نص الزر (عربي)" : "Button Text (Arabic)"} settingKey="whatsapp.textAr" placeholder="تواصل معنا" />

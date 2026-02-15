@@ -119,7 +119,7 @@ export default function Home() {
 
   const services = [
     { icon: Building2, titleAr: "إدارة العقارات", titleEn: "Property Management", descAr: "إدارة شاملة لعقارك الشهري مع تقارير دورية", descEn: "Complete monthly property management with periodic reports" },
-    { icon: Key, titleAr: "الإيجار الشهري", titleEn: "Monthly Rentals", descAr: "تأجير مرن بعقود رقمية متوافقة مع إيجار", descEn: "Flexible rentals with Ejar-compliant digital contracts" },
+    { icon: Key, titleAr: "الإيجار الشهري", titleEn: "Monthly Rentals", descAr: "تأجير مرن بعقود رقمية متوافقة", descEn: "Flexible rentals with Ejar-compliant digital contracts" },
     { icon: TrendingUp, titleAr: "إدارة الإيرادات", titleEn: "Revenue Management", descAr: "تسعير ذكي وتحسين العوائد بناءً على السوق", descEn: "Smart pricing and yield optimization based on market data" },
     { icon: Paintbrush, titleAr: "العناية بالعقار", titleEn: "Property Care", descAr: "صيانة وتجديد وتصميم داخلي احترافي", descEn: "Professional maintenance, renovation & interior design" },
     { icon: Headphones, titleAr: "تجربة المستأجر", titleEn: "Tenant Experience", descAr: "دعم المستأجرين على مدار الساعة بالعربية", descEn: "24/7 Arabic tenant support" },
@@ -127,15 +127,15 @@ export default function Home() {
   ];
 
   const steps = [
-    { num: "01", titleAr: "ابحث عن عقارك", titleEn: "Search Properties", descAr: "تصفح مئات العقارات المتاحة للإيجار الشهري في مدينتك", descEn: "Browse hundreds of monthly rental properties in your city" },
+    { num: "01", titleAr: "ابحث عن عقارك", titleEn: "Search Properties", descAr: "تصفح مئات العقارات المتاحة للتأجير الشهري في مدينتك", descEn: "Browse hundreds of monthly rental properties in your city" },
     { num: "02", titleAr: "احجز إقامتك", titleEn: "Book Your Stay", descAr: "اختر المدة المناسبة واحجز بسهولة مع عقد رقمي", descEn: "Choose your duration and book easily with a digital contract" },
     { num: "03", titleAr: "استمتع بسكنك", titleEn: "Enjoy Your Home", descAr: "انتقل واستمتع بإقامة مريحة مع دعم متواصل", descEn: "Move in and enjoy a comfortable stay with ongoing support" },
   ];
 
   const testimonials = [
-    { textAr: "منصة إيجار سهّلت علي البحث عن شقة شهرية في الرياض. الخدمة ممتازة والعقود واضحة.", textEn: "Ijar made it easy to find a monthly apartment in Riyadh. Excellent service and clear contracts.", nameAr: "أحمد المطيري", nameEn: "Ahmed Al-Mutairi", roleAr: "مستأجر - الرياض", roleEn: "Tenant - Riyadh", rating: 5 },
-    { textAr: "سعيدة جداً باختياري لمنصة إيجار. من البحث وحتى التوقيع، كل شيء كان سلس واحترافي.", textEn: "Very happy with Ijar. From search to signing, everything was smooth and professional.", nameAr: "سارة الحربي", nameEn: "Sara Al-Harbi", roleAr: "مستأجرة - جدة", roleEn: "Tenant - Jeddah", rating: 5 },
-    { textAr: "كمالك عقار، إيجار وفّرت لي إدارة كاملة لشقتي. العوائد ممتازة والتواصل مع المستأجرين سهل.", textEn: "As a property owner, Ijar provided complete management. Great returns and easy tenant communication.", nameAr: "خالد العتيبي", nameEn: "Khaled Al-Otaibi", roleAr: "مالك عقار - المدينة", roleEn: "Property Owner - Madinah", rating: 5 },
+    { textAr: "منصة Monthly Key سهّلت علي البحث عن شقة شهرية في الرياض. الخدمة ممتازة والعقود واضحة.", textEn: "Monthly Key made it easy to find a monthly apartment in Riyadh. Excellent service and clear contracts.", nameAr: "أحمد المطيري", nameEn: "Ahmed Al-Mutairi", roleAr: "مستأجر - الرياض", roleEn: "Tenant - Riyadh", rating: 5 },
+    { textAr: "سعيدة جداً باختياري لمنصة Monthly Key. من البحث وحتى التوقيع، كل شيء كان سلس واحترافي.", textEn: "Very happy with Monthly Key. From search to signing, everything was smooth and professional.", nameAr: "سارة الحربي", nameEn: "Sara Al-Harbi", roleAr: "مستأجرة - جدة", roleEn: "Tenant - Jeddah", rating: 5 },
+    { textAr: "كمالك عقار، Monthly Key وفّرت لي إدارة كاملة لشقتي. العوائد ممتازة والتواصل مع المستأجرين سهل.", textEn: "As a property owner, Monthly Key provided complete management. Great returns and easy tenant communication.", nameAr: "خالد العتيبي", nameEn: "Khaled Al-Otaibi", roleAr: "مالك عقار - المدينة", roleEn: "Property Owner - Madinah", rating: 5 },
   ];
 
   const ArrowIcon = dir === "rtl" ? ArrowLeft : ArrowRight;
@@ -185,7 +185,7 @@ export default function Home() {
 
             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold mb-4 sm:mb-6 leading-snug sm:leading-tight animate-slide-right">
               {sl("hero.title", lang) || (lang === "ar"
-                ? "خبير الإيجار الشهري — الآن في السعودية"
+                ? "Monthly Key — خبير الإيجار الشهري"
                 : "Monthly Rental Expert — Now in Saudi Arabia")}
             </h1>
             <p className="text-sm sm:text-lg md:text-xl text-white/70 mb-6 sm:mb-10 leading-relaxed max-w-2xl mx-auto fade-up visible" style={{ animationDelay: '0.3s' }}>
@@ -241,7 +241,7 @@ export default function Home() {
               {lang === "ar" ? "خدماتنا" : "Our Services"}
             </h2>
             <p className="text-muted-foreground text-center mb-12 max-w-xl mx-auto">
-              {lang === "ar" ? "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة الإيجار الشهري" : "A complete suite of services for a seamless monthly rental experience"}
+              {lang === "ar" ? "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة التأجير الشهري" : "A complete suite of services for a seamless monthly rental experience"}
             </p>
           </ScrollSection>
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -313,7 +313,7 @@ export default function Home() {
                   {lang === "ar" ? "عقارات مميزة" : "Featured Properties"}
                 </h2>
                 <p className="text-muted-foreground mt-1">
-                  {lang === "ar" ? "اكتشف أفضل العقارات المتاحة للإيجار الشهري" : "Discover the best monthly rental properties"}
+                  {lang === "ar" ? "اكتشف أفضل العقارات المتاحة للتأجير الشهري" : "Discover the best monthly rental properties"}
                 </p>
               </div>
               <Button

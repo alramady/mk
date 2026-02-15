@@ -30,6 +30,8 @@ const LeaseContract = lazy(() => import("./pages/LeaseContract"));
 const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const CityDistrictManagement = lazy(() => import("./pages/CityDistrictManagement"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
 
 function PageLoader() {
   return (
@@ -61,6 +63,8 @@ function Router() {
         <Route path="/admin/knowledge-base" component={KnowledgeBase} />
         <Route path="/admin/settings" component={AdminSettings} />
         <Route path="/admin/cities" component={CityDistrictManagement} />
+        <Route path="/payment/success" component={PaymentSuccess} />
+        <Route path="/payment/cancel" component={PaymentCancel} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

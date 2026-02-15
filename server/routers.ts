@@ -8,6 +8,7 @@ import { nanoid } from "nanoid";
 import * as db from "./db";
 import { getAiResponse, seedDefaultKnowledgeBase } from "./ai-assistant";
 import { generateLeaseContractHTML } from "./lease-contract";
+import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./paypal";
 
 export const appRouter = router({
   system: systemRouter,
@@ -364,6 +365,56 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return db.getPaymentsByBooking(input.bookingId);
       }),
+    // PayPal integration
+    getPaymentSettings: publicProcedure.query(async () => {
+      const settings = await getPayPalSettings();
+      return {
+        enabled: settings.enabled,
+        cashEnabled: settings.cashEnabled,
+        mode: settings.mode,
+        currency: settings.currency,
+        hasCredentials: !!(settings.clientId && settings.secret),
+      };
+    }),
+    createPayPalOrder: protectedProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        amount: z.number().positive(),
+        description: z.string(),
+        origin: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createPayPalOrder({
+          bookingId: input.bookingId,
+          amount: input.amount,
+          description: input.description,
+          returnUrl: `${input.origin}/payment/success?bookingId=${input.bookingId}`,
+          cancelUrl: `${input.origin}/payment/cancel?bookingId=${input.bookingId}`,
+        });
+        await db.updateBookingPayment(input.bookingId, {
+          paypalOrderId: result.orderId,
+          paymentStatus: "pending",
+        });
+        return result;
+      }),
+    capturePayPalOrder: protectedProcedure
+      .input(z.object({
+        orderId: z.string(),
+        bookingId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await capturePayPalOrder(input.orderId);
+        if (result.status === "COMPLETED") {
+          await db.updateBookingPayment(input.bookingId, {
+            paypalOrderId: input.orderId,
+            paypalCaptureId: result.captureId,
+            paymentStatus: "paid",
+            payerEmail: result.payerEmail,
+            paidAmount: result.amount,
+          });
+        }
+        return result;
+      }),
   }),
 
   // Messages
@@ -637,10 +688,10 @@ export const appRouter = router({
       }),
     seed: adminProcedure.mutation(async () => {
       const defaults: Record<string, string> = {
-        "site.nameAr": "إيجار",
-        "site.nameEn": "Ijar",
-        "site.descriptionAr": "منصة إيجار تربط المستأجرين بأفضل العقارات للإيجار الشهري في المملكة العربية السعودية",
-        "site.descriptionEn": "Ijar connects tenants with the best monthly rental properties across Saudi Arabia",
+        "site.nameAr": "Monthly Key",
+        "site.nameEn": "Monthly Key",
+        "site.descriptionAr": "Monthly Key تربط المستأجرين بأفضل العقارات للإيجار الشهري في المملكة العربية السعودية",
+        "site.descriptionEn": "Monthly Key connects tenants with the best monthly rental properties across Saudi Arabia",
         "site.logoUrl": "",
         "site.faviconUrl": "",
         "site.primaryColor": "#3ECFC0",
@@ -673,9 +724,9 @@ export const appRouter = router({
         "rental.minMonthsLabelEn": "Minimum Rental Duration (months)",
         "rental.maxMonthsLabelAr": "الحد الأقصى لمدة الإيجار (بالأشهر)",
         "rental.maxMonthsLabelEn": "Maximum Rental Duration (months)",
-        "footer.aboutAr": "منصة إيجار هي المنصة الرائدة للإيجار الشهري في المملكة العربية السعودية. نقدم حلول إيجار مرنة ومتوافقة مع إيجار لتسهيل تجربة السكن الشهري.",
-        "footer.aboutEn": "Ijar is Saudi Arabia's leading monthly rental platform. We offer flexible, Ejar-compliant rental solutions for a seamless monthly living experience.",
-        "footer.email": "info@ijar.sa",
+        "footer.aboutAr": "Monthly Key هي المنصة الرائدة للإيجار الشهري في المملكة العربية السعودية. نقدم حلول إيجار مرنة لتسهيل تجربة السكن الشهري.",
+        "footer.aboutEn": "Monthly Key is Saudi Arabia's leading monthly rental platform. We offer flexible rental solutions for a seamless monthly living experience.",
+        "footer.email": "info@monthlykey.sa",
         "footer.phone": "+966500000000",
         "footer.addressAr": "الرياض، المملكة العربية السعودية",
         "footer.addressEn": "Riyadh, Saudi Arabia",

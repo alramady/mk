@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import {
   Home, Search, Bell, MessageSquare, Menu, X, Globe, User,
-  LogOut, LayoutDashboard, Building2, Plus, ChevronDown
+  LogOut, LayoutDashboard, KeyRound, Plus, ChevronDown
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -67,11 +67,11 @@ export default function Navbar() {
               <img src={s("site.logoUrl")} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
             ) : (
               <div className="w-9 h-9 rounded-lg bg-[#3ECFC0] flex items-center justify-center transition-transform duration-300 hover:scale-110">
-                <Building2 className="h-5 w-5 text-[#0B1E2D]" />
+                <KeyRound className="h-5 w-5 text-[#0B1E2D]" />
               </div>
             )}
             <span className="text-lg sm:text-xl font-bold font-heading text-white">
-              {lang === "ar" ? (s("site.nameAr") || "إيجار") : (s("site.nameEn") || "Ijar")}
+              {s("site.nameEn") || "Monthly Key"}
             </span>
           </Link>
 
