@@ -71,7 +71,7 @@ export default function Navbar() {
               </div>
             )}
             <span className="text-lg sm:text-xl font-bold font-heading text-white">
-              {s("site.nameEn") || "Monthly Key"}
+              {s("site.nameAr") || "المفتاح الشهري"}
             </span>
           </Link>
 

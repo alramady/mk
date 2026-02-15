@@ -1,7 +1,10 @@
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import DashboardLayout from "@/components/DashboardLayout";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { Link } from "wouter";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Wrench, Sparkles, Truck, Sofa, Package, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Wrench, Sparkles, Truck, Sofa, Package, Loader2, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
@@ -83,11 +86,21 @@ export default function AdminServices() {
   if (!user || user.role !== "admin") return null;
 
   return (
-    <DashboardLayout>
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
       <SEOHead title={lang === "ar" ? "إدارة الخدمات" : "Services Management"} />
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-heading font-bold">{lang === "ar" ? "إدارة الخدمات" : "Services Management"}</h1>
+      <div className="container py-6 flex-1">
+        <div className="flex items-center gap-3 mb-6">
+          <Link href="/admin">
+            <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 me-1" />{lang === "ar" ? "رجوع" : "Back"}</Button>
+          </Link>
+        </div>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-heading font-bold">
+              <Wrench className="h-6 w-6 text-[#3ECFC0] inline me-2" />
+              {lang === "ar" ? "إدارة الخدمات" : "Services Management"}
+            </h1>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
             <DialogTrigger asChild>
               <Button className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6]"><Plus className="h-4 w-4 me-2" />{lang === "ar" ? "إضافة خدمة" : "Add Service"}</Button>
@@ -229,7 +242,9 @@ export default function AdminServices() {
             )}
           </TabsContent>
         </Tabs>
+        </div>
       </div>
-    </DashboardLayout>
+      <Footer />
+    </div>
   );
 }

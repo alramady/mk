@@ -8,7 +8,7 @@ import SEOHead from "@/components/SEOHead";
 export default function PrivacyPolicy() {
   const { lang, dir } = useI18n();
   const { get: s, getByLang: sl } = useSiteSettings();
-  const siteName = sl("site.name", lang) || "Monthly Key";
+  const siteName = sl("site.name", lang) || "المفتاح الشهري";
   const customContent = lang === "ar" ? s("privacy.contentAr") : s("privacy.contentEn");
 
   const arContent = `

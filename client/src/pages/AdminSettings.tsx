@@ -750,7 +750,7 @@ export default function AdminSettings() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <SettingField label={lang === "ar" ? "رقم واتساب (مع رمز الدولة)" : "WhatsApp Number (with country code)"} settingKey="whatsapp.number" placeholder="966504466528" />
-                  <SettingField label={lang === "ar" ? "رسالة ترحيبية افتراضية" : "Default Welcome Message"} settingKey="whatsapp.message" placeholder={lang === "ar" ? "مرحباً، أحتاج مساعدة من Monthly Key" : "Hello, I need help with monthly rental"} />
+                  <SettingField label={lang === "ar" ? "رسالة ترحيبية افتراضية" : "Default Welcome Message"} settingKey="whatsapp.message" placeholder={lang === "ar" ? "مرحباً، أحتاج مساعدة من المفتاح الشهري" : "Hello, I need help with monthly rental"} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <SettingField label={lang === "ar" ? "نص الزر (عربي)" : "Button Text (Arabic)"} settingKey="whatsapp.textAr" placeholder="تواصل معنا" />

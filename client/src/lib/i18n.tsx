@@ -655,8 +655,8 @@ const translations = {
     "auth.registerSubtitle": "Create your account to get started",
 
     // Footer
-    "footer.about": "About Monthly Key",
-    "footer.aboutText": "Monthly Key is the leading monthly rental platform in Saudi Arabia",
+    "footer.about": "عن المفتاح الشهري",
+    "footer.aboutText": "المفتاح الشهري - المنصة الرائدة للتأجير الشهري في المملكة العربية السعودية",
     "footer.quickLinks": "Quick Links",
     "footer.support": "Support",
     "footer.contact": "Contact Us",
@@ -685,14 +685,14 @@ const translations = {
     "city.abha": "Abha",
 
     // AI Assistant
-    "ai.title": "Monthly Key AI",
+    "ai.title": "مساعد المفتاح الشهري",
     "ai.subtitle": "Your smart assistant for everything on the platform",
     "ai.placeholder": "Type your question here...",
     "ai.send": "Send",
     "ai.newChat": "New Chat",
     "ai.history": "Chat History",
     "ai.thinking": "Thinking...",
-    "ai.welcome": "Hello! I'm your Monthly Key AI assistant. How can I help you today?",
+    "ai.welcome": "مرحباً! أنا مساعد المفتاح الشهري الذكي. كيف يمكنني مساعدتك اليوم؟",
     "ai.rateResponse": "Rate this response",
     "ai.rated": "Thanks for your rating!",
     "ai.error": "An error occurred, please try again",

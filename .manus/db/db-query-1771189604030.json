@@ -1,0 +1,13 @@
+{
+  "query": "SHOW TABLES LIKE 'emergency_maintenance';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute SHOW TABLES LIKE 'emergency_maintenance';",
+  "rows": [
+    {
+      "Tables_in_8PFgRgaokK3FbjLsAWs6oV (emergency_maintenance)": "emergency_maintenance"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_8PFgRgaokK3FbjLsAWs6oV (emergency_maintenance)\nemergency_maintenance\n",
+  "stderr": "",
+  "execution_time_ms": 53
+}

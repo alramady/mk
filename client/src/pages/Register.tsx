@@ -88,7 +88,7 @@ export default function Register() {
               <KeyRound className="w-7 h-7 text-white" />
             </div>
             <span className="text-3xl font-bold text-[#0B1E2D] font-heading">
-              Monthly Key
+              المفتاح الشهري
             </span>
           </Link>
         </div>

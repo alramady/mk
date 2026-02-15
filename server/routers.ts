@@ -10,6 +10,7 @@ import { getAiResponse, seedDefaultKnowledgeBase } from "./ai-assistant";
 import { generateLeaseContractHTML } from "./lease-contract";
 import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./paypal";
 import { notifyOwner } from "./_core/notification";
+import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, verifySmtpConnection, isSmtpConfigured } from "./email";
 
 export const appRouter = router({
   system: systemRouter,
@@ -312,6 +313,23 @@ export const appRouter = router({
             content: `طلب حجز جديد للعقار: ${prop.titleAr || prop.titleEn}\nالمستأجر: ${ctx.user.displayName || ctx.user.name}\nالمدة: ${input.durationMonths} شهر\nالمبلغ: ${totalAmount} ر.س\n\nNew booking for: ${prop.titleEn}\nTenant: ${ctx.user.displayName || ctx.user.name}\nDuration: ${input.durationMonths} month(s)\nTotal: SAR ${totalAmount}`,
           });
         } catch { /* notification delivery is best-effort */ }
+        // Send booking confirmation email if instant book
+        if (prop.instantBook) {
+          try {
+            const user = ctx.user;
+            if (user.email) {
+              await sendBookingConfirmation({
+                tenantEmail: user.email,
+                tenantName: user.displayName || user.name || "",
+                propertyTitle: prop.titleAr || prop.titleEn,
+                checkIn: input.moveInDate,
+                checkOut: input.moveOutDate,
+                totalAmount,
+                bookingId: id!,
+              });
+            }
+          } catch { /* email is best-effort */ }
+        }
         return { id, status: prop.instantBook ? "approved" : "pending" };
       }),
 
@@ -348,6 +366,24 @@ export const appRouter = router({
             content: `${statusAr}\nرقم الحجز: ${input.id}\n${input.rejectionReason ? `سبب الرفض: ${input.rejectionReason}` : ""}\n\nBooking #${input.id} status changed to: ${input.status}${input.rejectionReason ? `\nReason: ${input.rejectionReason}` : ""}`,
           });
         } catch { /* best-effort */ }
+        // Send email to tenant about booking status change
+        if (input.status === "approved") {
+          try {
+            const tenant = await db.getUserById(booking.tenantId);
+            const prop = await db.getPropertyById(booking.propertyId);
+            if (tenant?.email && prop) {
+              await sendBookingConfirmation({
+                tenantEmail: tenant.email,
+                tenantName: tenant.displayName || tenant.name || "",
+                propertyTitle: prop.titleAr || prop.titleEn,
+                checkIn: String(booking.moveInDate),
+                checkOut: String(booking.moveOutDate),
+                totalAmount: Number(booking.totalAmount),
+                bookingId: input.id,
+              });
+            }
+          } catch { /* email is best-effort */ }
+        }
         return { success: true };
       }),
 
@@ -1591,7 +1627,51 @@ export const appRouter = router({
           title: `تحديث صيانة #${input.id} - ${statusLabels[input.status]} / Maintenance Update`,
           content: `الحالة: ${statusLabels[input.status]}\n${input.message}`,
         });
+        // Send email to tenant about maintenance update
+        try {
+          const ticket = await db.getEmergencyMaintenanceById(input.id);
+          if (ticket) {
+            const tenant = await db.getUserById(ticket.tenantId);
+            if (tenant?.email) {
+              await sendMaintenanceUpdate({
+                tenantEmail: tenant.email,
+                tenantName: tenant.displayName || tenant.name || "",
+                ticketId: input.id,
+                title: ticket.titleAr || ticket.title,
+                status: input.status,
+                message: input.messageAr || input.message,
+              });
+            }
+          }
+        } catch { /* email is best-effort */ }
         return { success: true };
+      }),
+  }),
+
+  // ─── Email / SMTP ──────────────────────────────────────────────────
+  email: router({
+    // Admin: verify SMTP connection
+    verifySmtp: adminProcedure.query(async () => {
+      return await verifySmtpConnection();
+    }),
+    // Admin: check if SMTP is configured
+    status: adminProcedure.query(async () => {
+      return { configured: isSmtpConfigured() };
+    }),
+    // Admin: send test email
+    sendTest: adminProcedure
+      .input(z.object({ to: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const { sendEmail } = await import("./email");
+        return await sendEmail({
+          to: input.to,
+          subject: "اختبار البريد — المفتاح الشهري",
+          html: `<div style="font-family:sans-serif;direction:rtl;text-align:center;padding:40px">
+            <h2 style="color:#3ECFC0">تم الاتصال بنجاح!</h2>
+            <p>هذا بريد اختباري من منصة المفتاح الشهري.</p>
+            <p style="color:#999;font-size:12px">إذا وصلتك هذه الرسالة، فإعدادات SMTP صحيحة.</p>
+          </div>`,
+        });
       }),
   }),
 

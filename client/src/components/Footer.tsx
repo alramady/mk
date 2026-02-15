@@ -8,7 +8,7 @@ export default function Footer() {
   const { get: s, getByLang: sl } = useSiteSettings();
   const year = new Date().getFullYear();
 
-  const siteName = s("site.nameEn") || "Monthly Key";
+  const siteName = s("site.nameAr") || "المفتاح الشهري";
   const aboutText = sl("footer.about", lang) || t("footer.aboutText");
   const email = s("footer.email");
   const phone = s("footer.phone");

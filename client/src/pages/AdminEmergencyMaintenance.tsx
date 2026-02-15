@@ -1,7 +1,9 @@
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import DashboardLayout from "@/components/DashboardLayout";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertTriangle, Clock, CheckCircle, XCircle, User, Wrench, Zap, Droplets, Flame, Bug, Shield, Package, Loader2, Send, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle, XCircle, User, Wrench, Zap, Droplets, Flame, Bug, Shield, Package, Loader2, Send, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
@@ -81,18 +83,28 @@ export default function AdminEmergencyMaintenance() {
   const criticalCount = tickets.data?.filter(t => t.urgency === "critical" && t.status !== "closed" && t.status !== "resolved").length || 0;
 
   return (
-    <DashboardLayout>
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
       <SEOHead title={lang === "ar" ? "طوارئ الصيانة" : "Emergency Maintenance"} />
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold">{lang === "ar" ? "🚨 طوارئ الصيانة" : "🚨 Emergency Maintenance"}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {lang === "ar" ? `${openCount} طلب مفتوح` : `${openCount} open tickets`}
-              {criticalCount > 0 && <span className="text-red-500 font-bold ms-2">{lang === "ar" ? `• ${criticalCount} حرج` : `• ${criticalCount} critical`}</span>}
-            </p>
-          </div>
+      <div className="container py-6 flex-1">
+        <div className="flex items-center gap-3 mb-6">
+          <Link href="/admin">
+            <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 me-1" />{lang === "ar" ? "رجوع" : "Back"}</Button>
+          </Link>
         </div>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-heading font-bold">
+                <AlertTriangle className="h-6 w-6 text-red-500 inline me-2" />
+                {lang === "ar" ? "طوارئ الصيانة" : "Emergency Maintenance"}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {lang === "ar" ? `${openCount} طلب مفتوح` : `${openCount} open tickets`}
+                {criticalCount > 0 && <span className="text-red-500 font-bold ms-2">{lang === "ar" ? `• ${criticalCount} حرج` : `• ${criticalCount} critical`}</span>}
+              </p>
+            </div>
+          </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -247,6 +259,8 @@ export default function AdminEmergencyMaintenance() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+      </div>
+      <Footer />
+    </div>
   );
 }

@@ -11,7 +11,7 @@ interface SEOHeadProps {
 }
 
 const BASE_URL = "https://www.monthlykey.com";
-const SITE_NAME = "المفتاح الشهري | Monthly Key";
+const SITE_NAME = "المفتاح الشهري";
 
 export default function SEOHead({
   title,
@@ -30,7 +30,7 @@ export default function SEOHead({
     const fullDesc =
       description ||
       descriptionAr ||
-      "المفتاح الشهري | Monthly Key - المنصة الرائدة للتأجير الشهري في المملكة العربية السعودية";
+      "المفتاح الشهري - المنصة الرائدة للتأجير الشهري في المملكة العربية السعودية";
 
     const url = `${BASE_URL}${path}`;
 
@@ -76,7 +76,7 @@ export default function SEOHead({
 
     return () => {
       // Reset title on unmount
-      document.title = `${SITE_NAME} | إيجار شهري - منصة التأجير الشهري في السعودية`;
+      document.title = `${SITE_NAME} - منصة التأجير الشهري في السعودية`;
     };
   }, [title, titleAr, description, descriptionAr, path, type, noindex]);
 

@@ -16,10 +16,10 @@ interface FAQItem {
 
 const defaultFAQs: FAQItem[] = [
   {
-    questionAr: "ما هي منصة Monthly Key؟",
-    questionEn: "What is Monthly Key?",
-    answerAr: "Monthly Key هي منصة سعودية متخصصة في الإيجار الشهري للعقارات. نربط المستأجرين بأفضل العقارات المتاحة للإيجار الشهري في المملكة العربية السعودية، مع توفير تجربة حجز سهلة وآمنة.",
-    answerEn: "Monthly Key is a Saudi platform specializing in monthly property rentals. We connect tenants with the best available properties for monthly rent across Saudi Arabia, providing an easy and secure booking experience.",
+    questionAr: "ما هي منصة المفتاح الشهري؟",
+    questionEn: "What is المفتاح الشهري?",
+    answerAr: "المفتاح الشهري هي منصة سعودية متخصصة في الإيجار الشهري للعقارات. نربط المستأجرين بأفضل العقارات المتاحة للإيجار الشهري في المملكة العربية السعودية، مع توفير تجربة حجز سهلة وآمنة.",
+    answerEn: "المفتاح الشهري is a Saudi platform specializing in monthly property rentals. We connect tenants with the best available properties for monthly rent across Saudi Arabia, providing an easy and secure booking experience.",
     category: "general",
   },
   {
@@ -53,8 +53,8 @@ const defaultFAQs: FAQItem[] = [
   {
     questionAr: "هل المنصة مرخصة من وزارة السياحة؟",
     questionEn: "Is the platform licensed by the Ministry of Tourism?",
-    answerAr: "نعم، Monthly Key مرخصة من وزارة السياحة في المملكة العربية السعودية ومسجلة في منصة إيجار التابعة لوزارة الإسكان. نلتزم بجميع الأنظمة واللوائح المعمول بها.",
-    answerEn: "Yes, Monthly Key is licensed by the Saudi Ministry of Tourism and registered on the Ejar platform under the Ministry of Housing. We comply with all applicable regulations and laws.",
+    answerAr: "نعم، المفتاح الشهري مرخصة من وزارة السياحة في المملكة العربية السعودية ومسجلة في منصة إيجار التابعة لوزارة الإسكان. نلتزم بجميع الأنظمة واللوائح المعمول بها.",
+    answerEn: "Yes, المفتاح الشهري is licensed by the Saudi Ministry of Tourism and registered on the Ejar platform under the Ministry of Housing. We comply with all applicable regulations and laws.",
     category: "legal",
   },
   {

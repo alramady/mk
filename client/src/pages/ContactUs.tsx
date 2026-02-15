@@ -92,7 +92,7 @@ export default function ContactUs() {
       <SEOHead
         title="Contact Us"
         titleAr="تواصل معنا"
-        description="Contact Monthly Key team for inquiries about monthly rentals in Saudi Arabia"
+        description="Contact المفتاح الشهري team for inquiries about monthly rentals in Saudi Arabia"
         path="/contact"
       />
       <Navbar />

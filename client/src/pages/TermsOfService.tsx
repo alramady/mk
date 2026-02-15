@@ -8,7 +8,7 @@ import SEOHead from "@/components/SEOHead";
 export default function TermsOfService() {
   const { lang, dir } = useI18n();
   const { get: s, getByLang: sl } = useSiteSettings();
-  const siteName = sl("site.name", lang) || "Monthly Key";
+  const siteName = sl("site.name", lang) || "المفتاح الشهري";
   const customContent = lang === "ar" ? s("terms.contentAr") : s("terms.contentEn");
 
   const arContent = `
@@ -311,7 +311,7 @@ For any inquiries about these Terms and Conditions, please contact us through th
 
   return (
     <div className="min-h-screen flex flex-col bg-background" dir={dir}>
-      <SEOHead title="Terms of Service" titleAr="الشروط والأحكام" description="Terms and conditions for using Monthly Key rental platform" path="/terms" />
+      <SEOHead title="Terms of Service" titleAr="الشروط والأحكام" description="Terms and conditions for using المفتاح الشهري rental platform" path="/terms" />
       <Navbar />
       <main className="flex-1 container py-8 sm:py-12 max-w-4xl">
         <div className="flex items-center gap-3 mb-8">
