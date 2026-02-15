@@ -11,11 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
-  Home, Calendar, CreditCard, Heart, Wrench, Bell, Settings,
-  Loader2, Building2, Clock, CheckCircle, XCircle, AlertCircle
+  Home, Calendar, CreditCard, Heart, Wrench, Bell, Settings, User,
+  Loader2, Building2, Clock, CheckCircle, XCircle, AlertCircle,
+  Phone, Mail, MapPin, FileText, Camera, Save, Eye
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 const statusBadge = (status: string, lang: string) => {
   const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; labelAr: string }> = {
@@ -37,6 +44,36 @@ export default function TenantDashboard() {
   const { t, lang } = useI18n();
   const { user, isAuthenticated, loading } = useAuth();
   const [, setLocation] = useLocation();
+
+  // Profile state
+  const [profileForm, setProfileForm] = useState({
+    phone: "", nationalId: "", dateOfBirth: "", nationality: "",
+    emergencyContact: "", emergencyPhone: "",
+    address: "", city: "", bio: "",
+  });
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const updateProfile = trpc.auth.updateProfile.useMutation({
+    onSuccess: () => { toast.success(lang === "ar" ? "تم حفظ الملف الشخصي" : "Profile saved successfully"); },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  // Load user data into form
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        phone: (user as any).phone || "",
+        nationalId: (user as any).nationalId || "",
+        dateOfBirth: (user as any).dateOfBirth || "",
+        nationality: (user as any).nationality || "",
+        emergencyContact: (user as any).emergencyContact || "",
+        emergencyPhone: (user as any).emergencyPhone || "",
+        address: (user as any).address || "",
+        city: (user as any).city || "",
+        bio: (user as any).bio || "",
+      });
+    }
+  }, [user]);
 
   const bookings = trpc.booking.myBookings.useQuery(undefined, { enabled: isAuthenticated });
   const payments = trpc.payment.myPayments.useQuery(undefined, { enabled: isAuthenticated });
@@ -65,6 +102,8 @@ export default function TenantDashboard() {
             <TabsTrigger value="favorites" className="gap-1.5"><Heart className="h-4 w-4" />{t("dashboard.favorites")}</TabsTrigger>
             <TabsTrigger value="maintenance" className="gap-1.5"><Wrench className="h-4 w-4" />{t("dashboard.maintenance")}</TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1.5"><Bell className="h-4 w-4" />{t("nav.notifications")}</TabsTrigger>
+            <TabsTrigger value="profile" className="gap-1.5"><User className="h-4 w-4" />{lang === "ar" ? "الملف الشخصي" : "Profile"}</TabsTrigger>
+            <TabsTrigger value="inspections" className="gap-1.5"><Eye className="h-4 w-4" />{lang === "ar" ? "طلبات المعاينة" : "Inspections"}</TabsTrigger>
           </TabsList>
 
           {/* Bookings Tab */}
@@ -222,6 +261,137 @@ export default function TenantDashboard() {
                 <p className="text-muted-foreground">{lang === "ar" ? "لا توجد إشعارات" : "No notifications"}</p>
               </Card>
             )}
+          </TabsContent>
+          {/* Profile Tab */}
+          <TabsContent value="profile">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading flex items-center gap-2">
+                  <User className="h-5 w-5 text-[#3ECFC0]" />
+                  {lang === "ar" ? "الملف الشخصي" : "Personal Profile"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* User Avatar & Name */}
+                <div className="flex items-center gap-4 pb-4 border-b">
+                  <div className="relative">
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-[#3ECFC0]/30" />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-[#3ECFC0]/10 flex items-center justify-center">
+                        <User className="h-8 w-8 text-[#3ECFC0]" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-heading font-bold">{user?.name}</h3>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    <Badge variant="outline" className="mt-1">{user?.role === "admin" ? (lang === "ar" ? "مدير" : "Admin") : (lang === "ar" ? "مستأجر" : "Tenant")}</Badge>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-[#3ECFC0]" />
+                    {lang === "ar" ? "معلومات التواصل" : "Contact Information"}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{lang === "ar" ? "رقم الهاتف" : "Phone Number"}</Label>
+                      <Input dir="ltr" placeholder="05xxxxxxxx" value={profileForm.phone} onChange={(e) => setProfileForm(p => ({ ...p, phone: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{lang === "ar" ? "المدينة" : "City"}</Label>
+                      <Input value={profileForm.city} onChange={(e) => setProfileForm(p => ({ ...p, city: e.target.value }))} placeholder={lang === "ar" ? "الرياض" : "Riyadh"} />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>{lang === "ar" ? "العنوان" : "Address"}</Label>
+                      <Input value={profileForm.address} onChange={(e) => setProfileForm(p => ({ ...p, address: e.target.value }))} placeholder={lang === "ar" ? "العنوان الكامل" : "Full address"} />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Identity Information */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-[#3ECFC0]" />
+                    {lang === "ar" ? "معلومات الهوية" : "Identity Information"}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{lang === "ar" ? "رقم الهوية / الإقامة" : "National ID / Iqama"}</Label>
+                      <Input dir="ltr" value={profileForm.nationalId} onChange={(e) => setProfileForm(p => ({ ...p, nationalId: e.target.value }))} placeholder="1xxxxxxxxx" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{lang === "ar" ? "تاريخ الميلاد" : "Date of Birth"}</Label>
+                      <Input type="date" dir="ltr" value={profileForm.dateOfBirth} onChange={(e) => setProfileForm(p => ({ ...p, dateOfBirth: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{lang === "ar" ? "الجنسية" : "Nationality"}</Label>
+                      <Input value={profileForm.nationality} onChange={(e) => setProfileForm(p => ({ ...p, nationality: e.target.value }))} placeholder={lang === "ar" ? "سعودي" : "Saudi"} />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Emergency Contact */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-[#C9A96E]" />
+                    {lang === "ar" ? "جهة اتصال الطوارئ" : "Emergency Contact"}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{lang === "ar" ? "اسم جهة الاتصال" : "Contact Name"}</Label>
+                      <Input value={profileForm.emergencyContact} onChange={(e) => setProfileForm(p => ({ ...p, emergencyContact: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{lang === "ar" ? "رقم الطوارئ" : "Emergency Phone"}</Label>
+                      <Input dir="ltr" value={profileForm.emergencyPhone} onChange={(e) => setProfileForm(p => ({ ...p, emergencyPhone: e.target.value }))} placeholder="05xxxxxxxx" />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Bio */}
+                <div className="space-y-2">
+                  <Label>{lang === "ar" ? "نبذة شخصية" : "About Me"}</Label>
+                  <Textarea value={profileForm.bio} onChange={(e) => setProfileForm(p => ({ ...p, bio: e.target.value }))} placeholder={lang === "ar" ? "أخبرنا عن نفسك..." : "Tell us about yourself..."} rows={3} />
+                </div>
+
+                <Button
+                  className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] font-semibold"
+                  disabled={updateProfile.isPending}
+                  onClick={() => updateProfile.mutate(profileForm)}
+                >
+                  <Save className="h-4 w-4 me-2" />
+                  {updateProfile.isPending ? (lang === "ar" ? "جاري الحفظ..." : "Saving...") : (lang === "ar" ? "حفظ الملف الشخصي" : "Save Profile")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Inspections Tab */}
+          <TabsContent value="inspections">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-[#3ECFC0]" />
+                  {lang === "ar" ? "طلبات المعاينة" : "Inspection Requests"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-center py-8">
+                  <Eye className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                  {lang === "ar" ? "طلبات المعاينة ستظهر هنا" : "Your inspection requests will appear here"}
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

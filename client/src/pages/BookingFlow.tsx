@@ -79,11 +79,12 @@ export default function BookingFlow() {
   // Calculate costs - dynamic from CMS settings
   const serviceFeePercent = parseFloat(setting("fees.serviceFeePercent", "5")) || 5;
   const vatPercent = parseFloat(setting("fees.vatPercent", "15")) || 15;
+  const depositPercent = parseFloat(setting("fees.depositPercent", "10")) || 10;
   const monthlyRent = prop ? Number(prop.monthlyRent) : 0;
-  const securityDeposit = prop ? Number(prop.securityDeposit || 0) : 0;
+  const totalRent = monthlyRent * form.durationMonths;
+  const securityDeposit = Math.round(totalRent * (depositPercent / 100));
   const serviceFee = Math.round(monthlyRent * (serviceFeePercent / 100));
   const vatAmount = Math.round(serviceFee * (vatPercent / 100));
-  const totalRent = monthlyRent * form.durationMonths;
   const totalAmount = totalRent + securityDeposit + serviceFee + vatAmount;
 
   const moveOutDate = useMemo(() => {
@@ -244,7 +245,7 @@ export default function BookingFlow() {
                 </div>
                 {securityDeposit > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("property.securityDeposit")}</span>
+                    <span className="text-muted-foreground">{t("property.securityDeposit")} ({depositPercent}%)</span>
                     <span className="font-medium">{securityDeposit.toLocaleString()} {t("payment.sar")}</span>
                   </div>
                 )}

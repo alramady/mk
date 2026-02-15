@@ -12,6 +12,9 @@ import {
   aiConversations, aiMessages, knowledgeBase, InsertKnowledgeBase,
   userActivities, InsertUserActivity, adminPermissions, InsertAdminPermission, districts, InsertDistrict,
   cities, InsertCity,
+  propertyManagers, InsertPropertyManager,
+  propertyManagerAssignments,
+  inspectionRequests, InsertInspectionRequest,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -922,4 +925,106 @@ export async function updateBookingPayment(bookingId: number, data: {
       });
     }
   }
+}
+
+// ─── Property Managers ─────────────────────────────────────────────
+export async function getAllPropertyManagers() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(propertyManagers).where(eq(propertyManagers.isActive, true));
+}
+
+export async function getPropertyManagerById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(propertyManagers).where(eq(propertyManagers.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function getPropertyManagerByProperty(propertyId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const assignments = await db.select()
+    .from(propertyManagerAssignments)
+    .where(eq(propertyManagerAssignments.propertyId, propertyId))
+    .limit(1);
+  if (assignments.length === 0) return null;
+  return await getPropertyManagerById(assignments[0].managerId);
+}
+
+export async function createPropertyManager(data: any) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.insert(propertyManagers).values(data);
+  return result[0].insertId;
+}
+
+export async function updatePropertyManager(id: number, data: any) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(propertyManagers).set(data).where(eq(propertyManagers.id, id));
+}
+
+export async function deletePropertyManager(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(propertyManagers).set({ isActive: false }).where(eq(propertyManagers.id, id));
+  await db.delete(propertyManagerAssignments).where(eq(propertyManagerAssignments.managerId, id));
+}
+
+export async function assignManagerToProperties(managerId: number, propertyIds: number[]) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(propertyManagerAssignments).where(eq(propertyManagerAssignments.managerId, managerId));
+  if (propertyIds.length > 0) {
+    await db.insert(propertyManagerAssignments).values(
+      propertyIds.map(propertyId => ({ managerId, propertyId }))
+    );
+  }
+}
+
+export async function getManagerAssignments(managerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select()
+    .from(propertyManagerAssignments)
+    .where(eq(propertyManagerAssignments.managerId, managerId));
+}
+
+// ─── Inspection Requests ───────────────────────────────────────────
+export async function createInspectionRequest(data: any) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.insert(inspectionRequests).values(data);
+  return result[0].insertId;
+}
+
+export async function getUserInspectionRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(inspectionRequests)
+    .where(eq(inspectionRequests.userId, userId))
+    .orderBy(desc(inspectionRequests.createdAt));
+}
+
+export async function getAllInspectionRequests(status?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (status) {
+    return await db.select().from(inspectionRequests)
+      .where(eq(inspectionRequests.status, status as any))
+      .orderBy(desc(inspectionRequests.createdAt));
+  }
+  return await db.select().from(inspectionRequests)
+    .orderBy(desc(inspectionRequests.createdAt));
+}
+
+export async function updateInspectionStatus(id: number, status: string, adminNotes?: string) {
+  const db = await getDb();
+  if (!db) return;
+  const updateData: any = { status };
+  if (adminNotes) updateData.adminNotes = adminNotes;
+  if (status === "confirmed") updateData.confirmedAt = new Date();
+  if (status === "completed") updateData.completedAt = new Date();
+  await db.update(inspectionRequests).set(updateData).where(eq(inspectionRequests.id, id));
 }

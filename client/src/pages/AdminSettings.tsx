@@ -17,7 +17,7 @@ import {
   Settings, Image, Palette, DollarSign, FileText, Users, Shield, BarChart3,
   ArrowRight, ArrowLeft, Save, Upload, RefreshCw, Globe, MapPin, BookOpen,
   ChevronDown, ChevronUp, Eye, Trash2, Plus, Search, MessageCircle, Phone,
-  CreditCard, LayoutGrid, Home as HomeIcon
+  CreditCard, LayoutGrid, Home as HomeIcon, Video, UserCog, Calendar, Clock
 } from "lucide-react";
 
 export default function AdminSettings() {
@@ -253,6 +253,8 @@ export default function AdminSettings() {
             <TabsTrigger value="homepage" className="gap-2"><HomeIcon className="h-4 w-4" />{lang === "ar" ? "الصفحة الرئيسية" : "Homepage"}</TabsTrigger>
             <TabsTrigger value="payment" className="gap-2"><CreditCard className="h-4 w-4" />{lang === "ar" ? "الدفع" : "Payment"}</TabsTrigger>
             <TabsTrigger value="whatsapp" className="gap-2"><MessageCircle className="h-4 w-4" />{lang === "ar" ? "واتساب" : "WhatsApp"}</TabsTrigger>
+            <TabsTrigger value="managers" className="gap-2"><UserCog className="h-4 w-4" />{lang === "ar" ? "مدراء العقارات" : "Managers"}</TabsTrigger>
+            <TabsTrigger value="inspections" className="gap-2"><Calendar className="h-4 w-4" />{lang === "ar" ? "طلبات المعاينة" : "Inspections"}</TabsTrigger>
           </TabsList>
 
           {/* General Settings */}
@@ -324,16 +326,60 @@ export default function AdminSettings() {
                 <BilingualField labelAr={t("settings.heroTitle")} labelEn={t("settings.heroTitle")} keyAr="hero.titleAr" keyEn="hero.titleEn" />
                 <BilingualField labelAr={t("settings.heroSubtitle")} labelEn={t("settings.heroSubtitle")} keyAr="hero.subtitleAr" keyEn="hero.subtitleEn" type="textarea" />
 
+                {/* Hero Background Type */}
                 <div className="space-y-3">
-                  <Label>{t("settings.heroBgImage")}</Label>
-                  <div className="flex items-center gap-4">
-                    {settings["hero.bgImage"] && (
-                      <img src={settings["hero.bgImage"]} alt="Hero BG" className="h-24 w-40 object-cover rounded border" />
+                  <Label>{lang === "ar" ? "نوع خلفية الهيرو" : "Hero Background Type"}</Label>
+                  <Select value={settings["hero.bgType"] || "image"} onValueChange={(v) => updateSetting("hero.bgType", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="image">{lang === "ar" ? "صورة" : "Image"}</SelectItem>
+                      <SelectItem value="video">{lang === "ar" ? "فيديو" : "Video"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {(settings["hero.bgType"] || "image") === "image" ? (
+                  <div className="space-y-3">
+                    <Label>{t("settings.heroBgImage")}</Label>
+                    <div className="flex items-center gap-4">
+                      {settings["hero.bgImage"] && (
+                        <img src={settings["hero.bgImage"]} alt="Hero BG" className="h-24 w-40 object-cover rounded border" />
+                      )}
+                      <Button variant="outline" onClick={() => handleFileUpload("hero.bgImage")}>
+                        <Upload className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                        {t("settings.uploadBg")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Label>{lang === "ar" ? "رابط الفيديو" : "Video URL"}</Label>
+                    <Input
+                      value={settings["hero.bgVideo"] || ""}
+                      onChange={(e) => updateSetting("hero.bgVideo", e.target.value)}
+                      placeholder="https://example.com/video.mp4"
+                      dir="ltr"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {lang === "ar" ? "أدخل رابط فيديو MP4 مباشر. يمكنك رفع الفيديو عبر S3 أو استخدام رابط خارجي" : "Enter a direct MP4 video URL. Upload via S3 or use an external link."}
+                    </p>
+                    {settings["hero.bgVideo"] && (
+                      <video src={settings["hero.bgVideo"]} className="h-32 w-56 object-cover rounded border" muted autoPlay loop />
                     )}
-                    <Button variant="outline" onClick={() => handleFileUpload("hero.bgImage")}>
-                      <Upload className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
-                      {t("settings.uploadBg")}
-                    </Button>
+                  </div>
+                )}
+
+                {/* Hero Overlay Opacity */}
+                <div className="space-y-2">
+                  <Label>{lang === "ar" ? "شفافية التعتيم" : "Overlay Opacity"}</Label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range" min="0" max="100" step="5"
+                      value={settings["hero.overlayOpacity"] || "60"}
+                      onChange={(e) => updateSetting("hero.overlayOpacity", e.target.value)}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-mono w-12">{settings["hero.overlayOpacity"] || "60"}%</span>
                   </div>
                 </div>
 
@@ -394,7 +440,7 @@ export default function AdminSettings() {
                   <SettingField label={t("settings.vatPercent")} settingKey="fees.vatPercent" type="number" placeholder="15" />
                   <SettingField label={`${t("settings.minRent")} (SAR)`} settingKey="fees.minRent" type="number" placeholder="500" />
                   <SettingField label={`${t("settings.maxRent")} (SAR)`} settingKey="fees.maxRent" type="number" placeholder="100000" />
-                  <SettingField label={t("settings.depositMonths")} settingKey="fees.depositMonths" type="number" placeholder="2" />
+                  <SettingField label={lang === 'ar' ? 'نسبة التأمين %' : 'Security Deposit %'} settingKey="fees.depositPercent" type="number" placeholder="10" />
                 </div>
 
                 {/* Rental Duration Limits */}
@@ -912,6 +958,131 @@ export default function AdminSettings() {
                     </tbody>
                   </table>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Property Managers */}
+          <TabsContent value="managers">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCog className="h-5 w-5" />
+                  {lang === "ar" ? "إدارة مدراء العقارات" : "Property Managers"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <p className="text-sm text-muted-foreground">
+                  {lang === "ar" 
+                    ? "أضف مدراء العقارات وعيّن كل مدير لمجموعة من الشقق. سيظهر اسم المدير وصورته وأرقام تواصله في صفحة العقار." 
+                    : "Add property managers and assign each to a group of properties. Manager name, photo, and contact info will appear on the property page."}
+                </p>
+
+                {/* Add New Manager Form */}
+                <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                  <h3 className="font-semibold">{lang === "ar" ? "إضافة مدير جديد" : "Add New Manager"}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <SettingField label={lang === "ar" ? "الاسم (عربي)" : "Name (Arabic)"} settingKey="newManager.nameAr" />
+                    <SettingField label={lang === "ar" ? "الاسم (إنجليزي)" : "Name (English)"} settingKey="newManager.name" />
+                    <SettingField label={lang === "ar" ? "الهاتف" : "Phone"} settingKey="newManager.phone" />
+                    <SettingField label={lang === "ar" ? "واتساب" : "WhatsApp"} settingKey="newManager.whatsapp" />
+                    <SettingField label={lang === "ar" ? "البريد" : "Email"} settingKey="newManager.email" />
+                    <SettingField label={lang === "ar" ? "المسمى الوظيفي (عربي)" : "Title (Arabic)"} settingKey="newManager.titleAr" />
+                    <SettingField label={lang === "ar" ? "المسمى الوظيفي (إنجليزي)" : "Title (English)"} settingKey="newManager.title" />
+                    <SettingField label={lang === "ar" ? "رابط الصورة" : "Photo URL"} settingKey="newManager.photoUrl" />
+                  </div>
+                  <BilingualField labelAr={lang === "ar" ? "نبذة" : "Bio"} labelEn={lang === "ar" ? "نبذة" : "Bio"} keyAr="newManager.bioAr" keyEn="newManager.bio" type="textarea" />
+                  <Button onClick={() => {
+                    const s = settings;
+                    if (!s["newManager.name"] || !s["newManager.nameAr"] || !s["newManager.phone"]) {
+                      toast.error(lang === "ar" ? "الاسم والهاتف مطلوبان" : "Name and phone are required");
+                      return;
+                    }
+                    // Use tRPC to create manager
+                    fetch('/api/trpc/propertyManager.create', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ json: {
+                        name: s["newManager.name"], nameAr: s["newManager.nameAr"],
+                        phone: s["newManager.phone"], whatsapp: s["newManager.whatsapp"] || "",
+                        email: s["newManager.email"] || "", photoUrl: s["newManager.photoUrl"] || "",
+                        bio: s["newManager.bio"] || "", bioAr: s["newManager.bioAr"] || "",
+                        title: s["newManager.title"] || "", titleAr: s["newManager.titleAr"] || "",
+                      }})
+                    }).then(() => {
+                      toast.success(lang === "ar" ? "تم إضافة المدير" : "Manager added");
+                      // Clear form
+                      const cleared = { ...settings };
+                      Object.keys(cleared).filter(k => k.startsWith('newManager.')).forEach(k => delete cleared[k]);
+                      setSettings(cleared);
+                    }).catch(() => toast.error("Error"));
+                  }}>
+                    <Plus className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                    {lang === "ar" ? "إضافة مدير" : "Add Manager"}
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {lang === "ar" 
+                    ? "لتعيين مدير لعقارات محددة، استخدم صفحة إدارة العقارات واختر المدير لكل عقار." 
+                    : "To assign a manager to specific properties, use the property management page and select the manager for each property."}
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Inspection Requests */}
+          <TabsContent value="inspections">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  {lang === "ar" ? "إدارة طلبات المعاينة" : "Inspection Requests"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Time Slots Configuration */}
+                <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {lang === "ar" ? "أوقات المعاينة المتاحة" : "Available Time Slots"}
+                  </h3>
+                  <SettingField 
+                    label={lang === "ar" ? "الأوقات (مفصولة بفواصل)" : "Time Slots (comma separated)"}
+                    settingKey="inspection.timeSlots"
+                    placeholder='["09:00-10:00","10:00-11:00","14:00-15:00","15:00-16:00"]'
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {lang === "ar" 
+                      ? 'أدخل الأوقات بصيغة JSON مثل: ["09:00-10:00","14:00-15:00"]' 
+                      : 'Enter time slots as JSON array: ["09:00-10:00","14:00-15:00"]'}
+                  </p>
+                </div>
+
+                {/* Inspection Settings */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h3 className="font-semibold">{lang === "ar" ? "إعدادات المعاينة" : "Inspection Settings"}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <SettingField 
+                      label={lang === "ar" ? "الحد الأقصى للطلبات اليومية" : "Max Daily Requests"}
+                      settingKey="inspection.maxDaily" type="number" placeholder="10"
+                    />
+                    <SettingField 
+                      label={lang === "ar" ? "أيام الحجز المسبق المطلوبة" : "Advance Booking Days"}
+                      settingKey="inspection.advanceDays" type="number" placeholder="1"
+                    />
+                  </div>
+                  <BilingualField 
+                    labelAr={lang === "ar" ? "رسالة تأكيد المعاينة" : "Confirmation Message"}
+                    labelEn={lang === "ar" ? "رسالة تأكيد المعاينة" : "Confirmation Message"}
+                    keyAr="inspection.confirmMsgAr" keyEn="inspection.confirmMsgEn" type="textarea"
+                  />
+                </div>
+
+                <Button onClick={saveSettings} disabled={updateMutation.isPending}>
+                  <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                  {t("settings.save")}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

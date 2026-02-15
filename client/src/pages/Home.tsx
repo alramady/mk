@@ -144,15 +144,38 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      {/* ═══ Hero Section - Dark Navy with Parallax ═══ */}
+      {/* ═══ Hero Section - Video/Image Background ═══ */}
       <section
         ref={heroRef}
         onMouseMove={handleMouseMove}
-        className="relative bg-[#0B1E2D] text-white overflow-hidden"
+        className="relative bg-[#0B1E2D] text-white overflow-hidden min-h-[70vh] sm:min-h-[80vh] flex items-center"
       >
-        {/* Animated background pattern */}
-        <div className="absolute inset-0 pattern-bg opacity-30" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0B1E2D]/50" />
+        {/* Dynamic Background: Video or Image from CMS */}
+        {s("hero.bgType", "image") === "video" && s("hero.bgVideo") ? (
+          <video
+            autoPlay muted loop playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            poster={s("hero.bgImage") || undefined}
+          >
+            <source src={s("hero.bgVideo")} type="video/mp4" />
+          </video>
+        ) : s("hero.bgImage") ? (
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${s("hero.bgImage")})` }}
+          />
+        ) : (
+          <div className="absolute inset-0 pattern-bg opacity-30" />
+        )}
+
+        {/* Dark overlay with configurable opacity */}
+        <div
+          className="absolute inset-0 bg-[#0B1E2D]"
+          style={{ opacity: parseInt(s("hero.overlayOpacity", "60")) / 100 }}
+        />
+
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1E2D]/30 via-transparent to-[#0B1E2D]/70" />
         
         {/* Floating decorative elements */}
         <div

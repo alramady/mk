@@ -21,6 +21,17 @@ export const users = mysqlTable("users", {
   nameAr: text("nameAr"),
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 20 }),
+  whatsapp: varchar("whatsapp", { length: 20 }),
+  nationalId: varchar("nationalId", { length: 20 }),
+  nationality: varchar("nationality", { length: 100 }),
+  nationalityAr: varchar("nationalityAr", { length: 100 }),
+  dateOfBirth: timestamp("dateOfBirth"),
+  address: text("address"),
+  addressAr: text("addressAr"),
+  emergencyContact: varchar("emergencyContact", { length: 20 }),
+  emergencyContactName: varchar("emergencyContactName", { length: 100 }),
+  idDocumentUrl: text("idDocumentUrl"),
+  profileCompletionPct: int("profileCompletionPct").default(0),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin", "landlord", "tenant"]).default("user").notNull(),
   avatarUrl: text("avatarUrl"),
@@ -380,3 +391,55 @@ export const districts = mysqlTable("districts", {
 
 export type District = typeof districts.$inferSelect;
 export type InsertDistrict = typeof districts.$inferInsert;
+
+// ─── Property Managers ─────────────────────────────────────────────
+export const propertyManagers = mysqlTable("propertyManagers", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  nameAr: varchar("nameAr", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 20 }).notNull(),
+  whatsapp: varchar("whatsapp", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  photoUrl: text("photoUrl"),
+  bio: text("bio"),
+  bioAr: text("bioAr"),
+  title: varchar("title", { length: 100 }).default("Property Manager"),
+  titleAr: varchar("titleAr", { length: 100 }).default("مدير العقار"),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PropertyManager = typeof propertyManagers.$inferSelect;
+export type InsertPropertyManager = typeof propertyManagers.$inferInsert;
+
+// ─── Property Manager Assignments ──────────────────────────────────
+export const propertyManagerAssignments = mysqlTable("propertyManagerAssignments", {
+  id: int("id").autoincrement().primaryKey(),
+  managerId: int("managerId").notNull(),
+  propertyId: int("propertyId").notNull(),
+  assignedAt: timestamp("assignedAt").defaultNow().notNull(),
+});
+
+// ─── Inspection Requests ───────────────────────────────────────────
+export const inspectionRequests = mysqlTable("inspectionRequests", {
+  id: int("id").autoincrement().primaryKey(),
+  propertyId: int("propertyId").notNull(),
+  userId: int("userId").notNull(),
+  managerId: int("managerId"),
+  requestedDate: timestamp("requestedDate").notNull(),
+  requestedTimeSlot: varchar("requestedTimeSlot", { length: 50 }).notNull(), // e.g. "09:00-10:00"
+  status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled", "no_show"]).default("pending").notNull(),
+  fullName: varchar("fullName", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 20 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  notes: text("notes"),
+  adminNotes: text("adminNotes"),
+  confirmedAt: timestamp("confirmedAt"),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type InspectionRequest = typeof inspectionRequests.$inferSelect;
+export type InsertInspectionRequest = typeof inspectionRequests.$inferInsert;

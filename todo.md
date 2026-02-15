@@ -340,3 +340,64 @@
 - [x] Write vitest tests for new features (7 PayPal tests, 155 total passing)
 - [x] Verify all CMS changes reflect on frontend
 - [x] PayPal payment flow ready (requires PayPal credentials to test live)
+
+## Major Platform Upgrade v2
+### Security Deposit = 10% of Rent
+- [ ] Change deposit calculation to 10% of monthly rent (not fixed months)
+- [ ] Update BookingFlow cost breakdown to show 10% deposit
+- [ ] Update backend booking validation for 10% deposit
+- [ ] Update CMS to allow admin to change deposit percentage
+
+### Separate AR/EN CMS
+- [ ] Refactor CMS to have separate Arabic and English tabs for ALL content
+- [ ] Each CMS field has ar/en versions with clear labels
+- [ ] Hero section: separate AR/EN title, subtitle, badge, CTA text
+- [ ] Services section: separate AR/EN names and descriptions for each service
+- [ ] How it works: separate AR/EN step titles and descriptions
+- [ ] Testimonials: separate AR/EN names and quotes
+- [ ] Footer: separate AR/EN about text, links
+- [ ] CTA section: separate AR/EN heading and description
+
+### Property Manager Assignment
+- [ ] Add property_managers table (name, nameAr, phone, email, whatsapp, photo, bio, bioAr)
+- [ ] Admin can create/edit/delete property managers
+- [ ] Admin can assign a manager to a group of properties
+- [ ] Manager profile card visible on property detail page (photo, name, phone, whatsapp)
+- [ ] Manager contact info shown professionally with click-to-call/whatsapp
+
+### Inspection Request System
+- [ ] Add inspection_requests table (propertyId, userId, requestedDate, requestedTime, status, notes)
+- [ ] Inspection request form on property detail page with date/time picker
+- [ ] Available time slots configurable from CMS
+- [ ] Inspection request management in admin dashboard
+- [ ] Notification to property manager when new inspection requested
+- [ ] Status tracking (pending, confirmed, completed, cancelled)
+
+### Enhanced Customer Profile
+- [ ] Extended user profile fields (fullName, fullNameAr, phone, whatsapp, nationalId, nationality, dateOfBirth, address, emergencyContact, profilePhoto)
+- [ ] Profile completion progress indicator
+- [ ] Profile page with edit capability
+- [ ] Upload profile photo and ID documents
+- [ ] Booking history with status timeline
+- [ ] Saved properties and search history
+
+### Hero Video/Image Background
+- [ ] Support video background in hero section (mp4/webm URL from CMS)
+- [ ] Support image background as fallback
+- [ ] CMS toggle: video or image mode
+- [ ] Video autoplay, muted, loop with overlay
+- [ ] Mobile: show image fallback (save bandwidth)
+- [ ] Professional overlay gradient for text readability
+
+### Mobile-Ready API Architecture
+- [ ] Ensure all tRPC endpoints return clean JSON for future mobile app
+- [ ] Add pagination to all list endpoints
+- [ ] Document API structure for mobile developer handoff
+
+## New GitHub Repo & Railway Deploy
+- [ ] Create new GitHub repo "Monthly-Key" (private)
+- [ ] Push all code to Monthly-Key repo
+- [ ] Create new Railway project "monthly-key"
+- [ ] Add MySQL database on Railway
+- [ ] Set all environment variables
+- [ ] Deploy and verify

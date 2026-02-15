@@ -25,14 +25,36 @@ export const appRouter = router({
         name: z.string().optional(),
         nameAr: z.string().optional(),
         phone: z.string().optional(),
+        whatsapp: z.string().optional(),
+        nationalId: z.string().optional(),
+        nationality: z.string().optional(),
+        nationalityAr: z.string().optional(),
+        dateOfBirth: z.string().optional(),
+        address: z.string().optional(),
+        addressAr: z.string().optional(),
+        emergencyContact: z.string().optional(),
+        emergencyContactName: z.string().optional(),
+        idDocumentUrl: z.string().optional(),
+        avatarUrl: z.string().optional(),
         bio: z.string().optional(),
         bioAr: z.string().optional(),
         preferredLang: z.enum(["ar", "en"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        await db.updateUserProfile(ctx.user.id, input as any);
+        const profileData: any = { ...input };
+        if (input.dateOfBirth) profileData.dateOfBirth = new Date(input.dateOfBirth);
+        // Calculate profile completion
+        const fields = ['name','phone','whatsapp','nationalId','nationality','address','emergencyContact','avatarUrl'];
+        const user = await db.getUserById(ctx.user.id);
+        const merged = { ...user, ...profileData };
+        const filled = fields.filter(f => !!(merged as any)[f]).length;
+        profileData.profileCompletionPct = Math.round((filled / fields.length) * 100);
+        await db.updateUserProfile(ctx.user.id, profileData);
         return { success: true };
       }),
+    getFullProfile: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserById(ctx.user.id);
+    }),
     switchRole: protectedProcedure
       .input(z.object({ role: z.enum(["tenant", "landlord"]) }))
       .mutation(async ({ ctx, input }) => {
@@ -716,7 +738,7 @@ export const appRouter = router({
         "fees.serviceFeePercent": "5",
         "fees.minRent": "500",
         "fees.maxRent": "100000",
-        "fees.depositMonths": "2",
+        "fees.depositPercent": "10",
         "fees.vatPercent": "15",
         "rental.minMonths": "1",
         "rental.maxMonths": "12",
@@ -1133,6 +1155,113 @@ export const appRouter = router({
         await db.deleteDistrictsByCity(input.city);
         return { success: true };
       }),
+  }),
+
+  // Property Managers
+  propertyManager: router({
+    list: publicProcedure.query(async () => {
+      return await db.getAllPropertyManagers();
+    }),
+    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      return await db.getPropertyManagerById(input.id);
+    }),
+    getByProperty: publicProcedure.input(z.object({ propertyId: z.number() })).query(async ({ input }) => {
+      return await db.getPropertyManagerByProperty(input.propertyId);
+    }),
+    create: adminProcedure
+      .input(z.object({
+        name: z.string().min(1), nameAr: z.string().min(1),
+        phone: z.string().min(1), whatsapp: z.string().optional(),
+        email: z.string().optional(), photoUrl: z.string().optional(),
+        bio: z.string().optional(), bioAr: z.string().optional(),
+        title: z.string().optional(), titleAr: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await db.createPropertyManager(input as any);
+        return { success: true, id };
+      }),
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(), nameAr: z.string().optional(),
+        phone: z.string().optional(), whatsapp: z.string().optional(),
+        email: z.string().optional(), photoUrl: z.string().optional(),
+        bio: z.string().optional(), bioAr: z.string().optional(),
+        title: z.string().optional(), titleAr: z.string().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updatePropertyManager(id, data as any);
+        return { success: true };
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deletePropertyManager(input.id);
+        return { success: true };
+      }),
+    assign: adminProcedure
+      .input(z.object({ managerId: z.number(), propertyIds: z.array(z.number()) }))
+      .mutation(async ({ input }) => {
+        await db.assignManagerToProperties(input.managerId, input.propertyIds);
+        return { success: true };
+      }),
+    getAssignments: adminProcedure
+      .input(z.object({ managerId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getManagerAssignments(input.managerId);
+      }),
+  }),
+
+  // Inspection Requests
+  inspection: router({
+    create: protectedProcedure
+      .input(z.object({
+        propertyId: z.number(),
+        requestedDate: z.string(),
+        requestedTimeSlot: z.string(),
+        fullName: z.string().min(1),
+        phone: z.string().min(1),
+        email: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const manager = await db.getPropertyManagerByProperty(input.propertyId);
+        const id = await db.createInspectionRequest({
+          ...input,
+          userId: ctx.user.id,
+          managerId: manager?.id || null,
+          requestedDate: new Date(input.requestedDate),
+        } as any);
+        return { success: true, id };
+      }),
+    myRequests: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserInspectionRequests(ctx.user.id);
+    }),
+    listAll: adminProcedure
+      .input(z.object({ status: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return await db.getAllInspectionRequests(input?.status);
+      }),
+    updateStatus: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["pending", "confirmed", "completed", "cancelled", "no_show"]),
+        adminNotes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.updateInspectionStatus(input.id, input.status, input.adminNotes);
+        return { success: true };
+      }),
+    getTimeSlots: publicProcedure.query(async () => {
+      const settings = await db.getAllSettings();
+      const slotsStr = settings['inspection.timeSlots'];
+      return slotsStr ? JSON.parse(slotsStr) : [
+        "09:00-10:00", "10:00-11:00", "11:00-12:00",
+        "14:00-15:00", "15:00-16:00", "16:00-17:00"
+      ];
+    }),
   }),
 
   // Upload

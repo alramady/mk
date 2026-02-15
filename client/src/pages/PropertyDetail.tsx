@@ -12,9 +12,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Heart, Share2, MapPin, BedDouble, Bath, Maximize2, Building, Calendar,
   CheckCircle, Star, MessageSquare, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight,
-  Wifi, Car, Dumbbell, Shield, Wind, Droplets, Zap, Flame, Tv, Shirt
+  Wifi, Car, Dumbbell, Shield, Wind, Droplets, Zap, Flame, Tv, Shirt,
+  Phone, UserCog, Clock, Eye
 } from "lucide-react";
 import { useState, useRef, useMemo } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 import { useRoute, useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -41,6 +48,32 @@ export default function PropertyDetail() {
       trpc.useUtils().favorite.check.invalidate({ propertyId: id });
     },
   });
+
+  const { get: siteSetting } = useSiteSettings();
+  const [inspectionOpen, setInspectionOpen] = useState(false);
+  const [inspectionDate, setInspectionDate] = useState("");
+  const [inspectionTime, setInspectionTime] = useState("");
+  const [inspectionName, setInspectionName] = useState("");
+  const [inspectionPhone, setInspectionPhone] = useState("");
+  const [inspectionNotes, setInspectionNotes] = useState("");
+  const [inspectionSubmitting, setInspectionSubmitting] = useState(false);
+
+  const createInspection = trpc.inspection.create.useMutation({
+    onSuccess: () => {
+      toast.success(lang === "ar" ? "تم إرسال طلب المعاينة بنجاح" : "Inspection request submitted successfully");
+      setInspectionOpen(false);
+      setInspectionDate(""); setInspectionTime(""); setInspectionNotes("");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  // Parse time slots from CMS
+  const timeSlots = useMemo(() => {
+    try {
+      const raw = siteSetting("inspection.timeSlots", '["09:00-10:00","10:00-11:00","11:00-12:00","14:00-15:00","15:00-16:00","16:00-17:00"]');
+      return JSON.parse(raw) as string[];
+    } catch { return ["09:00-10:00","10:00-11:00","14:00-15:00","15:00-16:00"]; }
+  }, [siteSetting]);
 
   const prop = property.data;
   if (property.isLoading) {
@@ -320,8 +353,113 @@ export default function PropertyDetail() {
                     <MessageSquare className="h-4 w-4 me-2" />
                     {t("property.contactLandlord")}
                   </Button>
+
+                  {/* Inspection Request Button */}
+                  <Dialog open={inspectionOpen} onOpenChange={setInspectionOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full border-[#3ECFC0]/40 text-[#3ECFC0] hover:bg-[#3ECFC0]/10">
+                        <Eye className="h-4 w-4 me-2" />
+                        {lang === "ar" ? "طلب معاينة" : "Request Inspection"}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md" dir={dir}>
+                      <DialogHeader>
+                        <DialogTitle className="font-heading">
+                          {lang === "ar" ? "طلب معاينة العقار" : "Request Property Inspection"}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>{lang === "ar" ? "الاسم الكامل" : "Full Name"}</Label>
+                          <Input value={inspectionName} onChange={(e) => setInspectionName(e.target.value)} placeholder={lang === "ar" ? "أدخل اسمك" : "Enter your name"} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{lang === "ar" ? "رقم الهاتف" : "Phone Number"}</Label>
+                          <Input value={inspectionPhone} onChange={(e) => setInspectionPhone(e.target.value)} placeholder="05xxxxxxxx" dir="ltr" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{lang === "ar" ? "تاريخ المعاينة" : "Inspection Date"}</Label>
+                          <Input type="date" value={inspectionDate} onChange={(e) => setInspectionDate(e.target.value)} min={new Date().toISOString().split('T')[0]} dir="ltr" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{lang === "ar" ? "الوقت المفضل" : "Preferred Time"}</Label>
+                          <Select value={inspectionTime} onValueChange={setInspectionTime}>
+                            <SelectTrigger><SelectValue placeholder={lang === "ar" ? "اختر الوقت" : "Select time"} /></SelectTrigger>
+                            <SelectContent>
+                              {timeSlots.map(slot => (
+                                <SelectItem key={slot} value={slot}>{slot}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{lang === "ar" ? "ملاحظات" : "Notes"}</Label>
+                          <Textarea value={inspectionNotes} onChange={(e) => setInspectionNotes(e.target.value)} placeholder={lang === "ar" ? "أي ملاحظات إضافية..." : "Any additional notes..."} />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] font-semibold"
+                          disabled={createInspection.isPending || !inspectionDate || !inspectionTime || !inspectionName || !inspectionPhone}
+                          onClick={() => {
+                            createInspection.mutate({
+                              propertyId: id,
+                              requestedDate: inspectionDate,
+                              requestedTimeSlot: inspectionTime,
+                              fullName: inspectionName,
+                              phone: inspectionPhone,
+                              notes: inspectionNotes,
+                            });
+                          }}
+                        >
+                          {createInspection.isPending 
+                            ? (lang === "ar" ? "جاري الإرسال..." : "Submitting...") 
+                            : (lang === "ar" ? "إرسال طلب المعاينة" : "Submit Inspection Request")}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </CardContent>
               </Card>
+
+              {/* Property Manager Card */}
+              {(prop as any).managerName && (
+                <Card className="mt-4 shadow-md border-[#3ECFC0]/20">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-4 mb-3">
+                      {(prop as any).managerPhotoUrl ? (
+                        <img src={(prop as any).managerPhotoUrl} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#3ECFC0]/30" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-[#3ECFC0]/10 flex items-center justify-center">
+                          <UserCog className="h-6 w-6 text-[#3ECFC0]" />
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-semibold font-heading">
+                          {lang === "ar" ? ((prop as any).managerNameAr || (prop as any).managerName) : (prop as any).managerName}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          {lang === "ar" ? ((prop as any).managerTitleAr || "مدير العقار") : ((prop as any).managerTitle || "Property Manager")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {(prop as any).managerPhone && (
+                        <a href={`tel:${(prop as any).managerPhone}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-[#3ECFC0] transition-colors">
+                          <Phone className="h-4 w-4" />
+                          <span dir="ltr">{(prop as any).managerPhone}</span>
+                        </a>
+                      )}
+                      {(prop as any).managerWhatsapp && (
+                        <a href={`https://wa.me/${(prop as any).managerWhatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-green-500 transition-colors">
+                          <MessageSquare className="h-4 w-4" />
+                          <span>{lang === "ar" ? "تواصل عبر واتساب" : "Chat on WhatsApp"}</span>
+                        </a>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
