@@ -328,12 +328,12 @@ export default function PropertyDetail() {
 
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{lang === "ar" ? "الحد الأدنى للإقامة" : "Min Stay"}</span>
-                    <span className="font-medium">{prop.minStayMonths} {t("booking.months")}</span>
+                    <span className="font-medium">1 {lang === "ar" ? "شهر" : "Month"}</span>
                   </div>
 
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{lang === "ar" ? "الحد الأقصى للإقامة" : "Max Stay"}</span>
-                    <span className="font-medium">{prop.maxStayMonths} {t("booking.months")}</span>
+                    <span className="font-medium">2 {lang === "ar" ? "أشهر" : "Months"}</span>
                   </div>
 
                   {prop.furnishedLevel && (
