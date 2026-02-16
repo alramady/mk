@@ -857,4 +857,4 @@
 - [x] Active filter badges show search text with clear button
 - [x] 21 new hero search tests (URL params, autocomplete logic, quick filters)
 - [x] All 449 tests passing, 0 TypeScript errors
-- [ ] Save checkpoint, push to GitHub
+- [x] Save checkpoint (dc02bfc8)
