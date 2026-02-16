@@ -808,3 +808,19 @@
 - [x] Wrote 37 security tests (sanitization, file validation, pagination, authorization helpers)
 - [x] All 404 tests passing, 0 TypeScript errors
 - [x] Save checkpoint, push to GitHub
+
+## Map View Integration (Feb 16)
+- [x] Audit: Map component and lat/lng fields already exist in schema (properties, cities, districts)
+- [x] Schema: latitude/longitude fields already present — no migration needed
+- [x] Backend: created getMapProperties in db.ts — lightweight query with filters (city, type, price, beds)
+- [x] Backend: added property.mapData tRPC endpoint with caching (10s) and rate limiting
+- [x] Frontend: built full MapView page with Google Maps, custom price markers, color-coded by type
+- [x] Frontend: info windows with photo, title, location, specs, rent, and details link
+- [x] Frontend: side panel list view with property cards, click-to-zoom on map
+- [x] Frontend: filter bar (city, type, bedrooms, price range) with debounced inputs
+- [x] Frontend: added /map route and nav link (desktop + mobile) with MapPin icon
+- [x] Admin: lat/lng fields already in property create/edit forms
+- [x] Admin: geocoding available via Google Maps proxy
+- [x] Wrote 24 map tests (filters, coordinates, markers, performance, info windows)
+- [x] All 428 tests passing, 0 TypeScript errors
+- [x] Save checkpoint, push to GitHub

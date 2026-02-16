@@ -173,6 +173,44 @@ export async function searchProperties(filters: {
   return { items: itemsWithManager, total: countResult[0]?.count ?? 0 };
 }
 
+export async function getMapProperties(filters?: {
+  city?: string; propertyType?: string; minPrice?: number; maxPrice?: number;
+  bedrooms?: number; furnishedLevel?: string;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(properties.status, "active")];
+  if (filters?.city) conditions.push(like(properties.city, `%${filters.city}%`));
+  if (filters?.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
+  if (filters?.minPrice) conditions.push(gte(properties.monthlyRent, String(filters.minPrice)));
+  if (filters?.maxPrice) conditions.push(lte(properties.monthlyRent, String(filters.maxPrice)));
+  if (filters?.bedrooms) conditions.push(eq(properties.bedrooms, filters.bedrooms));
+  if (filters?.furnishedLevel) conditions.push(eq(properties.furnishedLevel, filters.furnishedLevel as any));
+  // Only return properties with coordinates, select minimal fields for performance
+  conditions.push(sql`${properties.latitude} IS NOT NULL`);
+  conditions.push(sql`${properties.longitude} IS NOT NULL`);
+  const where = and(...conditions);
+  return db.select({
+    id: properties.id,
+    titleEn: properties.titleEn,
+    titleAr: properties.titleAr,
+    propertyType: properties.propertyType,
+    city: properties.city,
+    cityAr: properties.cityAr,
+    district: properties.district,
+    districtAr: properties.districtAr,
+    latitude: properties.latitude,
+    longitude: properties.longitude,
+    monthlyRent: properties.monthlyRent,
+    bedrooms: properties.bedrooms,
+    bathrooms: properties.bathrooms,
+    sizeSqm: properties.sizeSqm,
+    furnishedLevel: properties.furnishedLevel,
+    photos: properties.photos,
+    isFeatured: properties.isFeatured,
+  }).from(properties).where(where!).limit(500);
+}
+
 export async function getAllProperties(limit = 50, offset = 0, status?: string) {
   const db = await getDb();
   if (!db) return [];

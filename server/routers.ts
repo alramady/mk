@@ -221,6 +221,23 @@ export const appRouter = router({
         });
       }),
 
+    mapData: publicProcedure
+      .input(z.object({
+        city: z.string().optional(),
+        propertyType: z.string().optional(),
+        minPrice: z.number().optional(),
+        maxPrice: z.number().optional(),
+        bedrooms: z.number().optional(),
+        furnishedLevel: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const ip = getClientIP(ctx.req);
+        const rl = rateLimiter.check(`map:${ip}`, RATE_LIMITS.PUBLIC_READ.maxRequests, RATE_LIMITS.PUBLIC_READ.windowMs);
+        if (!rl.allowed) throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Rate limit exceeded.' });
+        const hash = JSON.stringify(input || {});
+        return cacheThrough(`map:data:${hash}`, CACHE_TTL.SEARCH_RESULTS, () => db.getMapProperties(input || undefined));
+      }),
+
     uploadPhoto: protectedProcedure
       .input(z.object({ base64: z.string().max(MAX_BASE64_SIZE), filename: z.string().max(255), contentType: z.string().max(100) }))
       .mutation(async ({ ctx, input }) => {

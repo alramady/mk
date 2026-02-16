@@ -50,6 +50,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminPermissions = lazy(() => import("./pages/AdminPermissions"));
 const AdminAIRatings = lazy(() => import("./pages/AdminAIRatings"));
 const AiControlPanel = lazy(() => import("./pages/AiControlPanel"));
+const MapViewPage = lazy(() => import("./pages/MapView"));
 
 function PageLoader() {
   return (
@@ -68,6 +69,7 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/search" component={Search} />
+        <Route path="/map" component={MapViewPage} />
         <Route path="/property/:id" component={PropertyDetail} />
         <Route path="/list-property" component={CreateProperty} />
         <Route path="/edit-property/:id" component={CreateProperty} />

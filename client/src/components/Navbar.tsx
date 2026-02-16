@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import {
   Home, Search, Bell, MessageSquare, Menu, X, Globe, User,
-  LogOut, LayoutDashboard, KeyRound, Plus, ChevronDown
+  LogOut, LayoutDashboard, KeyRound, Plus, ChevronDown, MapPin
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -85,6 +85,11 @@ export default function Navbar() {
             <Link href="/search">
               <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/search" ? "text-[#3ECFC0]" : ""}`}>
                 {t("nav.search")}
+              </Button>
+            </Link>
+            <Link href="/map">
+              <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/map" ? "text-[#3ECFC0]" : ""}`}>
+                {t("nav.map")}
               </Button>
             </Link>
             {isAuthenticated && (
@@ -211,6 +216,12 @@ export default function Navbar() {
               <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
                 <Search className="h-4 w-4 me-2" />
                 {t("nav.search")}
+              </Button>
+            </Link>
+            <Link href="/map" onClick={() => setMobileMenuOpen(false)}>
+              <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
+                <MapPin className="h-4 w-4 me-2" />
+                {t("nav.map")}
               </Button>
             </Link>
             {isAuthenticated && (
