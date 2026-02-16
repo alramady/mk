@@ -131,13 +131,26 @@ export async function getPropertiesByLandlord(landlordId: number) {
 }
 
 export async function searchProperties(filters: {
-  city?: string; propertyType?: string; minPrice?: number; maxPrice?: number;
+  query?: string; city?: string; propertyType?: string; minPrice?: number; maxPrice?: number;
   bedrooms?: number; furnishedLevel?: string; status?: string;
   limit?: number; offset?: number;
 }) {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
   const conditions = [eq(properties.status, "active")];
+  if (filters.query) {
+    const q = `%${filters.query}%`;
+    conditions.push(or(
+      like(properties.titleAr, q),
+      like(properties.titleEn, q),
+      like(properties.city, q),
+      like(properties.cityAr, q),
+      like(properties.district, q),
+      like(properties.districtAr, q),
+      like(properties.descriptionAr, q),
+      like(properties.descriptionEn, q),
+    )!);
+  }
   if (filters.city) conditions.push(like(properties.city, `%${filters.city}%`));
   if (filters.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
   if (filters.minPrice) conditions.push(gte(properties.monthlyRent, String(filters.minPrice)));

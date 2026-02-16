@@ -12,14 +12,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Search as SearchIcon, SlidersHorizontal, Grid3X3, List, MapPin, X, Building2, Navigation } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export default function Search() {
   const { t, lang } = useI18n();
-  const [city, setCity] = useState("");
+
+  // Read URL query parameters on mount
+  const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const [searchText, setSearchText] = useState(urlParams.get('q') || "");
+  const [city, setCity] = useState(urlParams.get('city') || "");
   const [district, setDistrict] = useState("");
-  const [propertyType, setPropertyType] = useState("");
+  const [propertyType, setPropertyType] = useState(urlParams.get('type') || "");
   const [minPrice, setMinPrice] = useState<number | undefined>();
   const [maxPrice, setMaxPrice] = useState<number | undefined>();
   const [bedrooms, setBedrooms] = useState<number | undefined>();
@@ -27,6 +31,7 @@ export default function Search() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(true);
   const [page, setPage] = useState(0);
+  const debouncedSearchText = useDebounce(searchText, 300);
 
   // Load districts from DB
   const districtsQuery = trpc.districts.all.useQuery();
@@ -50,6 +55,7 @@ export default function Search() {
   const debouncedBedrooms = useDebounce(bedrooms, 300);
 
   const searchInput = useMemo(() => ({
+    query: debouncedSearchText || undefined,
     city: city || undefined,
     propertyType: propertyType || undefined,
     minPrice: debouncedMinPrice,
@@ -58,7 +64,7 @@ export default function Search() {
     furnishedLevel: furnishedLevel || undefined,
     limit: 12,
     offset: page * 12,
-  }), [city, propertyType, debouncedMinPrice, debouncedMaxPrice, debouncedBedrooms, furnishedLevel, page]);
+  }), [debouncedSearchText, city, propertyType, debouncedMinPrice, debouncedMaxPrice, debouncedBedrooms, furnishedLevel, page]);
 
   const results = trpc.property.search.useQuery(searchInput, { placeholderData: (prev: any) => prev });
 
@@ -73,11 +79,13 @@ export default function Search() {
   ];
 
   const clearFilters = () => {
-    setCity(""); setDistrict(""); setPropertyType(""); setMinPrice(undefined); setMaxPrice(undefined);
+    setSearchText(""); setCity(""); setDistrict(""); setPropertyType(""); setMinPrice(undefined); setMaxPrice(undefined);
     setBedrooms(undefined); setFurnishedLevel(""); setPage(0);
+    // Clear URL params
+    window.history.replaceState({}, '', '/search');
   };
 
-  const hasFilters = city || district || propertyType || minPrice || maxPrice || bedrooms || furnishedLevel;
+  const hasFilters = searchText || city || district || propertyType || minPrice || maxPrice || bedrooms || furnishedLevel;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -142,6 +150,32 @@ export default function Search() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-5">
+                {/* Text Search */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    {lang === "ar" ? "بحث" : "Search"}
+                  </label>
+                  <div className="relative">
+                    <SearchIcon className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={searchText}
+                      onChange={(e) => { setSearchText(e.target.value); setPage(0); }}
+                      placeholder={lang === "ar" ? "اسم العقار، الحي، الوصف..." : "Property name, district, description..."}
+                      className="ps-9"
+                      dir={lang === "ar" ? "rtl" : "ltr"}
+                    />
+                    {searchText && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchText("")}
+                        className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* City */}
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">{t("search.city")}</label>
@@ -255,6 +289,12 @@ export default function Search() {
             {/* Active filters */}
             {hasFilters && (
               <div className="flex flex-wrap gap-2 mb-4">
+                {searchText && (
+                  <Badge variant="secondary" className="gap-1">
+                    <SearchIcon className="h-3 w-3" /> "{searchText}"
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchText("")} />
+                  </Badge>
+                )}
                 {city && (
                   <Badge variant="secondary" className="gap-1">
                     <MapPin className="h-3 w-3" /> {city}

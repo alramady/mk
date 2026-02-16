@@ -14,7 +14,7 @@ import {
   ArrowLeft, ArrowRight, Star, Users, CheckCircle, Headphones,
   TrendingUp, Paintbrush, UserCheck, BarChart3, Quote, Sparkles
 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useScrollAnimation, useParallax } from "@/hooks/useScrollAnimation";
 
@@ -84,6 +84,192 @@ function StaggerGrid({ children, className = "" }: { children: React.ReactNode; 
     <div ref={ref} className={`stagger-children ${isVisible ? "visible" : ""} ${className}`}>
       {children}
     </div>
+  );
+}
+
+/* ─── Hero Search Bar ─── */
+function HeroSearchBar({ lang, cities, onSearch }: {
+  lang: string;
+  cities: Array<{ id: number; nameAr: string; nameEn: string }>;
+  onSearch: (query: string, city: string, type: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [city, setCity] = useState("");
+  const [type, setType] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const propertyTypes = [
+    { value: "apartment", ar: "شقة", en: "Apartment" },
+    { value: "villa", ar: "فيلا", en: "Villa" },
+    { value: "studio", ar: "استوديو", en: "Studio" },
+    { value: "duplex", ar: "دوبلكس", en: "Duplex" },
+    { value: "furnished_room", ar: "غرفة مفروشة", en: "Furnished Room" },
+    { value: "compound", ar: "كمباوند", en: "Compound" },
+    { value: "hotel_apartment", ar: "شقة فندقية", en: "Hotel Apartment" },
+  ];
+
+  // Autocomplete suggestions based on query
+  const suggestions = useMemo(() => {
+    if (!query || query.length < 2) return [];
+    const q = query.toLowerCase();
+    const results: Array<{ label: string; type: "city" | "propertyType"; value: string }> = [];
+    // Match cities
+    cities.forEach(c => {
+      if (c.nameAr.includes(query) || c.nameEn.toLowerCase().includes(q)) {
+        results.push({ label: lang === "ar" ? c.nameAr : c.nameEn, type: "city", value: c.nameEn });
+      }
+    });
+    // Match property types
+    propertyTypes.forEach(pt => {
+      if (pt.ar.includes(query) || pt.en.toLowerCase().includes(q)) {
+        results.push({ label: lang === "ar" ? pt.ar : pt.en, type: "propertyType", value: pt.value });
+      }
+    });
+    return results.slice(0, 6);
+  }, [query, cities, lang]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowSuggestions(false);
+    onSearch(query, city, type);
+  };
+
+  const handleSuggestionClick = (s: { label: string; type: "city" | "propertyType"; value: string }) => {
+    if (s.type === "city") {
+      setCity(s.value);
+      setQuery(s.label);
+    } else {
+      setType(s.value);
+      setQuery(s.label);
+    }
+    setShowSuggestions(false);
+    onSearch(s.type === "city" ? "" : query, s.type === "city" ? s.value : city, s.type === "propertyType" ? s.value : type);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto mt-8 fade-up visible" style={{ animationDelay: '0.4s' }}>
+      <div ref={wrapperRef} className="relative">
+        {/* Main search container */}
+        <div className="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-0 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl sm:rounded-full p-2 sm:p-1.5 shadow-2xl shadow-black/20 transition-all duration-300 hover:bg-white/15 hover:border-white/30">
+          {/* Search input */}
+          <div className="flex items-center flex-1 gap-2 px-3 sm:px-4">
+            <Search className="h-5 w-5 text-[#3ECFC0] shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setShowSuggestions(true); }}
+              onFocus={() => query.length >= 2 && setShowSuggestions(true)}
+              placeholder={lang === "ar" ? "ابحث بالاسم أو الموقع أو الحي..." : "Search by name, location, or district..."}
+              className="w-full bg-transparent text-white placeholder-white/50 text-sm sm:text-base py-3 sm:py-2.5 outline-none"
+              dir={lang === "ar" ? "rtl" : "ltr"}
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-8 self-center bg-white/20" />
+
+          {/* City select */}
+          <div className="flex items-center gap-2 px-3 sm:px-4 sm:min-w-[140px]">
+            <MapPin className="h-4 w-4 text-[#C9A96E] shrink-0" />
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="w-full bg-transparent text-white text-sm py-2.5 outline-none appearance-none cursor-pointer [&>option]:bg-[#0B1E2D] [&>option]:text-white"
+              dir={lang === "ar" ? "rtl" : "ltr"}
+            >
+              <option value="">{lang === "ar" ? "كل المدن" : "All Cities"}</option>
+              {cities.map(c => (
+                <option key={c.id} value={c.nameEn}>{lang === "ar" ? c.nameAr : c.nameEn}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-8 self-center bg-white/20" />
+
+          {/* Type select */}
+          <div className="flex items-center gap-2 px-3 sm:px-4 sm:min-w-[130px]">
+            <Building2 className="h-4 w-4 text-[#C9A96E] shrink-0" />
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="w-full bg-transparent text-white text-sm py-2.5 outline-none appearance-none cursor-pointer [&>option]:bg-[#0B1E2D] [&>option]:text-white"
+              dir={lang === "ar" ? "rtl" : "ltr"}
+            >
+              <option value="">{lang === "ar" ? "كل الأنواع" : "All Types"}</option>
+              {propertyTypes.map(pt => (
+                <option key={pt.value} value={pt.value}>{lang === "ar" ? pt.ar : pt.en}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Search button */}
+          <button
+            type="submit"
+            className="flex items-center justify-center gap-2 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] font-bold text-sm px-6 py-3 sm:py-2.5 rounded-xl sm:rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-[#3ECFC0]/25 shrink-0"
+          >
+            <Search className="h-4 w-4" />
+            <span className="sm:hidden">{lang === "ar" ? "بحث" : "Search"}</span>
+          </button>
+        </div>
+
+        {/* Autocomplete suggestions dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute top-full mt-2 w-full bg-[#0B1E2D]/95 backdrop-blur-xl border border-white/15 rounded-2xl overflow-hidden shadow-2xl z-50">
+            {suggestions.map((s: { label: string; type: "city" | "propertyType"; value: string }, i: number) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleSuggestionClick(s)}
+                className="flex items-center gap-3 w-full px-4 py-3 text-start hover:bg-white/10 transition-colors"
+              >
+                {s.type === "city" ? (
+                  <MapPin className="h-4 w-4 text-[#3ECFC0] shrink-0" />
+                ) : (
+                  <Building2 className="h-4 w-4 text-[#C9A96E] shrink-0" />
+                )}
+                <span className="text-white text-sm">{s.label}</span>
+                <span className="text-white/40 text-xs ms-auto">
+                  {s.type === "city" ? (lang === "ar" ? "مدينة" : "City") : (lang === "ar" ? "نوع" : "Type")}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick filter tags */}
+      <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+        {["الرياض", "جدة", "المدينة المنورة", "الدمام"].map((cityName, i) => {
+          const cityEn = ["Riyadh", "Jeddah", "Madinah", "Dammam"][i];
+          return (
+            <button
+              key={cityName}
+              type="button"
+              onClick={() => { setCity(cityEn); onSearch("", cityEn, ""); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/10 hover:border-white/25 transition-all duration-200 backdrop-blur-sm"
+            >
+              <MapPin className="h-3 w-3" />
+              {lang === "ar" ? cityName : cityEn}
+            </button>
+          );
+        })}
+      </div>
+    </form>
   );
 }
 
@@ -260,8 +446,17 @@ export default function Home() {
                 : "Premium monthly rental management | Riyadh • Jeddah • Madinah")}
             </p>
 
+            {/* Hero Search Bar */}
+            <HeroSearchBar lang={lang} cities={citiesQuery.data ?? []} onSearch={(q, c, t) => {
+              const params = new URLSearchParams();
+              if (q) params.set('q', q);
+              if (c) params.set('city', c);
+              if (t) params.set('type', t);
+              setLocation(`/search?${params.toString()}`);
+            }} />
+
             {/* CTA Buttons with micro-interactions */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-6">
               <Button
                 size="lg"
                 className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 w-full sm:w-auto"

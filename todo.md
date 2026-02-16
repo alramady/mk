@@ -844,3 +844,17 @@
 - [x] Auto .play() call on loadedData for browser compatibility
 - [x] All 428 tests passing, 0 TypeScript errors
 - [x] Save checkpoint, push to GitHub
+
+## Hero Search Bar (Feb 16)
+- [x] Add search input with glass-card styling to hero section
+- [x] Add city dropdown filter and property type filter
+- [x] Add autocomplete suggestions (cities, property types) with 2-char minimum
+- [x] Navigate to /search page with query params (q, city, type) on submit
+- [x] Quick filter buttons for top 4 cities (Riyadh, Jeddah, Madinah, Dammam)
+- [x] Mobile-responsive layout (stacked on mobile, inline on desktop)
+- [x] Search page reads URL params on load (q → text search, city → city filter, type → property type)
+- [x] Text search input added to Search page sidebar with debounced queries
+- [x] Active filter badges show search text with clear button
+- [x] 21 new hero search tests (URL params, autocomplete logic, quick filters)
+- [x] All 449 tests passing, 0 TypeScript errors
+- [ ] Save checkpoint, push to GitHub

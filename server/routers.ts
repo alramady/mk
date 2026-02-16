@@ -194,6 +194,7 @@ export const appRouter = router({
 
     search: publicProcedure
       .input(z.object({
+        query: z.string().max(200).optional(),
         city: z.string().optional(),
         propertyType: z.string().optional(),
         minPrice: z.number().optional(),

@@ -1,0 +1,8 @@
+{
+  "query": "UPDATE site_settings SET value = 'false' WHERE key = 'maintenance.enabled';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute UPDATE site_settings SET value = 'false' WHERE key = 'maintenance.enabled';",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 50 near \"key = 'maintenance.enabled'\""
+  ]
+}
