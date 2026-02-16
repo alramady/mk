@@ -679,3 +679,13 @@
 - [x] Admin can customize welcome message, suggested questions, AI name/avatar
 - [x] Enhanced chat UI with animations, typing dots, pulse ring, sparkle effects
 - [x] AI Control Panel route added to App.tsx + link in Admin Dashboard
+
+## Maintenance Mode / Coming Soon (Feb 16)
+- [x] Add CMS settings: maintenance.enabled, titleAr/En, subtitleAr/En, messageAr/En, imageUrl, countdownDate, showCountdown
+- [x] Seed default "coming soon" content (قريباً... الانطلاق + ستكون رحلة مميزة معنا)
+- [x] Build beautiful maintenance/coming soon page (particles, countdown, Riyadh skyline hero, language toggle)
+- [x] Admin CMS controls: toggle switch, image upload, message editor (AR/EN), countdown date
+- [x] MaintenanceGate in App.tsx redirects all non-admin users when enabled
+- [x] Admin users bypass maintenance mode to access full site
+- [x] Generated default coming soon hero image (uploaded to S3 CDN)
+- [x] Run tests (302 passing), save checkpoint, push to GitHub

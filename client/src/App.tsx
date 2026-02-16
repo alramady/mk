@@ -5,13 +5,15 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { I18nProvider } from "./lib/i18n";
-import { SiteSettingsProvider } from "./contexts/SiteSettingsContext";
-import { lazy, Suspense } from "react";
+import { SiteSettingsProvider, useSiteSettings } from "./contexts/SiteSettingsContext";
+import React, { lazy, Suspense } from "react";
 import AiAssistant from "./components/AiAssistant";
+import { useAuth } from "./_core/hooks/useAuth";
 import CookieConsent from "./components/CookieConsent";
 import WhatsAppButton from "./components/WhatsAppButton";
 import { Loader2 } from "lucide-react";
 import { usePageTracking } from "./hooks/usePageTracking";
+import MaintenanceMode from "./pages/MaintenanceMode";
 
 // Eager load critical pages
 import Home from "./pages/Home";
@@ -103,6 +105,23 @@ function Router() {
   );
 }
 
+function MaintenanceGate({ children }: { children: React.ReactNode }) {
+  const { get, isLoading } = useSiteSettings();
+  const { user } = useAuth();
+  const maintenanceEnabled = get("maintenance.enabled") === "true";
+  const isAdmin = user?.role === "admin";
+
+  // Show loading while settings load
+  if (isLoading) return <PageLoader />;
+
+  // If maintenance mode is on and user is NOT admin, show maintenance page
+  if (maintenanceEnabled && !isAdmin) {
+    return <MaintenanceMode />;
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -111,10 +130,12 @@ function App() {
           <SiteSettingsProvider>
           <TooltipProvider>
             <Toaster />
-            <Router />
-            <AiAssistant />
-            <WhatsAppButton />
-            <CookieConsent />
+            <MaintenanceGate>
+              <Router />
+              <AiAssistant />
+              <WhatsAppButton />
+              <CookieConsent />
+            </MaintenanceGate>
           </TooltipProvider>
           </SiteSettingsProvider>
         </I18nProvider>
