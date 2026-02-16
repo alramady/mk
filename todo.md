@@ -662,3 +662,8 @@
 - [x] SMTP infrastructure verified (user will add credentials later)
 - [x] Run all tests — 302 passing, 0 errors
 - [x] Save checkpoint (86310782) and pushed to GitHub (alramady/re + alramady/Monthly-Key)
+
+## Search Card Favorites & SMTP (Feb 16)
+- [x] Heart favorite toggle already exists on PropertyCard component (used in Search, Home, TenantDashboard)
+- [x] SMTP credentials requested via webdev_request_secrets
+- [x] Run tests (302 passing), save checkpoint, push to GitHub
