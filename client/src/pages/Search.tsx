@@ -54,7 +54,7 @@ export default function Search() {
     offset: page * 12,
   }), [city, propertyType, minPrice, maxPrice, bedrooms, furnishedLevel, page]);
 
-  const results = trpc.property.search.useQuery(searchInput);
+  const results = trpc.property.search.useQuery(searchInput, { placeholderData: (prev: any) => prev });
 
   const propertyTypes = [
     { value: "apartment", label: t("type.apartment") },

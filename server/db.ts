@@ -149,19 +149,27 @@ export async function searchProperties(filters: {
     .orderBy(desc(properties.createdAt))
     .limit(filters.limit ?? 20).offset(filters.offset ?? 0);
   const countResult = await db.select({ count: sql<number>`count(*)` }).from(properties).where(where!);
-  // Attach manager info to each property
-  const itemsWithManager = await Promise.all(items.map(async (item) => {
-    const assignment = await db.select().from(propertyManagerAssignments)
-      .where(eq(propertyManagerAssignments.propertyId, item.id)).limit(1);
-    if (assignment.length > 0) {
-      const mgr = await db.select().from(propertyManagers)
-        .where(eq(propertyManagers.id, assignment[0].managerId)).limit(1);
-      if (mgr.length > 0) {
-        return { ...item, managerName: mgr[0].name, managerNameAr: mgr[0].nameAr, managerPhotoUrl: mgr[0].photoUrl };
+  // Batch load manager info (eliminates N+1 queries)
+  const itemIds = items.map(i => i.id);
+  let managerMap = new Map<number, { name: string; nameAr: string | null; photoUrl: string | null }>();
+  if (itemIds.length > 0) {
+    const assignments = await db.select().from(propertyManagerAssignments)
+      .where(inArray(propertyManagerAssignments.propertyId, itemIds));
+    const managerIds = Array.from(new Set(assignments.map(a => a.managerId)));
+    if (managerIds.length > 0) {
+      const managers = await db.select().from(propertyManagers)
+        .where(inArray(propertyManagers.id, managerIds));
+      const mgrById = new Map(managers.map(m => [m.id, m]));
+      for (const a of assignments) {
+        const mgr = mgrById.get(a.managerId);
+        if (mgr) managerMap.set(a.propertyId, { name: mgr.name, nameAr: mgr.nameAr, photoUrl: mgr.photoUrl });
       }
     }
-    return item;
-  }));
+  }
+  const itemsWithManager = items.map(item => {
+    const mgr = managerMap.get(item.id);
+    return mgr ? { ...item, managerName: mgr.name, managerNameAr: mgr.nameAr, managerPhotoUrl: mgr.photoUrl } : item;
+  });
   return { items: itemsWithManager, total: countResult[0]?.count ?? 0 };
 }
 

@@ -1,4 +1,5 @@
 import { COOKIE_NAME } from "@shared/const";
+import { TRPCError } from "@trpc/server";
 import { ENV } from "./_core/env";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -8,6 +9,8 @@ import { z } from "zod";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import * as db from "./db";
+import { cache, cacheThrough, CACHE_TTL, CACHE_KEYS } from "./cache";
+import { rateLimiter, RATE_LIMITS, getClientIP } from "./rate-limiter";
 import { getAiResponse, seedDefaultKnowledgeBase } from "./ai-assistant";
 import { generateLeaseContractHTML } from "./lease-contract";
 import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./paypal";
@@ -109,6 +112,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const id = await db.createProperty({ ...input, landlordId: ctx.user.id, status: "pending" } as any);
+        cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
         return { id };
       }),
 
@@ -153,6 +157,7 @@ export const appRouter = router({
         if (!prop) throw new Error("Property not found");
         if (prop.landlordId !== ctx.user.id && ctx.user.role !== "admin") throw new Error("Unauthorized");
         await db.updateProperty(id, data as any);
+        cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
         return { success: true };
       }),
 
@@ -163,6 +168,7 @@ export const appRouter = router({
         if (!prop) throw new Error("Property not found");
         if (prop.landlordId !== ctx.user.id && ctx.user.role !== "admin") throw new Error("Unauthorized");
         await db.deleteProperty(input.id);
+        cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
         return { success: true };
       }),
 
@@ -192,14 +198,22 @@ export const appRouter = router({
         limit: z.number().optional(),
         offset: z.number().optional(),
       }))
-      .query(async ({ input }) => {
-        return db.searchProperties(input);
+      .query(async ({ ctx, input }) => {
+        // Rate limit public search
+        const ip = getClientIP(ctx.req);
+        const rl = rateLimiter.check(`search:${ip}`, RATE_LIMITS.PUBLIC_READ.maxRequests, RATE_LIMITS.PUBLIC_READ.windowMs);
+        if (!rl.allowed) throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Rate limit exceeded. Please try again later.' });
+        // Cache search results by input hash
+        const hash = JSON.stringify(input);
+        return cacheThrough(CACHE_KEYS.searchResults(hash), CACHE_TTL.SEARCH_RESULTS, () => db.searchProperties(input));
       }),
 
     featured: publicProcedure
       .query(async () => {
-        const result = await db.searchProperties({ limit: 6 });
-        return result.items;
+        return cacheThrough('property:featured', CACHE_TTL.HOMEPAGE_DATA, async () => {
+          const result = await db.searchProperties({ limit: 6 });
+          return result.items;
+        });
       }),
 
     uploadPhoto: protectedProcedure
@@ -776,17 +790,18 @@ export const appRouter = router({
   // Site Settings (CMS)
   siteSettings: router({
     getAll: publicProcedure.query(async () => {
-      return db.getAllSettings();
+      return cacheThrough(CACHE_KEYS.settings(), CACHE_TTL.SETTINGS, () => db.getAllSettings());
     }),
     get: publicProcedure
       .input(z.object({ key: z.string() }))
       .query(async ({ input }) => {
-        return { value: await db.getSetting(input.key) };
+        return { value: await cacheThrough(CACHE_KEYS.settingsSingle(input.key), CACHE_TTL.SETTINGS, () => db.getSetting(input.key)) };
       }),
     update: adminWithPermission(PERMISSIONS.MANAGE_CMS)
       .input(z.object({ settings: z.record(z.string(), z.string()) }))
       .mutation(async ({ input }) => {
         await db.bulkSetSettings(input.settings);
+        cache.invalidatePrefix('settings:');
         return { success: true };
       }),
     uploadAsset: adminWithPermission(PERMISSIONS.MANAGE_CMS)
@@ -1193,7 +1208,8 @@ export const appRouter = router({
     all: publicProcedure
       .input(z.object({ activeOnly: z.boolean().optional() }).optional())
       .query(async ({ input }) => {
-        return db.getAllCities(input?.activeOnly ?? true);
+        const activeOnly = input?.activeOnly ?? true;
+        return cacheThrough(CACHE_KEYS.allCities(activeOnly), CACHE_TTL.CITY_LIST, () => db.getAllCities(activeOnly));
       }),
 
     byId: publicProcedure
@@ -1220,6 +1236,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const id = await db.createCity(input as any);
+        cache.invalidatePrefix('cities:');
         return { id };
       }),
 
@@ -1239,6 +1256,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
         await db.updateCity(id, data as any);
+        cache.invalidatePrefix('cities:');
         return { success: true };
       }),
 
@@ -1249,6 +1267,7 @@ export const appRouter = router({
         if (input.isFeatured !== undefined) {
           await db.updateCity(input.id, { isFeatured: input.isFeatured });
         }
+        cache.invalidatePrefix('cities:');
         return { success: true };
       }),
 
@@ -1256,17 +1275,19 @@ export const appRouter = router({
       .input(z.object({ id: z.number(), isFeatured: z.boolean() }))
       .mutation(async ({ input }) => {
         await db.updateCity(input.id, { isFeatured: input.isFeatured });
+        cache.invalidatePrefix('cities:');
         return { success: true };
       }),
 
     getFeatured: publicProcedure.query(async () => {
-      return db.getFeaturedCities();
+      return cacheThrough(CACHE_KEYS.featuredCities(), CACHE_TTL.CITY_LIST, () => db.getFeaturedCities());
     }),
 
     delete: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteCity(input.id);
+        cache.invalidatePrefix('cities:'); cache.invalidatePrefix('districts:');
         return { success: true };
       }),
 
@@ -1325,6 +1346,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const id = await db.createDistrict(input as any);
+        cache.invalidatePrefix('districts:');
         return { id };
       }),
 
@@ -1358,6 +1380,7 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteDistrict(input.id);
+        cache.invalidatePrefix('districts:');
         return { success: true };
       }),
 
@@ -1375,6 +1398,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         await db.bulkCreateDistricts(input.districts as any[]);
+        cache.invalidatePrefix('districts:');
         return { success: true, count: input.districts.length };
       }),
 
@@ -1382,6 +1406,7 @@ export const appRouter = router({
       .input(z.object({ city: z.string() }))
       .mutation(async ({ input }) => {
         await db.deleteDistrictsByCity(input.city);
+        cache.invalidatePrefix('districts:');
         return { success: true };
       }),
   }),

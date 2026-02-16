@@ -740,3 +740,28 @@
 - [x] Browser test: maintenance toggle UI reflects correct state after page reload
 - [x] No issues found during testing — all scenarios passed
 - [x] Run all tests, save checkpoint, push to GitHub
+
+## Performance Optimization for High Traffic & Large Listings (Feb 16)
+- [x] Audit: identify all DB queries missing indexes, N+1 queries, unbounded selects
+- [x] DB: add 65 composite indexes on all high-traffic tables (properties, bookings, messages, etc.)
+- [x] DB: add indexes on bookings (tenantId, propertyId, status, createdAt)
+- [x] DB: add indexes on messages (senderId, receiverId, conversationId, createdAt)
+- [x] DB: add indexes on maintenanceRequests (tenantId, propertyId, status, priority)
+- [x] DB: add indexes on reviews, viewingRequests, notifications, favorites, etc.
+- [x] DB: offset-based pagination already implemented (12 per page on search)
+- [x] DB: fix N+1 query in searchProperties — batch load managers (3 queries instead of N*2)
+- [x] Backend: add in-memory cache (cache.ts) for site settings, search results, homepage data
+- [x] Backend: add cache for featured properties, city lists, featured cities
+- [x] Backend: add rate limiting (rate-limiter.ts) on public search (120 req/min per IP)
+- [x] Backend: add cache invalidation on all property/city/settings mutations
+- [x] Backend: DB connection pooling via drizzle-orm/mysql2 (built-in)
+- [x] Frontend: add lazy loading (loading="lazy" decoding="async") to PropertyCard images
+- [x] Frontend: create LazyImage component with fade-in and fallback
+- [x] Frontend: all pages already code-split with React.lazy (30+ lazy routes)
+- [x] Frontend: add placeholderData for smooth pagination transitions
+- [ ] Frontend: virtualize long property lists (react-window) — deferred, pagination handles scale
+- [ ] Frontend: debounce search input — deferred, filter changes reset page
+- [x] Frontend: skeleton loading states already exist for property cards
+- [x] Write 24 performance vitest tests (cache, rate limiter, performance benchmarks)
+- [x] All 356 tests passing, 0 TypeScript errors
+- [x] Save checkpoint, push to GitHub
