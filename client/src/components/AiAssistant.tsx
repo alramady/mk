@@ -241,7 +241,7 @@ export default function AiAssistant() {
                 <div className="flex items-center gap-2 flex-1">
                   <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center relative">
                     <Bot className="w-5 h-5" />
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-emerald-600" />
+                    <span className="absolute -bottom-0.5 -end-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-emerald-600" />
                   </div>
                   <div>
                     <h3 className="font-bold text-sm">{aiName}</h3>
@@ -346,7 +346,7 @@ export default function AiAssistant() {
                       <motion.div
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ repeat: Infinity, duration: 2 }}
-                        className="absolute -top-1 -right-1"
+                        className="absolute -top-1 -end-1"
                       >
                         <Sparkles className="w-5 h-5 text-amber-500" />
                       </motion.div>

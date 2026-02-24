@@ -66,8 +66,8 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
   return (
     <Link href={`/property/${property.id}`}>
-      <Card className="group overflow-hidden hover:shadow-xl hover:shadow-[#3ECFC0]/10 transition-all duration-500 cursor-pointer border-border/50 py-0 gap-0 bg-white hover:-translate-y-1">
-        {/* Image */}
+      <Card className="property-card group overflow-hidden cursor-pointer border-border/40 py-0 gap-0 bg-white dark:bg-card rounded-xl">
+        {/* Image Container */}
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
             src={photo}
@@ -76,37 +76,42 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             decoding="async"
             width={400}
             height={300}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
           />
+          {/* Gradient overlay on hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-70 transition-opacity duration-500" />
+
           {/* Badges */}
           <div className="absolute top-3 start-3 flex gap-1.5">
             {property.isVerified && (
-              <Badge className="bg-[#3ECFC0] text-[#0B1E2D] text-[10px] gap-1 border-0">
+              <Badge className="bg-[#3ECFC0] text-[#0B1E2D] text-[10px] gap-1 border-0 shadow-sm">
                 <CheckCircle className="h-3 w-3" />
                 {t("property.verified")}
               </Badge>
             )}
             {property.isFeatured && (
-              <Badge className="bg-[#C9A96E] text-[#0B1E2D] text-[10px] border-0">
+              <Badge className="bg-[#C9A96E] text-[#0B1E2D] text-[10px] border-0 shadow-sm">
                 {t("property.featured")}
               </Badge>
             )}
           </div>
+
           {/* Favorite */}
           <button
             onClick={handleFavorite}
-            className="absolute top-3 end-3 h-8 w-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300"
+            className="absolute top-3 end-3 h-9 w-9 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-90 transition-all duration-300 shadow-sm"
           >
             <Heart
-              className={`h-4 w-4 transition-colors ${
-                favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-gray-400"
+              className={`h-4 w-4 transition-all duration-300 ${
+                favCheck.data?.isFavorite ? "fill-red-500 text-red-500 scale-110" : "text-gray-500"
               }`}
             />
           </button>
+
           {/* Manager overlay */}
           {property.managerName && (
-            <div className="absolute top-3 end-12 flex items-center gap-1.5 bg-white/90 backdrop-blur rounded-full ps-2 pe-1 py-0.5 shadow-sm">
-              <span className="text-[10px] font-medium text-[#0B1E2D] max-w-[80px] truncate">
+            <div className="absolute top-3 end-14 flex items-center gap-1.5 bg-white/90 dark:bg-black/60 backdrop-blur-sm rounded-full ps-2 pe-1 py-0.5 shadow-sm">
+              <span className="text-[10px] font-medium text-[#0B1E2D] dark:text-white max-w-[80px] truncate">
                 {lang === "ar" ? (property.managerNameAr || property.managerName) : property.managerName}
               </span>
               {property.managerPhotoUrl ? (
@@ -117,9 +122,10 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
               </div>
             </div>
           )}
-          {/* Price tag */}
-          <div className="absolute bottom-2 sm:bottom-3 start-2 sm:start-3 bg-[#0B1E2D]/90 backdrop-blur rounded-lg px-2.5 sm:px-3 py-1 sm:py-1.5 shadow-sm group-hover:bg-[#0B1E2D] transition-colors duration-300">
-            <span className="font-bold text-[#3ECFC0] text-base sm:text-lg">
+
+          {/* Price tag - enhanced with glow effect */}
+          <div className="absolute bottom-3 start-3 bg-[#0B1E2D]/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg group-hover:shadow-[#3ECFC0]/20 group-hover:shadow-xl transition-all duration-500">
+            <span className="font-bold text-[#3ECFC0] text-base sm:text-lg tracking-tight">
               {Number(property.monthlyRent).toLocaleString()} {t("payment.sar")}
             </span>
             <span className="text-white/60 text-xs ms-1">{t("property.perMonth")}</span>
@@ -127,19 +133,19 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
         </div>
 
         {/* Content */}
-        <CardContent className="p-3 sm:p-4">
+        <CardContent className="p-3.5 sm:p-4">
           <div className="mb-2">
-            <Badge variant="secondary" className="text-[10px] mb-2 bg-[#3ECFC0]/10 text-[#3ECFC0] border-0">
+            <Badge variant="secondary" className="text-[10px] mb-2 bg-[#3ECFC0]/10 text-[#3ECFC0] border-0 dark:bg-[#3ECFC0]/20">
               {t(typeKey)}
             </Badge>
-            <h3 className="font-heading font-semibold text-sm line-clamp-1 group-hover:text-[#3ECFC0] transition-colors">
+            <h3 className="font-heading font-semibold text-sm line-clamp-1 group-hover:text-[#3ECFC0] transition-colors duration-300">
               {title}
             </h3>
           </div>
 
           {(city || district) && (
             <div className="flex items-center gap-1 text-muted-foreground text-xs mb-3">
-              <MapPin className="h-3 w-3 shrink-0" />
+              <MapPin className="h-3 w-3 shrink-0 text-[#C9A96E]" />
               <span className="line-clamp-1">
                 {district && `${district}، `}{city}
               </span>
@@ -147,23 +153,23 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           )}
 
           {!compact && (
-            <div className="flex items-center gap-3 text-xs text-muted-foreground pt-3 border-t border-border/50">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-3 border-t border-border/30">
               {property.bedrooms != null && (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   <BedDouble className="h-3.5 w-3.5" />
-                  {property.bedrooms}
+                  <span className="font-medium">{property.bedrooms}</span>
                 </span>
               )}
               {property.bathrooms != null && (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   <Bath className="h-3.5 w-3.5" />
-                  {property.bathrooms}
+                  <span className="font-medium">{property.bathrooms}</span>
                 </span>
               )}
               {property.sizeSqm != null && (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   <Maximize2 className="h-3.5 w-3.5" />
-                  {property.sizeSqm} {t("property.sqm")}
+                  <span className="font-medium">{property.sizeSqm} {t("property.sqm")}</span>
                 </span>
               )}
             </div>

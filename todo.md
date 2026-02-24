@@ -878,3 +878,17 @@
 - [ ] Create verification checklist for OAuth removal
 - [ ] Create list of removed files/config keys
 - [ ] Push to GitHub
+
+
+## Visual Appeal Improvements (Feb 2026)
+- [ ] Property card: Enhanced hover effects (soft shadows, gradient overlay, smooth lift)
+- [ ] OG image: Design branded 1200x630 image for social sharing
+- [ ] Property detail: Add lightbox on photo click using MediaLightbox
+- [ ] Property detail: Add thumbnail strip below main photo
+- [ ] Footer: Redesign with transparent logo, cleaner layout
+- [ ] 404 page: Branded design with MK identity (navy/gold/teal)
+- [ ] Loading states: Skeleton screens for property cards and listings
+- [ ] Dark/Light mode: Add toggle button in Navbar
+- [ ] Map: Custom markers and brand colors
+- [ ] Dashboard: Charts and visual stats improvements
+- [ ] RTL: Comprehensive audit across all components

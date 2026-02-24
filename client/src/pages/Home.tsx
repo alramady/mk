@@ -5,6 +5,7 @@ import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PropertyCard from "@/components/PropertyCard";
+import { PropertyCardSkeletonGrid } from "@/components/PropertyCardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -622,18 +623,7 @@ export default function Home() {
           </ScrollSection>
 
           {featured.isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <Card key={i} className="overflow-hidden">
-                  <Skeleton className="aspect-[4/3]" />
-                  <CardContent className="p-4 space-y-3">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-5 w-full" />
-                    <Skeleton className="h-4 w-32" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <PropertyCardSkeletonGrid count={6} />
           ) : featured.data && featured.data.length > 0 ? (
             <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {featured.data.map((prop) => (

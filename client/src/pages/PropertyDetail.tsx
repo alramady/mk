@@ -19,6 +19,7 @@ import {
   Phone, UserCog, Clock, Eye, Calculator, X
 } from "lucide-react";
 import { useState, useRef, useMemo, useCallback } from "react";
+import { MediaLightbox } from "@/components/MediaLightbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +69,7 @@ export default function PropertyDetail() {
   const [currentPhoto, setCurrentPhoto] = useState(0);
   const mapRef = useRef<MapInstance | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const id = Number(params?.id);
   const property = trpc.property.getById.useQuery({ id }, { enabled: !!id });
@@ -209,12 +211,18 @@ export default function PropertyDetail() {
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Photo gallery */}
-            <div className="relative rounded-xl overflow-hidden aspect-[16/10]">
+            <div className="relative rounded-xl overflow-hidden aspect-[16/10] cursor-pointer" onClick={() => setLightboxOpen(true)}>
               <img
                 src={photos[currentPhoto]}
                 alt={title}
-                className="w-full h-full object-cover"
+                loading="eager"
+                className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]"
               />
+              {/* Photo count badge */}
+              <div className="absolute bottom-3 end-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 z-10">
+                <Eye className="h-3 w-3" />
+                {currentPhoto + 1} / {photos.length}
+              </div>
               {photos.length > 1 && (
                 <>
                   <button
@@ -267,6 +275,31 @@ export default function PropertyDetail() {
                 )}
               </div>
             </div>
+            {/* Thumbnail strip */}
+            {photos.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                {photos.map((photo, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPhoto(i)}
+                    className={`shrink-0 w-16 h-12 sm:w-20 sm:h-14 rounded-lg overflow-hidden border-2 transition-all duration-300 ${
+                      i === currentPhoto
+                        ? "border-[#3ECFC0] shadow-md shadow-[#3ECFC0]/20 scale-105"
+                        : "border-transparent opacity-60 hover:opacity-100 hover:border-border"
+                    }`}
+                  >
+                    <img src={photo} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Lightbox */}
+            <MediaLightbox
+              items={photos.map(url => ({ url, type: "image" as const }))}
+              initialIndex={currentPhoto}
+              open={lightboxOpen}
+              onClose={() => setLightboxOpen(false)}
+            />
 
             {/* Title & Location */}
             <div>

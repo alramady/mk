@@ -246,26 +246,54 @@ export default function AdminDashboard() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card><CardContent className="p-4 text-center">
-            <Users className="h-6 w-6 text-primary mx-auto mb-2" />
-            <div className="text-2xl font-bold">{stats.data?.userCount ?? 0}</div>
-            <div className="text-xs text-muted-foreground">{t("dashboard.totalUsers")}</div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <Building2 className="h-6 w-6 text-primary mx-auto mb-2" />
-            <div className="text-2xl font-bold">{stats.data?.activeProperties ?? 0}</div>
-            <div className="text-xs text-muted-foreground">{t("dashboard.activeListings")}</div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <Calendar className="h-6 w-6 text-[#C9A96E] mx-auto mb-2" />
-            <div className="text-2xl font-bold">{stats.data?.pendingProperties ?? 0}</div>
-            <div className="text-xs text-muted-foreground">{t("dashboard.pendingApproval")}</div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <TrendingUp className="h-6 w-6 text-primary mx-auto mb-2" />
-            <div className="text-2xl font-bold">{Number(stats.data?.totalRevenue ?? 0).toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">{t("payment.sar")} {t("dashboard.revenue")}</div>
-          </CardContent></Card>
+          <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-5 relative">
+              <div className="absolute top-0 end-0 w-20 h-20 bg-[#3ECFC0]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-[#3ECFC0]/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-[#3ECFC0]" />
+                </div>
+              </div>
+              <div className="text-2xl font-heading font-bold">{stats.data?.userCount ?? 0}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{t("dashboard.totalUsers")}</div>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-5 relative">
+              <div className="absolute top-0 end-0 w-20 h-20 bg-blue-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                  <Building2 className="h-5 w-5 text-blue-500" />
+                </div>
+              </div>
+              <div className="text-2xl font-heading font-bold">{stats.data?.activeProperties ?? 0}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{t("dashboard.activeListings")}</div>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-5 relative">
+              <div className="absolute top-0 end-0 w-20 h-20 bg-[#C9A96E]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-[#C9A96E]/10 flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-[#C9A96E]" />
+                </div>
+              </div>
+              <div className="text-2xl font-heading font-bold">{stats.data?.pendingProperties ?? 0}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{t("dashboard.pendingApproval")}</div>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-[#0B1E2D] to-[#132d42]">
+            <CardContent className="p-5 relative">
+              <div className="absolute top-0 end-0 w-20 h-20 bg-[#3ECFC0]/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-[#3ECFC0]/20 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-[#3ECFC0]" />
+                </div>
+              </div>
+              <div className="text-2xl font-heading font-bold text-white">{Number(stats.data?.totalRevenue ?? 0).toLocaleString()}</div>
+              <div className="text-xs text-white/60 mt-0.5">{t("payment.sar")} {t("dashboard.revenue")}</div>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="bookings" className="space-y-6">

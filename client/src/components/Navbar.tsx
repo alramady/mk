@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Sun, Moon } from "lucide-react";
 
 function NotificationIcon({ type }: { type: string }) {
   switch (type) {
@@ -199,6 +201,22 @@ function NotificationDropdown() {
   );
 }
 
+function ThemeToggle() {
+  const { theme, toggleTheme, switchable } = useTheme();
+  if (!switchable || !toggleTheme) return null;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={toggleTheme}
+      className="text-white/80 hover:text-white hover:bg-white/10 w-8 h-8 p-0"
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </Button>
+  );
+}
+
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { t, lang, toggleLang } = useI18n();
@@ -288,6 +306,9 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <ThemeToggle />
+
             {/* Language toggle */}
             <Button variant="ghost" size="sm" onClick={toggleLang} className="text-white/80 hover:text-white hover:bg-white/10 gap-1.5">
               <Globe className="h-4 w-4" />
