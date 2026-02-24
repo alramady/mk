@@ -91,11 +91,12 @@ function StaggerGrid({ children, className = "" }: { children: React.ReactNode; 
 function HeroSearchBar({ lang, cities, onSearch }: {
   lang: string;
   cities: Array<{ id: number; nameAr: string; nameEn: string }>;
-  onSearch: (query: string, city: string, type: string) => void;
+  onSearch: (query: string, city: string, type: string, maxPrice: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("");
   const [type, setType] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -144,7 +145,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setShowSuggestions(false);
-    onSearch(query, city, type);
+    onSearch(query, city, type, maxPrice);
   };
 
   const handleSuggestionClick = (s: { label: string; type: "city" | "propertyType"; value: string }) => {
@@ -156,7 +157,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
       setQuery(s.label);
     }
     setShowSuggestions(false);
-    onSearch(s.type === "city" ? "" : query, s.type === "city" ? s.value : city, s.type === "propertyType" ? s.value : type);
+    onSearch(s.type === "city" ? "" : query, s.type === "city" ? s.value : city, s.type === "propertyType" ? s.value : type, maxPrice);
   };
 
   return (
@@ -217,6 +218,28 @@ function HeroSearchBar({ lang, cities, onSearch }: {
             </select>
           </div>
 
+          {/* Budget select */}
+          <div className="flex items-center gap-2 px-3 sm:px-4 sm:min-w-[130px]">
+            <span className="text-[#C9A96E] text-sm font-bold shrink-0">﷼</span>
+            <select
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              className="w-full bg-transparent text-white text-sm py-2.5 outline-none appearance-none cursor-pointer [&>option]:bg-[#0B1E2D] [&>option]:text-white"
+              dir={lang === "ar" ? "rtl" : "ltr"}
+            >
+              <option value="">{lang === "ar" ? "الميزانية" : "Budget"}</option>
+              <option value="3000">{lang === "ar" ? "حتى 3,000 ر.س" : "Up to 3,000 SAR"}</option>
+              <option value="5000">{lang === "ar" ? "حتى 5,000 ر.س" : "Up to 5,000 SAR"}</option>
+              <option value="8000">{lang === "ar" ? "حتى 8,000 ر.س" : "Up to 8,000 SAR"}</option>
+              <option value="12000">{lang === "ar" ? "حتى 12,000 ر.س" : "Up to 12,000 SAR"}</option>
+              <option value="20000">{lang === "ar" ? "حتى 20,000 ر.س" : "Up to 20,000 SAR"}</option>
+              <option value="50000">{lang === "ar" ? "أكثر من 20,000 ر.س" : "20,000+ SAR"}</option>
+            </select>
+          </div>
+
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-8 self-center bg-white/20" />
+
           {/* Search button */}
           <button
             type="submit"
@@ -260,7 +283,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
             <button
               key={cityName}
               type="button"
-              onClick={() => { setCity(cityEn); onSearch("", cityEn, ""); }}
+              onClick={() => { setCity(cityEn); onSearch("", cityEn, "", ""); }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/10 hover:border-white/25 transition-all duration-200 backdrop-blur-sm"
             >
               <MapPin className="h-3 w-3" />
@@ -458,11 +481,12 @@ export default function Home() {
             </p>
 
             {/* Hero Search Bar */}
-            <HeroSearchBar lang={lang} cities={citiesQuery.data ?? []} onSearch={(q, c, t) => {
+            <HeroSearchBar lang={lang} cities={citiesQuery.data ?? []} onSearch={(q, c, t, mp) => {
               const params = new URLSearchParams();
               if (q) params.set('q', q);
               if (c) params.set('city', c);
               if (t) params.set('type', t);
+              if (mp) params.set('maxPrice', mp);
               setLocation(`/search?${params.toString()}`);
             }} />
 

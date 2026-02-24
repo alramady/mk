@@ -74,6 +74,8 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             alt={title}
             loading="lazy"
             decoding="async"
+            width={400}
+            height={300}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
           />
           {/* Badges */}

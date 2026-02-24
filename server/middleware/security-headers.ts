@@ -12,7 +12,6 @@ import type { Request, Response, NextFunction } from "express";
 
 export function securityHeaders(req: Request, res: Response, next: NextFunction): void {
   // ─── HSTS: Force HTTPS for 1 year ─────────────────────────────────
-  // Only set in production to avoid issues with local development
   if (process.env.NODE_ENV === "production") {
     res.setHeader(
       "Strict-Transport-Security",
@@ -30,41 +29,47 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
 
   // ─── Permissions Policy ───────────────────────────────────────────
-  // Restrict access to sensitive browser APIs
   res.setHeader(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(self), payment=(self), usb=()"
+    "camera=(), microphone=(), geolocation=(self), payment=(self), usb=(), interest-cohort=()"
   );
 
-  // ─── Content Security Policy (Report-Only mode for safety) ────────
-  // Start with report-only to avoid breaking existing functionality.
-  // Once verified, switch to enforcing mode by changing the header name
-  // from "Content-Security-Policy-Report-Only" to "Content-Security-Policy".
+  // ─── Cross-Origin headers ─────────────────────────────────────────
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+
+  // ─── Content Security Policy (Enforcing mode) ─────────────────────
   const csp = [
     "default-src 'self'",
     // Scripts: self + Google Maps + Analytics + CDNs
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://unpkg.com",
-    // Styles: self + Google Fonts + Leaflet CDN
+    // Styles: self + Google Fonts + Leaflet CDN + inline (needed for React)
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
     // Fonts: self + Google Fonts
-    "font-src 'self' https://fonts.gstatic.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
     // Images: self + data/blob + OpenStreetMap tiles + Google Maps tiles + any HTTPS
     "img-src 'self' data: blob: https: http: https://*.tile.openstreetmap.org https://maps.gstatic.com https://maps.googleapis.com https://*.ggpht.com",
     // Media
     "media-src 'self' https://cdn.jsdelivr.net blob:",
     // Connect: self + Google Maps APIs + OpenStreetMap + Analytics + PayPal
-    "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://*.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com https://*.paypal.com",
-    // Frames: self + PayPal
+    "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://*.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com https://*.paypal.com wss:",
+    // Frames: self + PayPal + Google Maps
     "frame-src 'self' https://*.paypal.com https://maps.google.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'self'",
-    // Workers for Google Maps
+    // Workers for Google Maps and Service Worker
     "worker-src 'self' blob:",
+    // Manifest
+    "manifest-src 'self'",
   ].join("; ");
 
-  res.setHeader("Content-Security-Policy-Report-Only", csp);
+  // Use enforcing CSP in production, report-only in development
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Content-Security-Policy", csp);
+  } else {
+    res.setHeader("Content-Security-Policy-Report-Only", csp);
+  }
 
   // ─── Remove X-Powered-By to reduce fingerprinting ─────────────────
   res.removeHeader("X-Powered-By");

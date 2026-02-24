@@ -1,11 +1,39 @@
+# المفتاح الشهري - Monthly Key
+# https://mk-production-7730.up.railway.app
+
 User-agent: *
 Allow: /
+Allow: /search
+Allow: /property/
+Allow: /faq
+Allow: /privacy
+Allow: /terms
+Allow: /contact
+Allow: /agent/
 Disallow: /admin
+Disallow: /admin/
 Disallow: /login
 Disallow: /register
-Disallow: /api
+Disallow: /api/
 Disallow: /tenant
 Disallow: /landlord
 Disallow: /messages
+Disallow: /book/
+Disallow: /maintenance/
+Disallow: /lease/
+Disallow: /pay/
+Disallow: /payment/
+Disallow: /edit-property/
+Disallow: /list-property
+
+# Crawl-delay for polite crawling
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Crawl-delay: 10
 
 Sitemap: https://mk-production-7730.up.railway.app/sitemap.xml

@@ -167,6 +167,56 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Performance: target modern browsers for smaller bundles
+    target: 'es2020',
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Vendor: React core
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'react-vendor';
+          }
+          // Vendor: UI framework (radix, shadcn deps)
+          if (id.includes('@radix-ui/') || id.includes('class-variance-authority') || id.includes('cmdk')) {
+            return 'ui-vendor';
+          }
+          // Vendor: Animation (framer-motion)
+          if (id.includes('framer-motion')) {
+            return 'animation-vendor';
+          }
+          // Vendor: Charts (recharts)
+          if (id.includes('recharts') || id.includes('d3-')) {
+            return 'charts-vendor';
+          }
+          // Vendor: Maps (leaflet, google maps)
+          if (id.includes('leaflet') || id.includes('@googlemaps')) {
+            return 'maps-vendor';
+          }
+          // Vendor: Markdown/AI (streamdown, mermaid, shiki, katex)
+          if (id.includes('streamdown') || id.includes('mermaid') || id.includes('shiki') || id.includes('katex') || id.includes('marked')) {
+            return 'markdown-vendor';
+          }
+          // Vendor: tRPC + tanstack query
+          if (id.includes('@trpc/') || id.includes('@tanstack/')) {
+            return 'data-vendor';
+          }
+          // Vendor: date-fns
+          if (id.includes('date-fns')) {
+            return 'date-vendor';
+          }
+          // Vendor: form handling
+          if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
+            return 'form-vendor';
+          }
+        },
+      },
+    },
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    // Minification
+    minify: 'esbuild',
   },
   server: {
     host: true,

@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import { prerenderMiddleware } from "../middleware/prerender";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -58,10 +59,53 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Read the HTML template once for prerender middleware
+  const indexPath = path.resolve(distPath, "index.html");
+  let htmlTemplate = '';
+  try {
+    htmlTemplate = fs.readFileSync(indexPath, 'utf-8');
+    console.log('[Prerender] HTML template loaded for bot serving');
+  } catch (err) {
+    console.error('[Prerender] Failed to load HTML template:', err);
+  }
 
-  // fall through to index.html if the file doesn't exist
+  // Serve static assets with long cache headers for immutable files
+  app.use(express.static(distPath, {
+    maxAge: '1y',           // Long cache for hashed assets
+    immutable: true,        // Assets are content-hashed, safe to cache forever
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+      // HTML files should not be cached aggressively
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      }
+      // CSS/JS with hash in filename - cache for 1 year
+      else if (filePath.match(/\.(js|css)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+      // Images - cache for 30 days
+      else if (filePath.match(/\.(png|jpg|jpeg|gif|svg|webp|avif|ico)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=2592000');
+      }
+      // Fonts - cache for 1 year
+      else if (filePath.match(/\.(woff|woff2|ttf|eot)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  }));
+
+  // Prerender middleware for bots (before SPA fallback)
+  if (htmlTemplate) {
+    app.use(prerenderMiddleware(htmlTemplate));
+  }
+
+  // SPA fallback: serve index.html for all non-file requests
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    if (htmlTemplate) {
+      res.status(200).set({ 'Content-Type': 'text/html; charset=utf-8' }).send(htmlTemplate);
+    } else {
+      res.sendFile(indexPath);
+    }
   });
 }
