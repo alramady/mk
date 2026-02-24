@@ -1,7 +1,8 @@
 /**
- * Permission enforcement middleware for admin endpoints.
+ * Permission enforcement for admin endpoints.
  * Checks user's assigned permissions from adminPermissions table.
- * Root admins bypass all permission checks.
+ * Root admins (isRootAdmin=true in DB) bypass all permission checks.
+ * No external OWNER_OPEN_ID env var is used.
  */
 import { getAdminPermissions } from "./db";
 
@@ -93,14 +94,9 @@ export async function getUserPermissions(userId: number): Promise<{ permissions:
 
 /**
  * Check if a user has a specific permission.
- * Root admins always pass. Owner (OWNER_OPEN_ID) always passes.
+ * Root admins (isRootAdmin=true in adminPermissions table) always pass.
  */
-export async function hasPermission(userId: number, permission: PermissionKey, userOpenId?: string): Promise<boolean> {
-  // Owner always has full access
-  if (userOpenId && process.env.OWNER_OPEN_ID && userOpenId === process.env.OWNER_OPEN_ID) {
-    return true;
-  }
-
+export async function hasPermission(userId: number, permission: PermissionKey): Promise<boolean> {
   const { permissions, isRoot } = await getUserPermissions(userId);
   if (isRoot) return true;
   return permissions.includes(permission);
@@ -109,10 +105,7 @@ export async function hasPermission(userId: number, permission: PermissionKey, u
 /**
  * Check if a user has ANY of the specified permissions.
  */
-export async function hasAnyPermission(userId: number, perms: PermissionKey[], userOpenId?: string): Promise<boolean> {
-  if (userOpenId && process.env.OWNER_OPEN_ID && userOpenId === process.env.OWNER_OPEN_ID) {
-    return true;
-  }
+export async function hasAnyPermission(userId: number, perms: PermissionKey[]): Promise<boolean> {
   const { permissions, isRoot } = await getUserPermissions(userId);
   if (isRoot) return true;
   return perms.some(p => permissions.includes(p));

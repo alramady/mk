@@ -2,11 +2,7 @@ export const ENV = {
   appId: process.env.VITE_APP_ID ?? "monthly-key-local",
   cookieSecret: process.env.JWT_SECRET ?? "local-jwt-secret-key-for-development-only-change-in-production",
   databaseUrl: process.env.DATABASE_URL ?? "mysql://root:password@localhost:3306/monthly_rental",
-  // OAuth - fully local mode (no external OAuth server needed)
-  oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "http://localhost:3000",
-  ownerOpenId: process.env.OWNER_OPEN_ID ?? "local-owner-id",
   isProduction: process.env.NODE_ENV === "production",
-  isLocalMode: true, // Always local mode - no Manus OAuth dependency
   // OpenAI API - used for LLM, Image Generation, Voice Transcription
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiBaseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
@@ -16,7 +12,7 @@ export const ENV = {
   // Legacy Forge API vars (mapped to OpenAI for backward compat)
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? process.env.OPENAI_API_KEY ?? "",
-  // Local file storage (replaces Manus S3)
+  // Local file storage
   uploadDir: process.env.UPLOAD_DIR ?? "uploads",
   publicUrl: process.env.PUBLIC_URL ?? "", // Auto-detected from request if empty
   maxUploadSize: parseInt(process.env.MAX_UPLOAD_SIZE ?? "52428800"), // 50MB

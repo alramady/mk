@@ -358,7 +358,7 @@ Request → tRPC Middleware → Check Auth → Check Permission → Execute Proc
                                 ↓
                     1. Is user logged in? (401 if not)
                     2. Is user role === 'admin'? (403 if not)
-                    3. Is user the platform owner (OWNER_OPEN_ID)? → ALLOW
+                    3. Is user a root admin (isRootAdmin=true in DB)? → ALLOW
                     4. Is user a root admin? → ALLOW
                     5. Does user have the specific permission? → ALLOW/DENY
 ```
@@ -652,8 +652,6 @@ site.nameEn → Monthly Key
 | `DATABASE_URL` | MySQL connection string |
 | `JWT_SECRET` | Session cookie signing key |
 | `VITE_APP_ID` | Application ID |
-| `OAUTH_SERVER_URL` | OAuth backend URL |
-| `OWNER_OPEN_ID` | Platform owner's OpenID |
 | `OWNER_NAME` | Platform owner's name |
 | `BUILT_IN_FORGE_API_URL` | Internal API URL (LLM, storage, etc.) |
 | `BUILT_IN_FORGE_API_KEY` | Internal API bearer token |

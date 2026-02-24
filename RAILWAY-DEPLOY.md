@@ -35,8 +35,6 @@ In your Railway service settings → **Variables**, add:
 | `PORT` | Server port (Railway sets this automatically) | Auto |
 | `NODE_ENV` | Set to `production` | Yes |
 | `VITE_APP_ID` | Application ID (any unique string) | Yes |
-| `OAUTH_SERVER_URL` | OAuth server URL (set to empty if not using Manus OAuth) | No |
-| `OWNER_OPEN_ID` | Owner's OpenID (your user ID after first registration) | No |
 | `OWNER_NAME` | Owner display name | No |
 | `BUILT_IN_FORGE_API_URL` | LLM/Storage API URL (leave empty if not using AI features) | No |
 | `BUILT_IN_FORGE_API_KEY` | LLM/Storage API key | No |

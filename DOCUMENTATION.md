@@ -649,9 +649,7 @@ These are automatically injected by the platform and should not be modified manu
 <tr><td>DATABASE_URL</td><td>MySQL/TiDB connection string</td></tr>
 <tr><td>JWT_SECRET</td><td>Session cookie signing secret</td></tr>
 <tr><td>VITE_APP_ID</td><td>Manus OAuth application ID</td></tr>
-<tr><td>OAUTH_SERVER_URL</td><td>Manus OAuth backend base URL</td></tr>
 <tr><td>VITE_OAUTH_PORTAL_URL</td><td>Manus login portal URL</td></tr>
-<tr><td>OWNER_OPEN_ID</td><td>Platform owner's user ID</td></tr>
 <tr><td>OWNER_NAME</td><td>Platform owner's display name</td></tr>
 <tr><td>BUILT_IN_FORGE_API_URL</td><td>Manus built-in API endpoint</td></tr>
 <tr><td>BUILT_IN_FORGE_API_KEY</td><td>Server-side API key for Manus services</td></tr>

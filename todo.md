@@ -858,3 +858,23 @@
 - [x] 21 new hero search tests (URL params, autocomplete logic, quick filters)
 - [x] All 449 tests passing, 0 TypeScript errors
 - [x] Save checkpoint (dc02bfc8)
+
+
+## OAuth Removal & Local Auth Enforcement (Full Cleanup)
+- [ ] Rewrite `server/_core/sdk.ts` - Remove OAuthService class, external HTTP client, token exchange, getUserInfo, getUserInfoWithJwt. Keep ONLY: createSessionToken, signSession, verifySession, authenticateRequest (refactored to use userId)
+- [ ] Rewrite `server/_core/oauth.ts` - Remove OAuth callback route, add rate limiting to login/register
+- [ ] Clean `server/_core/env.ts` - Remove oAuthServerUrl, ownerOpenId, isLocalMode
+- [ ] Clean `server/_core/index.ts` - Remove registerOAuthRoutes import, replace with registerAuthRoutes
+- [ ] Delete `server/_core/types/manusTypes.ts` - All OAuth types no longer needed
+- [ ] Refactor `server/db.ts` - Replace openId-based lookups with userId-based, remove getUserByOpenId
+- [ ] Refactor `server/permissions.ts` - Remove OWNER_OPEN_ID bypass, use isRootAdmin from DB only
+- [ ] Refactor `server/_core/trpc.ts` - Remove openId from adminWithPermission call
+- [ ] Clean `client/src/pages/AdminHardeningKB.tsx` - Remove openId reference in isRootAdmin check
+- [ ] Clean `client/src/_core/hooks/useAuth.ts` - Remove manus-runtime-user-info localStorage
+- [ ] Add rate limiting to login endpoint (10 attempts per 5 min per IP)
+- [ ] Add rate limiting to register endpoint
+- [ ] Add auth event logging to login/register/logout
+- [ ] Update test files to remove openId references
+- [ ] Create verification checklist for OAuth removal
+- [ ] Create list of removed files/config keys
+- [ ] Push to GitHub
