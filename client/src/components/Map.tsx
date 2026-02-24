@@ -349,11 +349,11 @@ export function MapView({
   }, []);
 
   return (
-    <div className="relative">
+    <div className={cn("relative", className)}>
       <div
         ref={containerRef}
-        className={cn("w-full h-[500px] rounded-lg overflow-hidden", className)}
-        style={{ zIndex: 0 }}
+        className="w-full h-full rounded-lg overflow-hidden"
+        style={{ zIndex: 0, minHeight: "400px" }}
       />
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
