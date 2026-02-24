@@ -31,11 +31,13 @@ export default function Footer() {
         <div className="container py-10 sm:py-14">
           <div className="flex flex-col items-center text-center">
             {/* Large centered logo */}
-            <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
-              alt="Monthly Key - المفتاح الشهري" 
-              className="h-28 sm:h-36 w-auto object-contain brightness-0 invert mb-6" 
-            />
+            <div className="inline-block bg-white/95 rounded-2xl px-6 py-4 sm:px-8 sm:py-5 shadow-lg mb-6">
+              <img 
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+                alt="Monthly Key - المفتاح الشهري" 
+                className="h-24 sm:h-32 w-auto object-contain" 
+              />
+            </div>
             {/* Gold accent line */}
             <div className="w-24 h-0.5 bg-gradient-to-r from-transparent via-[#C5A55A] to-transparent mb-5" />
             <p className="text-white/40 text-sm sm:text-base leading-relaxed max-w-lg">{aboutText}</p>

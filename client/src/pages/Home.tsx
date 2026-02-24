@@ -428,11 +428,13 @@ export default function Home() {
           <div className="max-w-3xl mx-auto text-center px-2 sm:px-0">
             {/* Brand Logo in Hero */}
             <div className="mb-6 sm:mb-8 animate-slide-right">
-              <img 
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
-                alt="Monthly Key - المفتاح الشهري" 
-                className="h-28 sm:h-40 md:h-48 w-auto object-contain mx-auto brightness-0 invert drop-shadow-[0_0_30px_rgba(197,169,90,0.2)]" 
-              />
+              <div className="inline-block bg-white/95 backdrop-blur-sm rounded-2xl px-8 py-6 sm:px-12 sm:py-8 shadow-2xl shadow-black/20 border border-white/20">
+                <img 
+                  src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+                  alt="Monthly Key - المفتاح الشهري" 
+                  className="h-24 sm:h-32 md:h-40 w-auto object-contain mx-auto" 
+                />
+              </div>
             </div>
 
             {/* Animated Badge */}
@@ -747,7 +749,7 @@ export default function Home() {
           <img 
             src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/yyVBpJruTpHFNMtN.png" 
             alt="" 
-            className="h-20 sm:h-24 w-auto object-contain mx-auto mb-6 brightness-0 invert opacity-15" 
+            className="h-20 sm:h-24 w-auto object-contain mx-auto mb-6 opacity-10" 
           />
           <h2 className="text-xl sm:text-2xl md:text-4xl font-heading font-bold mb-4">
             {lang === "ar" ? "حقق أقصى استفادة من عقارك" : "Maximize Your Property's Potential"}
