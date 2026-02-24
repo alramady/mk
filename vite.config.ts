@@ -171,14 +171,7 @@ export default defineConfig({
     target: 'es2020',
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 500,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Only split the heaviest, most isolated vendor chunks
-          'markdown-vendor': ['mermaid', 'shiki', 'katex'],
-        },
-      },
-    },
+    // Let Vite handle code splitting automatically via dynamic imports
     // Enable CSS code splitting
     cssCodeSplit: true,
     // Minification
