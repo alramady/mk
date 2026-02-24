@@ -188,3 +188,48 @@ export const idempotencyStore = pgTable("idempotency_store", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
+
+// ─── Webhook Events (dedup + retry tracking) ───────────────
+export const webhookEventStatusEnum = pgEnum("webhook_event_status", [
+  "PENDING", "PROCESSING", "COMPLETED", "FAILED", "DEAD_LETTER",
+]);
+
+export const webhookEvents = pgTable("webhook_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** External event ID from Beds24 — used for dedup. */
+  eventId: varchar("event_id", { length: 200 }).notNull(),
+  eventType: varchar("event_type", { length: 100 }).notNull(),
+  source: varchar("source", { length: 50 }).notNull().default("beds24"),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull().default({}),
+  status: webhookEventStatusEnum("status").notNull().default("PENDING"),
+  attempts: integer("attempts").notNull().default(0),
+  maxRetries: integer("max_retries").notNull().default(5),
+  lastError: text("last_error"),
+  nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  /** UNIQUE on eventId for dedup — reject/skip duplicates. */
+  eventIdIdx: uniqueIndex("webhook_events_event_id_idx").on(t.eventId),
+  statusIdx: index("webhook_events_status_idx").on(t.status),
+  nextRetryIdx: index("webhook_events_next_retry_idx").on(t.nextRetryAt),
+}));
+
+// ─── Proxy Audit Log ───────────────────────────────────────
+export const proxyAuditLog = pgTable("proxy_audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorUserId: uuid("actor_user_id").notNull(),
+  method: varchar("method", { length: 10 }).notNull(),
+  path: varchar("path", { length: 500 }).notNull(),
+  query: jsonb("query").$type<Record<string, string>>().default({}),
+  /** Request body with PII fields redacted. */
+  bodyRedacted: jsonb("body_redacted").default({}),
+  responseStatus: integer("response_status").notNull(),
+  allowed: boolean("allowed").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  actorIdx: index("proxy_audit_actor_idx").on(t.actorUserId),
+  createdIdx: index("proxy_audit_created_idx").on(t.createdAt),
+}));

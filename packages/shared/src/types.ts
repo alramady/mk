@@ -1,6 +1,7 @@
 // ─── Enums ──────────────────────────────────────────────────
 export type Brand = "COBNB" | "MONTHLYKEY";
 export type OperationMode = "standalone" | "integrated";
+export type BookingWriter = "adapter" | "hub-api";
 
 export type UserRole =
   | "ADMIN"
@@ -24,6 +25,8 @@ export type UnitStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
 export type Channel = "COBNB" | "MONTHLYKEY";
 
 export type FeatureFlagScope = "GLOBAL" | "COBNB" | "MONTHLYKEY" | "OPS";
+
+export type WebhookEventStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "DEAD_LETTER";
 
 // ─── Data Models ────────────────────────────────────────────
 export interface Unit {
@@ -135,6 +138,43 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+// ─── Webhook Event ─────────────────────────────────────────
+export interface WebhookEvent {
+  id: string;
+  eventId: string;
+  eventType: string;
+  source: string;
+  payload: Record<string, unknown>;
+  status: WebhookEventStatus;
+  attempts: number;
+  maxRetries: number;
+  lastError: string | null;
+  nextRetryAt: string | null;
+  processedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Writer Lock Error ─────────────────────────────────────
+export interface WriterLockError {
+  code: "WRITER_LOCK_VIOLATION";
+  message: string;
+  brand: Brand;
+  mode: OperationMode;
+  designatedWriter: BookingWriter;
+  rejectedBy: BookingWriter;
+}
+
+// ─── Idempotency ───────────────────────────────────────────
+export interface IdempotencyEntry {
+  key: string;
+  requestHash: string;
+  responseStatus: number;
+  responseBody: unknown;
+  createdAt: string;
+  expiresAt: string;
+}
+
 // ─── API Request/Response ───────────────────────────────────
 export interface SearchParams {
   brand: Brand;
@@ -180,6 +220,8 @@ export interface BookingCreateParams {
   guests: number;
   paymentMethod: PaymentMethod;
   notes?: string;
+  /** Provided by the caller via HTTP header, NOT auto-generated. */
+  idempotencyKey: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -207,4 +249,17 @@ export interface Beds24ProxyRequest {
 export interface Beds24ProxyResponse {
   status: number;
   data: unknown;
+}
+
+// ─── Admin Proxy Audit ─────────────────────────────────────
+export interface ProxyAuditEntry {
+  actorUserId: string;
+  method: string;
+  path: string;
+  query?: Record<string, string>;
+  bodyRedacted: unknown;
+  responseStatus: number;
+  allowed: boolean;
+  reason?: string;
+  timestamp: string;
 }

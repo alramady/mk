@@ -1,10 +1,26 @@
 /**
- * Worker Service — BullMQ Queue Consumer
+ * ═══════════════════════════════════════════════════════════════
+ *  Worker Service — BullMQ Queue Consumer
+ * ═══════════════════════════════════════════════════════════════
  *
- * Processes async jobs:
- * - beds24-webhook: Process Beds24 webhook events
- * - auto-ticket: Automatically create cleaning/maintenance tickets on checkout
- * - notification: Send notifications (email/SMS/push)
+ *  Queues:
+ *    webhook-events:  Process Beds24 webhook events with retry
+ *    auto-ticket:     Auto-create cleaning/maintenance tickets
+ *    notification:    Send notifications (email/SMS/push)
+ *
+ *  Webhook Retry Strategy:
+ *    - Reads from webhook_events table (status=PENDING)
+ *    - Exponential backoff: 30s, 1m, 2m, 4m, 8m (configurable)
+ *    - Max retries from WEBHOOK_MAX_RETRIES (default: 5)
+ *    - After max retries → DEAD_LETTER status
+ *    - Each attempt updates the DB: attempts++, lastError, nextRetryAt
+ *    - COMPLETED on success, FAILED on retriable error, DEAD_LETTER on exhaustion
+ *
+ *  Retry Worker:
+ *    - Polls webhook_events where status=FAILED AND nextRetryAt <= now
+ *    - Re-enqueues them for processing
+ *    - Runs every 30 seconds
+ * ═══════════════════════════════════════════════════════════════
  */
 
 import { Worker, Queue } from "bullmq";
@@ -20,50 +36,98 @@ const logger = pino({
 });
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
+const DATABASE_URL = process.env.DATABASE_URL ?? "";
 const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 
+// ─── Base backoff: 30s, multiplied by 2^attempt ───────────
+const BASE_BACKOFF_MS = 30_000;
+
+function calculateNextRetry(attempt: number): Date {
+  const delayMs = BASE_BACKOFF_MS * Math.pow(2, attempt);
+  const jitterMs = Math.random() * 5_000; // Add 0-5s jitter
+  return new Date(Date.now() + delayMs + jitterMs);
+}
+
 // ─── Queues ─────────────────────────────────────────────────
-export const webhookQueue = new Queue("beds24-webhook", { connection });
+export const webhookQueue = new Queue("webhook-events", { connection });
 export const ticketQueue = new Queue("auto-ticket", { connection });
 export const notificationQueue = new Queue("notification", { connection });
 
-// ─── Beds24 Webhook Worker ──────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  Webhook Event Worker — Process + Retry + Dead-Letter
+// ═══════════════════════════════════════════════════════════
+
 const webhookWorker = new Worker(
-  "beds24-webhook",
+  "webhook-events",
   async (job) => {
-    const event = job.data;
-    logger.info({ eventType: event.type, jobId: job.id }, "Processing Beds24 webhook");
+    const { eventId, eventType, payload } = job.data;
+    logger.info({ eventId, eventType, jobId: job.id }, "Processing webhook event");
 
-    switch (event.type) {
-      case "booking.created":
-        logger.info({ bookingId: event.bookingId }, "New booking from Beds24");
-        // TODO: Sync booking to local DB
-        // TODO: Auto-create cleaning ticket for checkout date
-        await ticketQueue.add("auto-clean", {
-          type: "CHECKOUT_CLEAN",
-          bookingId: event.bookingId,
-          unitId: event.propertyId,
-          dueAt: event.checkOut,
-        });
-        break;
+    // ── Update status to PROCESSING ────────────────────────
+    await updateWebhookStatus(eventId, "PROCESSING");
 
-      case "booking.modified":
-        logger.info({ bookingId: event.bookingId }, "Booking modified in Beds24");
-        // TODO: Update local booking record
-        break;
+    try {
+      // ── Dispatch by event type ───────────────────────────
+      switch (eventType) {
+        case "booking.created":
+          logger.info({ bookingId: payload.bookingId }, "New booking from Beds24");
+          // TODO: Sync booking to local DB
+          // Auto-create cleaning ticket for checkout date
+          if (process.env.ENABLE_AUTOMATED_TICKETS === "true") {
+            await ticketQueue.add("auto-clean", {
+              type: "CHECKOUT_CLEAN",
+              bookingId: payload.bookingId,
+              unitId: payload.propertyId,
+              dueAt: payload.checkOut,
+            });
+          }
+          break;
 
-      case "booking.cancelled":
-        logger.info({ bookingId: event.bookingId }, "Booking cancelled in Beds24");
-        // TODO: Cancel local booking, cancel related tickets
-        break;
+        case "booking.modified":
+          logger.info({ bookingId: payload.bookingId }, "Booking modified in Beds24");
+          // TODO: Update local booking record
+          break;
 
-      case "property.updated":
-        logger.info({ propertyId: event.propertyId }, "Property updated in Beds24");
-        // TODO: Sync property changes to local DB
-        break;
+        case "booking.cancelled":
+          logger.info({ bookingId: payload.bookingId }, "Booking cancelled in Beds24");
+          // TODO: Cancel local booking, cancel related tickets
+          break;
 
-      default:
-        logger.warn({ eventType: event.type }, "Unknown Beds24 event type");
+        case "property.updated":
+          logger.info({ propertyId: payload.propertyId }, "Property updated in Beds24");
+          // TODO: Sync property changes to local DB
+          break;
+
+        default:
+          logger.warn({ eventType }, "Unknown Beds24 event type — marking as completed");
+      }
+
+      // ── Success → COMPLETED ──────────────────────────────
+      await updateWebhookStatus(eventId, "COMPLETED", null, new Date());
+      logger.info({ eventId, eventType }, "Webhook event processed successfully");
+    } catch (err: any) {
+      // ── Failure → check retry budget ─────────────────────
+      const currentAttempts = await incrementAttempt(eventId);
+      const maxRetries = job.data.maxRetries ?? 5;
+
+      if (currentAttempts >= maxRetries) {
+        // ── Exhausted → DEAD_LETTER ────────────────────────
+        await updateWebhookStatus(eventId, "DEAD_LETTER", err.message);
+        logger.error(
+          { eventId, eventType, attempts: currentAttempts, maxRetries },
+          "Webhook event moved to DEAD_LETTER after max retries"
+        );
+        // Don't throw — job is done (dead-lettered)
+      } else {
+        // ── Retriable → FAILED with nextRetryAt ────────────
+        const nextRetry = calculateNextRetry(currentAttempts);
+        await updateWebhookStatus(eventId, "FAILED", err.message, null, nextRetry);
+        logger.warn(
+          { eventId, eventType, attempt: currentAttempts, maxRetries, nextRetry: nextRetry.toISOString() },
+          "Webhook event failed — scheduled for retry"
+        );
+        // Don't throw — retry worker will pick it up
+      }
     }
   },
   {
@@ -73,7 +137,127 @@ const webhookWorker = new Worker(
   }
 );
 
-// ─── Auto-Ticket Worker ─────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  Retry Poller — Re-enqueue FAILED events whose nextRetryAt has passed
+// ═══════════════════════════════════════════════════════════
+
+let retryInterval: ReturnType<typeof setInterval> | null = null;
+
+async function pollForRetries() {
+  if (!DATABASE_URL) return; // No DB = skip
+
+  try {
+    // This uses raw SQL because drizzle may not be available in worker
+    // In production, this would use the shared DB connection
+    const { default: pg } = await import("pg");
+    const client = new pg.Client({ connectionString: DATABASE_URL });
+    await client.connect();
+
+    try {
+      const result = await client.query(
+        `SELECT event_id, event_type, payload, max_retries
+         FROM webhook_events
+         WHERE status = 'FAILED'
+           AND next_retry_at <= NOW()
+         ORDER BY next_retry_at ASC
+         LIMIT 20`
+      );
+
+      for (const row of result.rows) {
+        logger.info({ eventId: row.event_id }, "Re-enqueuing failed webhook event for retry");
+
+        await webhookQueue.add("process-webhook", {
+          eventId: row.event_id,
+          eventType: row.event_type,
+          payload: row.payload,
+          maxRetries: row.max_retries,
+        }, {
+          jobId: `webhook-retry-${row.event_id}-${Date.now()}`,
+          attempts: 1,
+        });
+      }
+
+      if (result.rows.length > 0) {
+        logger.info({ count: result.rows.length }, "Re-enqueued failed webhook events");
+      }
+    } finally {
+      await client.end();
+    }
+  } catch (err) {
+    logger.error({ err }, "Retry poller error");
+  }
+}
+
+// Poll every 30 seconds
+retryInterval = setInterval(pollForRetries, 30_000);
+
+// ═══════════════════════════════════════════════════════════
+//  DB Helpers — Update webhook_events status
+// ═══════════════════════════════════════════════════════════
+
+async function updateWebhookStatus(
+  eventId: string,
+  status: string,
+  lastError?: string | null,
+  processedAt?: Date | null,
+  nextRetryAt?: Date | null
+) {
+  if (!DATABASE_URL) return;
+
+  try {
+    const { default: pg } = await import("pg");
+    const client = new pg.Client({ connectionString: DATABASE_URL });
+    await client.connect();
+
+    try {
+      await client.query(
+        `UPDATE webhook_events
+         SET status = $1,
+             last_error = COALESCE($2, last_error),
+             processed_at = COALESCE($3, processed_at),
+             next_retry_at = $4,
+             updated_at = NOW()
+         WHERE event_id = $5`,
+        [status, lastError ?? null, processedAt ?? null, nextRetryAt ?? null, eventId]
+      );
+    } finally {
+      await client.end();
+    }
+  } catch (err) {
+    logger.error({ err, eventId, status }, "Failed to update webhook event status");
+  }
+}
+
+async function incrementAttempt(eventId: string): Promise<number> {
+  if (!DATABASE_URL) return 1;
+
+  try {
+    const { default: pg } = await import("pg");
+    const client = new pg.Client({ connectionString: DATABASE_URL });
+    await client.connect();
+
+    try {
+      const result = await client.query(
+        `UPDATE webhook_events
+         SET attempts = attempts + 1, updated_at = NOW()
+         WHERE event_id = $1
+         RETURNING attempts`,
+        [eventId]
+      );
+      return result.rows[0]?.attempts ?? 1;
+    } finally {
+      await client.end();
+    }
+  } catch (err) {
+    logger.error({ err, eventId }, "Failed to increment webhook attempt");
+    return 1;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Auto-Ticket Worker
+// ═══════════════════════════════════════════════════════════
+
 const ticketWorker = new Worker(
   "auto-ticket",
   async (job) => {
@@ -81,9 +265,7 @@ const ticketWorker = new Worker(
     logger.info({ type, bookingId, unitId }, "Creating auto-ticket");
 
     // TODO: Call Hub API to create ticket
-    // POST /api/v1/tickets { type: "CHECKOUT_CLEAN", unitId, bookingId, dueAt }
-
-    // For now, log the intent
+    // POST /api/v1/tickets { type: "CLEANING", unitId, bookingId, dueAt }
     logger.info(
       { type, unitId, dueAt },
       "Would create cleaning ticket for checkout"
@@ -95,7 +277,10 @@ const ticketWorker = new Worker(
   }
 );
 
-// ─── Notification Worker ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  Notification Worker
+// ═══════════════════════════════════════════════════════════
+
 const notificationWorker = new Worker(
   "notification",
   async (job) => {
@@ -125,9 +310,13 @@ const notificationWorker = new Worker(
   }
 );
 
-// ─── Graceful Shutdown ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  Graceful Shutdown
+// ═══════════════════════════════════════════════════════════
+
 async function shutdown() {
   logger.info("Shutting down workers...");
+  if (retryInterval) clearInterval(retryInterval);
   await Promise.all([
     webhookWorker.close(),
     ticketWorker.close(),
@@ -141,7 +330,10 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-// ─── Worker Event Handlers ──────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  Worker Event Handlers
+// ═══════════════════════════════════════════════════════════
+
 for (const [name, worker] of Object.entries({
   webhook: webhookWorker,
   ticket: ticketWorker,
@@ -157,3 +349,4 @@ for (const [name, worker] of Object.entries({
 
 logger.info("Worker service started — listening for jobs on 3 queues");
 logger.info(`Redis: ${REDIS_URL}`);
+logger.info("Webhook retry poller: active (every 30s)");

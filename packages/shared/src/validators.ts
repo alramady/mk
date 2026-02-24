@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const brandSchema = z.enum(["COBNB", "MONTHLYKEY"]);
+export const operationModeSchema = z.enum(["standalone", "integrated"]);
 
 export const searchParamsSchema = z.object({
   brand: brandSchema,
@@ -24,6 +25,11 @@ export const quoteParamsSchema = z.object({
   guests: z.coerce.number().int().min(1).optional(),
 });
 
+/**
+ * Booking create schema.
+ * NOTE: idempotencyKey is extracted from the Idempotency-Key HTTP header
+ * by the route handler and injected here — it is NOT in the request body.
+ */
 export const bookingCreateSchema = z.object({
   brand: brandSchema,
   unitId: z.string().uuid(),
@@ -35,6 +41,7 @@ export const bookingCreateSchema = z.object({
   guests: z.coerce.number().int().min(1),
   paymentMethod: z.enum(["CARD", "BANK_TRANSFER", "CASH"]),
   notes: z.string().max(2000).optional(),
+  idempotencyKey: z.string().min(8).max(128),
 });
 
 export const ticketCreateSchema = z.object({
@@ -76,4 +83,16 @@ export const beds24ProxySchema = z.object({
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+/** Webhook event from Beds24 */
+export const webhookEventSchema = z.object({
+  id: z.string().or(z.number()).transform(String),
+  type: z.string(),
+  bookingId: z.string().or(z.number()).transform(String).optional(),
+  propertyId: z.string().or(z.number()).transform(String).optional(),
+  roomId: z.string().or(z.number()).transform(String).optional(),
+  checkIn: z.string().optional(),
+  checkOut: z.string().optional(),
+  timestamp: z.string().optional(),
 });
