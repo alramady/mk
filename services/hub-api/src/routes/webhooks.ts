@@ -5,34 +5,28 @@
  *
  *  ENABLE_BEDS24_WEBHOOKS=false (default, safest):
  *    → Returns 204 No Content immediately (no-op)
- *    → No processing, no queuing, no DB writes
  *
  *  ENABLE_BEDS24_WEBHOOKS=true:
- *    → Layer 1: Static shared secret header (PRIMARY — set matching
- *               "Custom Header" in Beds24 dashboard)
- *    → Layer 2: IP allowlist (OPTIONAL — Beds24 IPs may change)
+ *    → Layer 1: Static shared secret header (PRIMARY)
+ *               Supports zero-downtime rotation: accepts current
+ *               + previous secret during a configurable window.
+ *    → Layer 2: IP allowlist (OPTIONAL)
  *    → Dedup via webhook_events table (UNIQUE on event_id)
- *    → If duplicate: returns 200 with dedup notice (skip)
- *    → If new: inserts PENDING event, enqueues to BullMQ, returns 200
- *    → Processing happens asynchronously in the worker service
+ *    → Queue to BullMQ → 200
  *
- *  IMPORTANT — Beds24 Webhook Security:
- *    Beds24 does NOT send HMAC signatures on webhooks. Their V2
- *    booking webhooks are plain POST requests with JSON body.
- *    The only built-in security options are:
- *      1. Static shared secret via "Custom Header" in Beds24 dashboard
- *         (set a header like X-Webhook-Secret: your-secret, we verify it)
- *      2. IP allowlist (restrict to Beds24 server IPs)
- *      3. URL token (include a secret in the webhook URL path/query)
- *
- *    We implement options 1 (PRIMARY) and 2 (OPTIONAL).
- *    Option 3 is not used because it leaks secrets in access logs.
+ *  SECRET ROTATION (zero-downtime):
+ *    1. Generate a new secret.
+ *    2. Set BEDS24_WEBHOOK_SECRET=<new>, BEDS24_WEBHOOK_SECRET_PREVIOUS=<old>,
+ *       BEDS24_WEBHOOK_SECRET_ROTATION_START=<now ISO 8601>. Deploy.
+ *    3. Update Beds24 dashboard Custom Header to the new secret.
+ *    4. Both secrets are accepted for ROTATION_WINDOW_DAYS (default 7).
+ *    5. After the window: clear PREVIOUS and ROTATION_START. Deploy.
  *
  *  SECURITY — Secret Handling:
- *    - The webhook secret value is NEVER logged, not even partially.
- *    - Log messages only indicate "mismatch" or "missing" without the value.
- *    - The /webhooks/status endpoint shows only a boolean (configured or not).
- *    - Audit logs do not store any header values.
+ *    - Secret values are NEVER logged, not even partially.
+ *    - Log messages indicate "mismatch", "missing", or "matched-previous"
+ *      without revealing any value.
+ *    - /webhooks/status shows only booleans and metadata.
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -46,15 +40,13 @@ import { webhookEventSchema, ERROR_CODES, HTTP_STATUS, WEBHOOK_MAX_RETRIES } fro
 const router = Router();
 
 // ─── Configuration ────────────────────────────────────────
-// Static shared secret: set in Beds24 dashboard as a Custom Header.
-// This is the PRIMARY authentication layer.
-// Header name is configurable via BEDS24_WEBHOOK_SECRET_HEADER.
 const WEBHOOK_SECRET = config.beds24.webhookSecret;
+const WEBHOOK_SECRET_PREVIOUS = config.beds24.webhookSecretPrevious;
 const WEBHOOK_SECRET_HEADER = config.beds24.webhookSecretHeader;
+const ROTATION_START = config.beds24.webhookSecretRotationStart;
+const ROTATION_WINDOW_DAYS = config.beds24.webhookSecretRotationWindowDays;
 
-// IP allowlist: loaded from env at startup. Comma-separated.
-// This is the OPTIONAL secondary layer (Beds24 IPs may change).
-// Empty = IP check disabled.
+// IP allowlist (OPTIONAL secondary layer)
 const WEBHOOK_IP_ALLOWLIST: string[] = (process.env.BEDS24_WEBHOOK_IP_ALLOWLIST ?? "")
   .split(",")
   .map((ip) => ip.trim())
@@ -82,22 +74,83 @@ async function getQueue() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Layer 1: Static Shared Secret Header (PRIMARY)
+//  Constant-Time String Comparison
+// ═══════════════════════════════════════════════════════════
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Rotation Window Check
 // ═══════════════════════════════════════════════════════════
 //
-// Beds24's Inventory Webhooks support "Custom Header" fields in
-// their dashboard. You set a header name + value in Beds24, and
-// Beds24 includes it in every webhook request as-is.
+// Returns true if the previous secret should still be accepted.
+// The window is open from ROTATION_START for ROTATION_WINDOW_DAYS.
+// If ROTATION_START is empty or unparseable, the previous secret
+// is accepted indefinitely (operator must clear it manually).
 //
-// This is NOT HMAC — it's a simple static string comparison.
-// We use constant-time comparison to prevent timing attacks.
+
+function isPreviousSecretInWindow(): boolean {
+  if (!WEBHOOK_SECRET_PREVIOUS) return false;
+
+  // No rotation start set → accept previous indefinitely (safe fallback)
+  if (!ROTATION_START) return true;
+
+  const startDate = new Date(ROTATION_START);
+  if (isNaN(startDate.getTime())) {
+    // Unparseable date → accept previous indefinitely, log warning
+    logger.warn(
+      { rotationStart: ROTATION_START },
+      "BEDS24_WEBHOOK_SECRET_ROTATION_START is not a valid ISO 8601 date — previous secret accepted indefinitely"
+    );
+    return true;
+  }
+
+  const windowEndMs = startDate.getTime() + ROTATION_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  if (now > windowEndMs) {
+    logger.info(
+      { rotationStart: ROTATION_START, windowDays: ROTATION_WINDOW_DAYS },
+      "Webhook secret rotation window has expired — previous secret no longer accepted. Clear BEDS24_WEBHOOK_SECRET_PREVIOUS and BEDS24_WEBHOOK_SECRET_ROTATION_START."
+    );
+    return false;
+  }
+
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Layer 1: Shared Secret Verification (PRIMARY)
+//           with Rotation Support
+// ═══════════════════════════════════════════════════════════
 //
-// SECURITY: The secret value is NEVER logged. Log messages only
-// indicate "missing" or "mismatch" without revealing the value.
+// Verification order:
+//   1. Try current secret (BEDS24_WEBHOOK_SECRET)
+//   2. If mismatch and rotation window is open, try previous secret
+//   3. If previous matches, log "matched-previous" (rotation in progress)
+//   4. If neither matches, reject with 401
 //
-function verifySharedSecret(req: import("express").Request): { ok: boolean; reason: string } {
-  if (!WEBHOOK_SECRET) {
-    return { ok: true, reason: "shared-secret-not-configured" };
+// SECURITY: Secret values are NEVER logged. Only the match result
+// ("verified", "matched-previous", "mismatch", "missing") is logged.
+//
+
+type SecretCheckResult = {
+  ok: boolean;
+  reason: string;
+  matchedSecret: "current" | "previous" | "none" | "not-configured";
+};
+
+function verifySharedSecret(req: import("express").Request): SecretCheckResult {
+  // No secrets configured at all → skip check
+  if (!WEBHOOK_SECRET && !WEBHOOK_SECRET_PREVIOUS) {
+    return { ok: true, reason: "shared-secret-not-configured", matchedSecret: "not-configured" };
   }
 
   const provided = req.headers[WEBHOOK_SECRET_HEADER] as string | undefined;
@@ -106,38 +159,30 @@ function verifySharedSecret(req: import("express").Request): { ok: boolean; reas
     return {
       ok: false,
       reason: `shared-secret-header-missing (expected header: ${WEBHOOK_SECRET_HEADER})`,
+      matchedSecret: "none",
     };
   }
 
-  // Constant-time comparison to prevent timing attacks
-  if (provided.length !== WEBHOOK_SECRET.length) {
-    return { ok: false, reason: "shared-secret-mismatch" };
+  // ── Try current secret first ────────────────────────────
+  if (WEBHOOK_SECRET && constantTimeEqual(provided, WEBHOOK_SECRET)) {
+    return { ok: true, reason: "shared-secret-verified", matchedSecret: "current" };
   }
 
-  let mismatch = 0;
-  for (let i = 0; i < provided.length; i++) {
-    mismatch |= provided.charCodeAt(i) ^ WEBHOOK_SECRET.charCodeAt(i);
+  // ── Try previous secret if rotation window is open ──────
+  if (WEBHOOK_SECRET_PREVIOUS && isPreviousSecretInWindow()) {
+    if (constantTimeEqual(provided, WEBHOOK_SECRET_PREVIOUS)) {
+      return { ok: true, reason: "shared-secret-matched-previous", matchedSecret: "previous" };
+    }
   }
 
-  if (mismatch !== 0) {
-    return { ok: false, reason: "shared-secret-mismatch" };
-  }
-
-  return { ok: true, reason: "shared-secret-verified" };
+  // ── Neither matched ─────────────────────────────────────
+  return { ok: false, reason: "shared-secret-mismatch", matchedSecret: "none" };
 }
 
 // ═══════════════════════════════════════════════════════════
 //  Layer 2: IP Allowlist Verification (OPTIONAL)
 // ═══════════════════════════════════════════════════════════
-//
-// Beds24 server IPs may change without notice, so this layer
-// is optional. When configured, it provides defense-in-depth.
-// Populate BEDS24_WEBHOOK_IP_ALLOWLIST with IPs from Beds24
-// support or by observing X-Forwarded-For during initial testing.
-//
-// SECURITY: Source IPs are logged on rejection (acceptable for
-// debugging). The allowlist itself is logged at startup only.
-//
+
 function verifySourceIP(req: import("express").Request): { ok: boolean; ip: string } {
   if (WEBHOOK_IP_ALLOWLIST.length === 0) {
     return { ok: true, ip: "check-disabled" };
@@ -147,9 +192,7 @@ function verifySourceIP(req: import("express").Request): { ok: boolean; ip: stri
   const ip = forwarded ?? req.socket.remoteAddress ?? "unknown";
 
   const allowed = WEBHOOK_IP_ALLOWLIST.some((entry) => {
-    // Exact match
     if (ip === entry) return true;
-    // CIDR prefix match (simplified: /16 → first two octets, /24 → first three)
     if (entry.includes("/")) {
       const prefix = entry.split("/")[0];
       const cidr = parseInt(entry.split("/")[1], 10);
@@ -179,7 +222,6 @@ router.post("/beds24", async (req, res) => {
     // ── Layer 1: Shared secret check (PRIMARY) ────────────
     const secretCheck = verifySharedSecret(req);
     if (!secretCheck.ok) {
-      // SECURITY: Never log the secret value itself
       logger.warn(
         { reason: secretCheck.reason, headerName: WEBHOOK_SECRET_HEADER },
         "Webhook rejected — shared secret verification failed"
@@ -190,10 +232,17 @@ router.post("/beds24", async (req, res) => {
       });
     }
 
+    // Log if matched previous secret (rotation in progress)
+    if (secretCheck.matchedSecret === "previous") {
+      logger.warn(
+        { headerName: WEBHOOK_SECRET_HEADER, rotationStart: ROTATION_START, windowDays: ROTATION_WINDOW_DAYS },
+        "Webhook authenticated via PREVIOUS secret — rotation in progress. Update Beds24 dashboard Custom Header to the new secret."
+      );
+    }
+
     // ── Layer 2: IP allowlist check (OPTIONAL) ────────────
     const ipCheck = verifySourceIP(req);
     if (!ipCheck.ok) {
-      // IP is safe to log for debugging
       logger.warn(
         { ip: ipCheck.ip, allowlistCount: WEBHOOK_IP_ALLOWLIST.length },
         "Webhook rejected — source IP not in allowlist"
@@ -229,7 +278,6 @@ router.post("/beds24", async (req, res) => {
         maxRetries: WEBHOOK_MAX_RETRIES,
       });
     } catch (err: any) {
-      // UNIQUE constraint violation = duplicate event
       if (err.code === "23505" || err.message?.includes("unique") || err.message?.includes("duplicate")) {
         logger.info({ eventId }, "Webhook event deduplicated — already received");
         return res.status(HTTP_STATUS.OK).json({
@@ -239,7 +287,7 @@ router.post("/beds24", async (req, res) => {
           message: "Event already received and is being processed",
         });
       }
-      throw err; // Re-throw unexpected errors
+      throw err;
     }
 
     // ── Enqueue for async processing ───────────────────────
@@ -250,8 +298,8 @@ router.post("/beds24", async (req, res) => {
         eventType: event.type,
         payload: req.body,
       }, {
-        jobId: `webhook-${eventId}`, // Prevent duplicate jobs
-        attempts: 1, // Worker handles its own retry logic via DB
+        jobId: `webhook-${eventId}`,
+        attempts: 1,
       });
       logger.info({ eventId, eventType: event.type }, "Webhook event queued for processing");
     } else {
@@ -267,7 +315,6 @@ router.post("/beds24", async (req, res) => {
     });
   } catch (err) {
     logger.error({ err }, "Webhook processing failed");
-    // Still return 200 to prevent Beds24 from retrying
     return res.status(HTTP_STATUS.OK).json({
       received: true,
       error: "Internal processing error — event may need manual review",
@@ -279,11 +326,20 @@ router.post("/beds24", async (req, res) => {
 //  GET /webhooks/status — Health check for webhook system
 // ═══════════════════════════════════════════════════════════
 //
-// SECURITY: This endpoint NEVER exposes secret values.
-// It only shows boolean flags and non-sensitive metadata.
+// SECURITY: NEVER exposes secret values. Only booleans and metadata.
 //
 
 router.get("/status", async (_req, res) => {
+  // Compute rotation window status
+  const rotationActive = !!WEBHOOK_SECRET_PREVIOUS && isPreviousSecretInWindow();
+  let rotationExpiresAt: string | null = null;
+  if (ROTATION_START && WEBHOOK_SECRET_PREVIOUS) {
+    const startDate = new Date(ROTATION_START);
+    if (!isNaN(startDate.getTime())) {
+      rotationExpiresAt = new Date(startDate.getTime() + ROTATION_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    }
+  }
+
   res.json({
     enabled: isFeatureEnabled("beds24Webhooks"),
     behavior: isFeatureEnabled("beds24Webhooks") ? "200 + queue" : "204 no-op",
@@ -292,18 +348,28 @@ router.get("/status", async (_req, res) => {
         configured: !!WEBHOOK_SECRET,
         headerName: WEBHOOK_SECRET_HEADER,
         priority: "PRIMARY",
-        note: "Set matching Custom Header in Beds24 dashboard — NOT HMAC, static string comparison",
+        rotation: {
+          previousSecretConfigured: !!WEBHOOK_SECRET_PREVIOUS,
+          windowActive: rotationActive,
+          windowDays: ROTATION_WINDOW_DAYS,
+          rotationStartedAt: ROTATION_START || null,
+          windowExpiresAt: rotationExpiresAt,
+          note: rotationActive
+            ? "Rotation in progress — both current and previous secrets are accepted"
+            : WEBHOOK_SECRET_PREVIOUS
+              ? "Rotation window expired — previous secret is no longer accepted. Clear BEDS24_WEBHOOK_SECRET_PREVIOUS."
+              : "No rotation in progress",
+        },
       },
       ipAllowlist: {
         configured: WEBHOOK_IP_ALLOWLIST.length > 0,
         count: WEBHOOK_IP_ALLOWLIST.length,
         priority: "OPTIONAL",
-        note: "Beds24 IPs may change — use as defense-in-depth, not sole auth",
       },
     },
     verificationOrder: [
       "1. Feature flag (204 if off)",
-      "2. Shared secret header (401 if mismatch) — PRIMARY",
+      "2. Shared secret header (401 if mismatch) — PRIMARY (current + previous during rotation)",
       "3. IP allowlist (403 if blocked) — OPTIONAL",
       "4. Schema validation (400 if malformed)",
       "5. Dedup check → Queue → 200",

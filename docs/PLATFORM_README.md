@@ -295,12 +295,79 @@ The webhook secret value is **never logged, stored in audit logs, or exposed in 
 | Error responses | Say "Invalid or missing webhook secret" — never echo the expected or received value |
 | Morgan access logs | Use `short` format which does not include request headers |
 
+#### Secret Rotation (Zero-Downtime)
+
+The webhook secret can be rotated without dropping any requests. During the rotation window, **both the current and previous secrets are accepted**. The window duration is configurable (default: 7 days).
+
+**Rotation Procedure:**
+
+| Step | Action | Where |
+|------|--------|-------|
+| 1 | Generate a new random secret | Operator |
+| 2 | Set `BEDS24_WEBHOOK_SECRET` to the **new** secret | `.env` |
+| 3 | Set `BEDS24_WEBHOOK_SECRET_PREVIOUS` to the **old** secret | `.env` |
+| 4 | Set `BEDS24_WEBHOOK_SECRET_ROTATION_START` to current time (ISO 8601) | `.env` |
+| 5 | Deploy hub-api | Server |
+| 6 | Update Custom Header value in Beds24 dashboard to the **new** secret | Beds24 UI |
+| 7 | Wait for rotation window to expire (default 7 days) | — |
+| 8 | Clear `BEDS24_WEBHOOK_SECRET_PREVIOUS` and `BEDS24_WEBHOOK_SECRET_ROTATION_START` | `.env` |
+| 9 | Deploy hub-api | Server |
+
+**Example `.env` during rotation:**
+
+```bash
+# New secret (just generated)
+BEDS24_WEBHOOK_SECRET=mk-wh-2026-NEW-b8c4d2e6f1a3
+# Old secret (still accepted during window)
+BEDS24_WEBHOOK_SECRET_PREVIOUS=mk-wh-2026-OLD-a7b3c9d1e5f2
+# When rotation started
+BEDS24_WEBHOOK_SECRET_ROTATION_START=2026-03-01T00:00:00Z
+# Accept old secret for 7 days (default)
+BEDS24_WEBHOOK_SECRET_ROTATION_WINDOW_DAYS=7
+```
+
+**Behavior during rotation:**
+
+| Incoming Secret | Result | Log Message |
+|----------------|--------|-------------|
+| Matches current | 200 ✅ | `shared-secret-verified` |
+| Matches previous (window open) | 200 ✅ | `shared-secret-matched-previous` + warning to update Beds24 dashboard |
+| Matches previous (window expired) | 401 ❌ | `shared-secret-mismatch` + info to clear PREVIOUS env var |
+| Matches neither | 401 ❌ | `shared-secret-mismatch` |
+
+The `/webhooks/status` endpoint shows rotation state without exposing secret values:
+
+```json
+{
+  "security": {
+    "sharedSecret": {
+      "configured": true,
+      "rotation": {
+        "previousSecretConfigured": true,
+        "windowActive": true,
+        "windowDays": 7,
+        "rotationStartedAt": "2026-03-01T00:00:00Z",
+        "windowExpiresAt": "2026-03-08T00:00:00Z",
+        "note": "Rotation in progress — both current and previous secrets are accepted"
+      }
+    }
+  }
+}
+```
+
+If `BEDS24_WEBHOOK_SECRET_ROTATION_START` is empty or unparseable, the previous secret is accepted **indefinitely** as a safe fallback. This means you can set PREVIOUS without a start date if you want permanent dual-secret acceptance (not recommended for production).
+
 #### Configuration Summary
 
 ```bash
 # PRIMARY: Static shared secret (set matching Custom Header in Beds24 dashboard)
 BEDS24_WEBHOOK_SECRET=your-random-secret
 BEDS24_WEBHOOK_SECRET_HEADER=x-webhook-secret
+
+# SECRET ROTATION (zero-downtime)
+BEDS24_WEBHOOK_SECRET_PREVIOUS=           # Old secret during rotation
+BEDS24_WEBHOOK_SECRET_ROTATION_START=     # ISO 8601 timestamp
+BEDS24_WEBHOOK_SECRET_ROTATION_WINDOW_DAYS=7  # Days to accept old secret
 
 # OPTIONAL: IP allowlist (Beds24 IPs may change — use as defense-in-depth)
 BEDS24_WEBHOOK_IP_ALLOWLIST=52.58.0.0,52.58.0.1

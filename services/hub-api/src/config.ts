@@ -64,6 +64,15 @@ export const config = {
     // NOT HMAC — Beds24 does not sign webhooks. This is a plain string
     // that must match the "Custom Header" value set in Beds24 dashboard.
     webhookSecret: process.env.BEDS24_WEBHOOK_SECRET ?? "",
+    // Previous secret — accepted during rotation window for zero-downtime rotation.
+    // Set this to the OLD secret when rotating, then clear it after the window expires.
+    webhookSecretPrevious: process.env.BEDS24_WEBHOOK_SECRET_PREVIOUS ?? "",
+    // ISO 8601 timestamp when the rotation started. After ROTATION_WINDOW_DAYS
+    // from this time, the previous secret is no longer accepted.
+    webhookSecretRotationStart: process.env.BEDS24_WEBHOOK_SECRET_ROTATION_START ?? "",
+    // Number of days to accept the previous secret after rotation starts.
+    // Default: 7 days — gives ample time to update Beds24 dashboard.
+    webhookSecretRotationWindowDays: parseInt(process.env.BEDS24_WEBHOOK_SECRET_ROTATION_WINDOW_DAYS ?? "7", 10),
     // Header name where Beds24 sends the shared secret.
     // Must match the "Custom Header" name set in Beds24 dashboard.
     webhookSecretHeader: (process.env.BEDS24_WEBHOOK_SECRET_HEADER ?? "x-webhook-secret").toLowerCase(),
