@@ -310,12 +310,11 @@ export default function AdminManagers() {
                     {/* Photo */}
                     <div className="shrink-0">
                       {mgr.photoUrl ? (
-                        <img src={mgr.photoUrl} alt={mgr.name} className="w-20 h-20 rounded-xl object-cover border" />
-                      ) : (
-                        <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center">
-                          <UserCog className="h-8 w-8 text-white" />
-                        </div>
-                      )}
+                        <img src={mgr.photoUrl} alt={mgr.name} className="w-20 h-20 rounded-xl object-cover border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                      ) : null}
+                      <div className={`w-20 h-20 rounded-xl bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center text-white font-bold text-2xl select-none ${mgr.photoUrl ? 'hidden' : ''}`}>
+                        {(mgr.name || '').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || 'PM'}
+                      </div>
                     </div>
 
                     {/* Info */}

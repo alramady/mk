@@ -747,12 +747,11 @@ export default function PropertyDetail() {
                   <CardContent className="p-5">
                     <div className="flex items-center gap-4 mb-3">
                       {(prop as any).manager.photoUrl ? (
-                        <img src={(prop as any).manager.photoUrl} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#3ECFC0]/30" />
-                      ) : (
-                        <div className="w-14 h-14 rounded-full bg-[#3ECFC0]/10 flex items-center justify-center">
-                          <UserCog className="h-6 w-6 text-[#3ECFC0]" />
-                        </div>
-                      )}
+                        <img src={(prop as any).manager.photoUrl} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#3ECFC0]/30" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                      ) : null}
+                      <div className={`w-14 h-14 rounded-full bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center text-white font-bold text-lg select-none ${(prop as any).manager.photoUrl ? 'hidden' : ''}`}>
+                        {((prop as any).manager.name || '').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || 'PM'}
+                      </div>
                       <div>
                         <h4 className="font-semibold font-heading">
                           {lang === "ar" ? ((prop as any).manager.nameAr || (prop as any).manager.name) : (prop as any).manager.name}

@@ -13,12 +13,24 @@ import {
   ArrowLeft, ArrowRight, UserCog, Briefcase, Clock
 } from "lucide-react";
 import { useRoute, useLocation } from "wouter";
+import { useState } from "react";
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
 
 export default function AgentProfile() {
   const { t, lang, dir } = useI18n();
   const [, params] = useRoute("/agent/:id");
   const [, setLocation] = useLocation();
   const id = Number(params?.id);
+  const [imgError, setImgError] = useState(false);
 
   const { data: manager, isLoading } = trpc.propertyManager.getWithProperties.useQuery(
     { id },
@@ -72,6 +84,8 @@ export default function AgentProfile() {
   const bio = lang === "ar" ? (manager.bioAr || manager.bio) : manager.bio;
   const properties = (manager as any).properties || [];
   const propertyCount = (manager as any).propertyCount || 0;
+  const initials = getInitials(manager.name || manager.nameAr || "PM");
+  const showPhoto = manager.photoUrl && !imgError;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FA]">
@@ -86,30 +100,34 @@ export default function AgentProfile() {
 
         {/* Agent Header Card */}
         <Card className="mb-8 overflow-hidden border-0 shadow-lg">
-          <div className="bg-gradient-to-r from-[#0B1E2D] to-[#153347] h-32 relative">
+          {/* Banner */}
+          <div className="bg-gradient-to-r from-[#0B1E2D] to-[#153347] h-28 relative">
             <div className="absolute inset-0 opacity-10" style={{
               backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"
             }} />
           </div>
-          <CardContent className="px-6 pb-6 -mt-16 relative">
-            <div className="flex flex-col md:flex-row items-start md:items-end gap-5">
+
+          {/* Profile content - photo overlaps banner */}
+          <CardContent className="px-6 pb-6 relative">
+            <div className="flex flex-col md:flex-row items-start gap-5 -mt-14">
               {/* Photo */}
               <div className="shrink-0">
-                {manager.photoUrl ? (
+                {showPhoto ? (
                   <img
-                    src={manager.photoUrl}
+                    src={manager.photoUrl!}
                     alt={name}
-                    className="w-28 h-28 rounded-xl object-cover border-4 border-white shadow-lg"
+                    onError={() => setImgError(true)}
+                    className="w-28 h-28 rounded-xl object-cover border-4 border-white shadow-lg bg-white"
                   />
                 ) : (
-                  <div className="w-28 h-28 rounded-xl bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center border-4 border-white shadow-lg">
-                    <UserCog className="h-12 w-12 text-white" />
+                  <div className="w-28 h-28 rounded-xl bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center border-4 border-white shadow-lg text-white font-bold text-3xl select-none">
+                    {initials}
                   </div>
                 )}
               </div>
 
-              {/* Info */}
-              <div className="flex-1 pt-2">
+              {/* Info - always below the banner line */}
+              <div className="flex-1 pt-16 md:pt-2">
                 <h1 className="text-2xl font-heading font-bold text-[#0B1E2D]">{name}</h1>
                 <p className="text-muted-foreground flex items-center gap-1.5 mt-1">
                   <Briefcase className="h-4 w-4" />
@@ -124,7 +142,7 @@ export default function AgentProfile() {
               </div>
 
               {/* Contact Actions */}
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap pt-16 md:pt-2">
                 {manager.phone && (
                   <a href={`tel:${manager.phone}`}>
                     <Button className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 gap-2 font-semibold">
