@@ -1,11 +1,15 @@
 import webpush from "web-push";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { pushSubscriptions } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 function getDb() {
-  if (!_db) _db = drizzle(process.env.DATABASE_URL!);
+  if (!_db) {
+    const pool = mysql.createPool(process.env.DATABASE_URL!);
+    _db = drizzle(pool);
+  }
   return _db;
 }
 

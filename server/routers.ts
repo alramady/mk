@@ -20,11 +20,13 @@ import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, sen
 import { savePushSubscription, removePushSubscription, sendPushToUser, sendPushBroadcast, isPushConfigured, getUserSubscriptionCount } from "./push";
 import { roles as rolesTable, aiMessages as aiMessagesTable } from "../drizzle/schema";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { eq as eqDrizzle } from "drizzle-orm";
 import { sanitizeText, sanitizeObject, validateContentType, validateFileExtension, MAX_BASE64_SIZE, MAX_AVATAR_BASE64_SIZE, ALLOWED_IMAGE_TYPES, ALLOWED_UPLOAD_TYPES, capLimit, capOffset, isOwnerOrAdmin, isBookingParticipant } from "./security";
 
 // Shared drizzle instance for roles/aiStats (avoid creating new connections per request)
-const sharedDb = drizzle(process.env.DATABASE_URL!);
+const sharedPool = mysql.createPool(process.env.DATABASE_URL!);
+const sharedDb = drizzle(sharedPool);
 
 export const appRouter = router({
   system: systemRouter,

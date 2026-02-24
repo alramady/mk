@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { cities, districts, roles } from "../drizzle/schema";
 import { eq, sql } from "drizzle-orm";
 
@@ -7,7 +8,8 @@ import { eq, sql } from "drizzle-orm";
  * Called on server startup to ensure data is available
  */
 export async function seedCitiesAndDistricts() {
-  const db = drizzle(process.env.DATABASE_URL!);
+  const pool = mysql.createPool(process.env.DATABASE_URL!);
+  const db = drizzle(pool);
 
   try {
     // Check if cities already seeded
