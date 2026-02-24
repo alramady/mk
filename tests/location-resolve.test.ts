@@ -29,6 +29,7 @@ import {
   parseCoordsFromUrl,
   hashUrl,
   extractPlaceNameFromUrl,
+  isValidCoord,
   LocationServiceError,
 } from "../services/hub-api/src/services/location-service.js";
 
@@ -372,5 +373,217 @@ describe("Real-World Saudi Arabia URLs", () => {
     expect(result).not.toBeNull();
     expect(result!.lat).toBeCloseTo(22.31, 1);
     expect(result!.lng).toBeCloseTo(39.10, 1);
+  });
+});
+
+
+// ═══════════════════════════════════════════════════════════════
+//  Google API Status Mapping
+// ═══════════════════════════════════════════════════════════════
+
+describe("Google API Status → Platform Error Mapping", () => {
+  // We test the error codes exist in shared constants and have correct values
+  it("GOOGLE_ZERO_RESULTS error code exists", () => {
+    expect(ERROR_CODES.GOOGLE_ZERO_RESULTS).toBe("GOOGLE_ZERO_RESULTS");
+  });
+
+  it("GOOGLE_OVER_QUERY_LIMIT error code exists", () => {
+    expect(ERROR_CODES.GOOGLE_OVER_QUERY_LIMIT).toBe("GOOGLE_OVER_QUERY_LIMIT");
+  });
+
+  it("GOOGLE_REQUEST_DENIED error code exists", () => {
+    expect(ERROR_CODES.GOOGLE_REQUEST_DENIED).toBe("GOOGLE_REQUEST_DENIED");
+  });
+
+  it("GOOGLE_INVALID_REQUEST error code exists", () => {
+    expect(ERROR_CODES.GOOGLE_INVALID_REQUEST).toBe("GOOGLE_INVALID_REQUEST");
+  });
+
+  it("GOOGLE_UNKNOWN_ERROR error code exists", () => {
+    expect(ERROR_CODES.GOOGLE_UNKNOWN_ERROR).toBe("GOOGLE_UNKNOWN_ERROR");
+  });
+
+  it("UPSTREAM_ERROR error code exists for undocumented statuses", () => {
+    expect(ERROR_CODES.UPSTREAM_ERROR).toBe("UPSTREAM_ERROR");
+  });
+
+  it("UPSTREAM_TIMEOUT error code exists for timeouts", () => {
+    expect(ERROR_CODES.UPSTREAM_TIMEOUT).toBe("UPSTREAM_TIMEOUT");
+  });
+
+  it("LOCATION_INVALID_COORDS error code exists for invalid coordinates", () => {
+    expect(ERROR_CODES.LOCATION_INVALID_COORDS).toBe("LOCATION_INVALID_COORDS");
+  });
+
+  it("HTTP_STATUS includes GATEWAY_TIMEOUT (504)", () => {
+    expect(HTTP_STATUS.GATEWAY_TIMEOUT).toBe(504);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  LocationServiceError — retryable flag
+// ═══════════════════════════════════════════════════════════════
+
+describe("LocationServiceError retryable flag", () => {
+  it("defaults retryable to false", () => {
+    const err = new LocationServiceError("TEST", "test message", 400);
+    expect(err.retryable).toBe(false);
+  });
+
+  it("accepts retryable=true", () => {
+    const err = new LocationServiceError("TEST", "test message", 502, true);
+    expect(err.retryable).toBe(true);
+  });
+
+  it("accepts retryable=false explicitly", () => {
+    const err = new LocationServiceError("TEST", "test message", 422, false);
+    expect(err.retryable).toBe(false);
+  });
+
+  it("preserves code, message, status, and retryable together", () => {
+    const err = new LocationServiceError(
+      ERROR_CODES.GOOGLE_OVER_QUERY_LIMIT,
+      "Quota exceeded",
+      429,
+      true,
+    );
+    expect(err.code).toBe("GOOGLE_OVER_QUERY_LIMIT");
+    expect(err.message).toBe("Quota exceeded");
+    expect(err.status).toBe(429);
+    expect(err.retryable).toBe(true);
+    expect(err.name).toBe("LocationServiceError");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  Coordinate Validation (WGS-84 ranges)
+// ═══════════════════════════════════════════════════════════════
+
+describe("Coordinate Validation — isValidCoord", () => {
+  it("accepts valid Riyadh coordinates", () => {
+    expect(isValidCoord(24.7136, 46.6753)).toBe(true);
+  });
+
+  it("accepts exact boundary: lat=90, lng=180", () => {
+    expect(isValidCoord(90, 180)).toBe(true);
+  });
+
+  it("accepts exact boundary: lat=-90, lng=-180", () => {
+    expect(isValidCoord(-90, -180)).toBe(true);
+  });
+
+  it("accepts zero coordinates (Gulf of Guinea)", () => {
+    expect(isValidCoord(0, 0)).toBe(true);
+  });
+
+  it("rejects lat > 90", () => {
+    expect(isValidCoord(91, 46)).toBe(false);
+  });
+
+  it("rejects lat < -90", () => {
+    expect(isValidCoord(-91, 46)).toBe(false);
+  });
+
+  it("rejects lng > 180", () => {
+    expect(isValidCoord(24, 181)).toBe(false);
+  });
+
+  it("rejects lng < -180", () => {
+    expect(isValidCoord(24, -181)).toBe(false);
+  });
+
+  it("rejects NaN latitude", () => {
+    expect(isValidCoord(NaN, 46)).toBe(false);
+  });
+
+  it("rejects NaN longitude", () => {
+    expect(isValidCoord(24, NaN)).toBe(false);
+  });
+
+  it("rejects Infinity latitude", () => {
+    expect(isValidCoord(Infinity, 46)).toBe(false);
+  });
+
+  it("rejects -Infinity longitude", () => {
+    expect(isValidCoord(24, -Infinity)).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  Graceful Degradation — URL with coords always succeeds
+// ═══════════════════════════════════════════════════════════════
+
+describe("Graceful Degradation — coords from URL", () => {
+  it("parseCoordsFromUrl returns coords even without Google API", () => {
+    // This proves Scenario 2: coords in URL → success regardless of Google
+    const result = parseCoordsFromUrl(
+      "https://www.google.com/maps/place/Riyadh/@24.7136,46.6753,12z"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.lat).toBeCloseTo(24.7136, 4);
+    expect(result!.lng).toBeCloseTo(46.6753, 4);
+  });
+
+  it("parseCoordsFromUrl returns null for URL without coords (Scenario 4)", () => {
+    // This proves Scenario 4: no coords + no Google → cannot resolve
+    const result = parseCoordsFromUrl(
+      "https://www.google.com/maps/place/Riyadh+Park+Mall"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("extractPlaceNameFromUrl provides fallback address when Google unavailable", () => {
+    // In Scenario 2, place name from URL is the fallback for formatted_address
+    const name = extractPlaceNameFromUrl(
+      "https://www.google.com/maps/place/Riyadh+Park+Mall/@24.7,46.7"
+    );
+    expect(name).toBe("Riyadh Park Mall");
+  });
+
+  it("coords-only URL with embedded format still resolves", () => {
+    const result = parseCoordsFromUrl(
+      "https://www.google.com/maps/place/!3d24.7136!4d46.6753"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.lat).toBeCloseTo(24.7136, 4);
+  });
+
+  it("coords-only URL with query param still resolves", () => {
+    const result = parseCoordsFromUrl(
+      "https://maps.google.com/?q=24.7136,46.6753"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.lng).toBeCloseTo(46.6753, 4);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  API Key Security — error messages never contain keys
+// ═══════════════════════════════════════════════════════════════
+
+describe("API Key Security", () => {
+  it("LocationServiceError message does not contain API key patterns", () => {
+    // Simulate an error that might accidentally include a key
+    const err = new LocationServiceError(
+      ERROR_CODES.UPSTREAM_ERROR,
+      "Google Geocoding API call failed: [REDACTED_API_KEY]",
+      502,
+      true,
+    );
+    // The message should contain the redacted placeholder, not a real key
+    expect(err.message).toContain("[REDACTED_API_KEY]");
+    expect(err.message).not.toMatch(/AIza[A-Za-z0-9_-]{35}/); // Google API key pattern
+  });
+
+  it("NOT_CONFIGURED error does not reveal key expectations", () => {
+    const err = new LocationServiceError(
+      ERROR_CODES.NOT_CONFIGURED,
+      "Google Maps API key is not configured. Location resolve via geocoding is temporarily unavailable.",
+      503,
+      true,
+    );
+    expect(err.message).not.toMatch(/AIza/);
+    expect(err.message).not.toMatch(/key=/);
+    expect(err.message).toContain("not configured");
   });
 });

@@ -20,7 +20,12 @@
  *    - Missing Google API key → 503 at resolve time (NOT startup failure)
  *    - All cache columns nullable-safe, no backfills
  *    - Domain allowlist: google.com, maps.google.com, maps.app.goo.gl, goo.gl
- *    - Secrets (API keys) are NEVER logged
+ *    - Secrets (API keys) are NEVER logged — fetch errors are sanitized
+ *
+ *  Graceful degradation policy:
+ *    - Coords in URL + Google unavailable → SUCCESS with lat/lng + empty address
+ *    - No coords in URL + Google unavailable → 503 (cannot resolve without API)
+ *    - Google returns non-OK status → mapped to specific error code + retryable flag
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -50,10 +55,94 @@ export class LocationServiceError extends Error {
     public readonly code: string,
     message: string,
     public readonly status: number = 400,
+    public readonly retryable: boolean = false,
   ) {
     super(message);
     this.name = "LocationServiceError";
   }
+}
+
+// ─── Google Status → Platform Error Mapping ──────────────────
+
+/**
+ * Maps every documented Google Geocoding API status to a platform
+ * error code, HTTP status, human message, and retryable flag.
+ *
+ * Reference: https://developers.google.com/maps/documentation/geocoding/requests-geocoding#StatusCodes
+ */
+interface GoogleStatusMapping {
+  code: string;
+  status: number;
+  message: string;
+  retryable: boolean;
+}
+
+const GOOGLE_STATUS_MAP: Record<string, GoogleStatusMapping> = {
+  ZERO_RESULTS: {
+    code: ERROR_CODES.GOOGLE_ZERO_RESULTS,
+    status: HTTP_STATUS.UNPROCESSABLE,
+    message: "Google Geocoding found no results for the given address.",
+    retryable: false,
+  },
+  OVER_QUERY_LIMIT: {
+    code: ERROR_CODES.GOOGLE_OVER_QUERY_LIMIT,
+    status: 429,
+    message: "Google Geocoding API quota exceeded. Please retry later.",
+    retryable: true,
+  },
+  REQUEST_DENIED: {
+    code: ERROR_CODES.GOOGLE_REQUEST_DENIED,
+    status: HTTP_STATUS.FORBIDDEN,
+    message: "Google Geocoding API request was denied. Check API key permissions.",
+    retryable: false,
+  },
+  INVALID_REQUEST: {
+    code: ERROR_CODES.GOOGLE_INVALID_REQUEST,
+    status: HTTP_STATUS.BAD_REQUEST,
+    message: "Google Geocoding API received an invalid request.",
+    retryable: false,
+  },
+  UNKNOWN_ERROR: {
+    code: ERROR_CODES.GOOGLE_UNKNOWN_ERROR,
+    status: HTTP_STATUS.BAD_GATEWAY,
+    message: "Google Geocoding API returned an unknown error. Please retry.",
+    retryable: true,
+  },
+};
+
+/**
+ * Map a Google Geocoding API status string to a LocationServiceError.
+ * Falls back to UPSTREAM_ERROR for undocumented statuses.
+ */
+function mapGoogleStatus(googleStatus: string): LocationServiceError {
+  const mapping = GOOGLE_STATUS_MAP[googleStatus];
+  if (mapping) {
+    return new LocationServiceError(
+      mapping.code,
+      mapping.message,
+      mapping.status,
+      mapping.retryable,
+    );
+  }
+  // Undocumented status — treat as upstream error, retryable
+  return new LocationServiceError(
+    ERROR_CODES.UPSTREAM_ERROR,
+    `Google Geocoding API returned unexpected status: ${googleStatus}`,
+    HTTP_STATUS.BAD_GATEWAY,
+    true,
+  );
+}
+
+// ─── API Key Sanitization ────────────────────────────────────
+
+/**
+ * Sanitize any error message or URL string to remove API keys.
+ * This prevents accidental key leakage via stack traces or error logs.
+ */
+function sanitizeApiKey(text: string): string {
+  const apiKey = config.location.googleMapsApiKey;
+  if (!apiKey) return text;
+  return text.replaceAll(apiKey, "[REDACTED_API_KEY]");
 }
 
 // ─── URL Domain Validation ────────────────────────────────────
@@ -71,6 +160,7 @@ export function validateUrlDomain(rawUrl: string): void {
       ERROR_CODES.LOCATION_INVALID_URL,
       "Invalid URL format. Must be a valid Google Maps URL.",
       HTTP_STATUS.BAD_REQUEST,
+      false,
     );
   }
 
@@ -85,6 +175,7 @@ export function validateUrlDomain(rawUrl: string): void {
       ERROR_CODES.LOCATION_INVALID_URL,
       `Domain "${hostname}" is not in the allowed list. Only Google Maps URLs are accepted.`,
       HTTP_STATUS.BAD_REQUEST,
+      false,
     );
   }
 }
@@ -130,10 +221,12 @@ export async function expandUrl(shortUrl: string): Promise<string> {
       });
       return response.url;
     } catch {
+      const isTimeout = err instanceof Error && err.name === "AbortError";
       throw new LocationServiceError(
-        ERROR_CODES.LOCATION_UNRESOLVABLE,
+        isTimeout ? ERROR_CODES.UPSTREAM_TIMEOUT : ERROR_CODES.LOCATION_UNRESOLVABLE,
         `Failed to expand URL: ${shortUrl}`,
         HTTP_STATUS.BAD_GATEWAY,
+        true, // URL expansion failures are retryable
       );
     }
   } finally {
@@ -141,12 +234,46 @@ export async function expandUrl(shortUrl: string): Promise<string> {
   }
 }
 
-// ─── Parse Coordinates from Google Maps URL ───────────────────
+// ─── Coordinate Validation ───────────────────────────────────
 
 interface ParsedCoords {
   lat: number;
   lng: number;
 }
+
+/**
+ * Validate that lat/lng are within valid WGS-84 ranges.
+ * lat: -90 to 90, lng: -180 to 180.
+ */
+export function isValidCoord(lat: number, lng: number): boolean {
+  return (
+    !isNaN(lat) &&
+    !isNaN(lng) &&
+    isFinite(lat) &&
+    isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
+}
+
+/**
+ * Validate coords and throw if invalid. Used after Google API returns.
+ */
+function assertValidCoords(lat: number, lng: number, source: string): void {
+  if (!isValidCoord(lat, lng)) {
+    throw new LocationServiceError(
+      ERROR_CODES.LOCATION_INVALID_COORDS,
+      `${source} returned invalid coordinates: lat=${lat}, lng=${lng}. ` +
+        "Valid ranges: lat [-90, 90], lng [-180, 180].",
+      HTTP_STATUS.BAD_GATEWAY,
+      false,
+    );
+  }
+}
+
+// ─── Parse Coordinates from Google Maps URL ───────────────────
 
 /**
  * Attempt to extract lat/lng from a Google Maps URL.
@@ -197,17 +324,6 @@ export function parseCoordsFromUrl(url: string): ParsedCoords | null {
   return null;
 }
 
-function isValidCoord(lat: number, lng: number): boolean {
-  return (
-    !isNaN(lat) &&
-    !isNaN(lng) &&
-    lat >= -90 &&
-    lat <= 90 &&
-    lng >= -180 &&
-    lng <= 180
-  );
-}
-
 // ─── Google Geocoding API ─────────────────────────────────────
 
 interface GeocodeResult {
@@ -219,7 +335,19 @@ interface GeocodeResult {
 
 /**
  * Call Google Geocoding API to resolve an address string.
- * Returns 503 if GOOGLE_MAPS_API_KEY is not configured (NOT a startup failure).
+ *
+ * Error handling:
+ *   - Missing API key → 503 NOT_CONFIGURED (retryable: true)
+ *   - HTTP error → UPSTREAM_ERROR (retryable: true)
+ *   - Timeout → UPSTREAM_TIMEOUT (retryable: true)
+ *   - ZERO_RESULTS → GOOGLE_ZERO_RESULTS (retryable: false)
+ *   - OVER_QUERY_LIMIT → GOOGLE_OVER_QUERY_LIMIT (retryable: true)
+ *   - REQUEST_DENIED → GOOGLE_REQUEST_DENIED (retryable: false)
+ *   - INVALID_REQUEST → GOOGLE_INVALID_REQUEST (retryable: false)
+ *   - UNKNOWN_ERROR → GOOGLE_UNKNOWN_ERROR (retryable: true)
+ *   - Invalid coords in response → LOCATION_INVALID_COORDS (retryable: false)
+ *
+ * API keys are NEVER logged. All fetch errors are sanitized.
  */
 export async function geocodeViaGoogle(address: string): Promise<GeocodeResult> {
   const apiKey = config.location.googleMapsApiKey;
@@ -228,6 +356,7 @@ export async function geocodeViaGoogle(address: string): Promise<GeocodeResult> 
       ERROR_CODES.NOT_CONFIGURED,
       "Google Maps API key is not configured. Location resolve via geocoding is temporarily unavailable.",
       HTTP_STATUS.SERVICE_UNAVAILABLE,
+      true, // Retryable — key might be configured later
     );
   }
 
@@ -248,13 +377,15 @@ export async function geocodeViaGoogle(address: string): Promise<GeocodeResult> 
     if (!response.ok) {
       throw new LocationServiceError(
         ERROR_CODES.UPSTREAM_ERROR,
-        `Google Geocoding API returned ${response.status}`,
+        `Google Geocoding API returned HTTP ${response.status}`,
         HTTP_STATUS.BAD_GATEWAY,
+        true, // HTTP errors are retryable
       );
     }
 
     const data = (await response.json()) as {
       status: string;
+      error_message?: string;
       results: Array<{
         geometry: { location: { lat: number; lng: number } };
         formatted_address: string;
@@ -262,29 +393,74 @@ export async function geocodeViaGoogle(address: string): Promise<GeocodeResult> 
       }>;
     };
 
-    if (data.status !== "OK" || !data.results?.length) {
+    // Map non-OK Google statuses to specific platform errors
+    if (data.status !== "OK") {
+      throw mapGoogleStatus(data.status);
+    }
+
+    if (!data.results?.length) {
       throw new LocationServiceError(
-        ERROR_CODES.LOCATION_UNRESOLVABLE,
-        `Google Geocoding returned status: ${data.status}. Could not resolve location.`,
+        ERROR_CODES.GOOGLE_ZERO_RESULTS,
+        "Google Geocoding returned OK but with empty results array.",
         HTTP_STATUS.UNPROCESSABLE,
+        false,
       );
     }
 
     const result = data.results[0];
+    const lat = result.geometry.location.lat;
+    const lng = result.geometry.location.lng;
+
+    // Validate returned coordinates
+    assertValidCoords(lat, lng, "Google Geocoding API");
+
     return {
-      lat: result.geometry.location.lat,
-      lng: result.geometry.location.lng,
+      lat,
+      lng,
       formatted_address: result.formatted_address,
       place_id: result.place_id ?? null,
     };
+  } catch (err: unknown) {
+    // Re-throw LocationServiceError as-is
+    if (err instanceof LocationServiceError) throw err;
+
+    // AbortError = timeout
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new LocationServiceError(
+        ERROR_CODES.UPSTREAM_TIMEOUT,
+        "Google Geocoding API request timed out after 10 seconds.",
+        HTTP_STATUS.GATEWAY_TIMEOUT,
+        true,
+      );
+    }
+
+    // Unknown fetch error — sanitize to prevent API key leakage
+    const rawMessage = err instanceof Error ? err.message : String(err);
+    throw new LocationServiceError(
+      ERROR_CODES.UPSTREAM_ERROR,
+      `Google Geocoding API call failed: ${sanitizeApiKey(rawMessage)}`,
+      HTTP_STATUS.BAD_GATEWAY,
+      true,
+    );
   } finally {
     clearTimeout(timeout);
   }
 }
 
 /**
- * Call Google Place Details API to get formatted address for coords.
- * Returns null if API key missing or call fails (non-critical).
+ * Call Google Reverse Geocoding API to get formatted address for coords.
+ *
+ * This is a NON-CRITICAL call used for enrichment. Failures return null
+ * (graceful degradation) — the caller already has lat/lng from URL parsing.
+ *
+ * Error handling:
+ *   - Missing API key → null (graceful, not an error)
+ *   - HTTP error → null (graceful)
+ *   - Timeout → null (graceful)
+ *   - Non-OK status → null (graceful)
+ *   - All errors sanitized to prevent API key leakage
+ *
+ * Input lat/lng are validated before calling Google.
  */
 export async function reverseGeocodeViaGoogle(
   lat: number,
@@ -292,6 +468,9 @@ export async function reverseGeocodeViaGoogle(
 ): Promise<{ formatted_address: string; place_id: string | null } | null> {
   const apiKey = config.location.googleMapsApiKey;
   if (!apiKey) return null; // Graceful degradation — not an error
+
+  // Validate input coordinates before sending to Google
+  if (!isValidCoord(lat, lng)) return null;
 
   const params = new URLSearchParams({
     latlng: `${lat},${lng}`,
@@ -308,7 +487,7 @@ export async function reverseGeocodeViaGoogle(
       { signal: controller.signal },
     );
 
-    if (!response.ok) return null;
+    if (!response.ok) return null; // Graceful — caller has coords
 
     const data = (await response.json()) as {
       status: string;
@@ -325,7 +504,8 @@ export async function reverseGeocodeViaGoogle(
       place_id: data.results[0].place_id ?? null,
     };
   } catch {
-    return null; // Non-critical failure
+    // All errors are graceful — caller already has lat/lng
+    return null;
   } finally {
     clearTimeout(timeout);
   }
@@ -358,6 +538,29 @@ export function extractPlaceNameFromUrl(url: string): string | null {
  *   5. Optionally reverse-geocode for formatted address
  *   6. Return result
  *
+ * ═══════════════════════════════════════════════════════════════
+ *  GRACEFUL DEGRADATION POLICY
+ * ═══════════════════════════════════════════════════════════════
+ *
+ *  Scenario 1: Coords in URL + Google available
+ *    → SUCCESS: lat/lng + formatted_address + place_id from reverse geocode
+ *    → resolved_via: "url_parse"
+ *
+ *  Scenario 2: Coords in URL + Google unavailable/disabled
+ *    → SUCCESS: lat/lng + place name from URL (or empty string) + null place_id
+ *    → resolved_via: "url_parse"
+ *    → This is the KEY graceful degradation: we return what we have
+ *
+ *  Scenario 3: No coords in URL + Google available
+ *    → SUCCESS: lat/lng + formatted_address + place_id from geocode
+ *    → resolved_via: "google_geocode"
+ *
+ *  Scenario 4: No coords in URL + Google unavailable/disabled
+ *    → FAILURE: 503 (cannot resolve without API)
+ *    → retryable: true
+ *
+ * ═══════════════════════════════════════════════════════════════
+ *
  * This function does NOT handle caching — that's done at the route level
  * with Redis (fast) + Postgres (persistent).
  */
@@ -370,6 +573,7 @@ export async function resolveLocation(
       ERROR_CODES.LOCATION_DISABLED,
       "Location resolve feature is disabled.",
       HTTP_STATUS.SERVICE_UNAVAILABLE,
+      false,
     );
   }
 
@@ -394,14 +598,15 @@ export async function resolveLocation(
   const parsed = parseCoordsFromUrl(finalUrl);
 
   if (parsed) {
-    // We have coords — try to get formatted address via reverse geocode
+    // ── Scenario 1 or 2: Coords found in URL ──
+    // We ALWAYS return success here — Google enrichment is optional
     let formatted_address = "";
     let place_id: string | null = null;
 
-    // Try place name from URL first
+    // Try place name from URL first (zero-cost fallback)
     const placeName = extractPlaceNameFromUrl(finalUrl);
 
-    // Try reverse geocode for proper address (non-blocking)
+    // Try reverse geocode for proper address (non-blocking, graceful)
     if (isFeatureEnabled("googleMaps")) {
       const reverseResult = await reverseGeocodeViaGoogle(parsed.lat, parsed.lng);
       if (reverseResult) {
@@ -427,7 +632,9 @@ export async function resolveLocation(
     };
   }
 
-  // Step 4: No coords in URL — try to extract place name and geocode
+  // ── Scenario 3 or 4: No coords in URL ──
+  // Must use Google Geocoding API — if unavailable, 503
+
   const placeName = extractPlaceNameFromUrl(finalUrl);
 
   if (placeName && isFeatureEnabled("googleMaps")) {
@@ -444,7 +651,7 @@ export async function resolveLocation(
     };
   }
 
-  // Step 5: Last resort — try geocoding the full URL as a query
+  // Last resort — try geocoding the full URL as a query
   if (isFeatureEnabled("googleMaps")) {
     const geocodeResult = await geocodeViaGoogle(finalUrl);
     return {
@@ -459,11 +666,12 @@ export async function resolveLocation(
     };
   }
 
-  // No coords found and no Google API available
+  // Scenario 4: No coords + no Google → 503
   throw new LocationServiceError(
     ERROR_CODES.LOCATION_UNRESOLVABLE,
     "Could not extract coordinates from the URL and Google Maps API is not enabled. " +
       "Enable ENABLE_GOOGLE_MAPS=true and set GOOGLE_MAPS_API_KEY, or provide a URL with coordinates.",
     HTTP_STATUS.UNPROCESSABLE,
+    true, // Retryable — Google might be enabled later
   );
 }

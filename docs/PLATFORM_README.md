@@ -675,15 +675,81 @@ google.com, www.google.com, maps.google.com, maps.app.goo.gl, goo.gl
 
 Subdomains of allowed domains are also accepted (e.g., `www.google.com`).
 
+### Google API Status Mapping
+
+Every documented Google Geocoding API status is mapped to a platform error code with an explicit `retryable` flag. Clients can use `retryable: true` to implement automatic retry with backoff.
+
+| Google Status | Platform Error Code | HTTP | Retryable | Description |
+|--------------|-------------------|------|-----------|-------------|
+| `OK` | — | 200 | — | Success — results returned |
+| `ZERO_RESULTS` | `GOOGLE_ZERO_RESULTS` | 422 | `false` | Address found but no geocode results |
+| `OVER_QUERY_LIMIT` | `GOOGLE_OVER_QUERY_LIMIT` | 429 | `true` | API quota exceeded — retry after backoff |
+| `REQUEST_DENIED` | `GOOGLE_REQUEST_DENIED` | 403 | `false` | API key invalid or restricted — fix key |
+| `INVALID_REQUEST` | `GOOGLE_INVALID_REQUEST` | 400 | `false` | Malformed request — fix input |
+| `UNKNOWN_ERROR` | `GOOGLE_UNKNOWN_ERROR` | 502 | `true` | Google server-side error — retry |
+| (undocumented) | `UPSTREAM_ERROR` | 502 | `true` | Unexpected status — retry |
+| HTTP error | `UPSTREAM_ERROR` | 502 | `true` | Non-2xx HTTP response |
+| Timeout (10s) | `UPSTREAM_TIMEOUT` | 504 | `true` | Request timed out |
+| Invalid coords in response | `LOCATION_INVALID_COORDS` | 502 | `false` | Google returned lat/lng outside valid range |
+
+Error response format:
+```json
+{
+  "code": "GOOGLE_OVER_QUERY_LIMIT",
+  "message": "Google Geocoding API quota exceeded. Please retry later.",
+  "retryable": true
+}
+```
+
+### Graceful Degradation Policy
+
+The system follows a **"return what we have"** philosophy. If coordinates exist in the URL, the request always succeeds — even if Google is unavailable.
+
+| Scenario | Coords in URL | Google Available | Result | HTTP | `resolved_via` |
+|----------|:------------:|:---------------:|--------|:----:|----------------|
+| **1. Full resolve** | ✅ | ✅ | lat/lng + formatted_address + place_id | 200 | `url_parse` |
+| **2. Coords-only** | ✅ | ❌ | lat/lng + place name from URL (or `""`) + `null` place_id | 200 | `url_parse` |
+| **3. Geocode resolve** | ❌ | ✅ | lat/lng + formatted_address + place_id from geocode | 200 | `google_geocode` |
+| **4. Cannot resolve** | ❌ | ❌ | Error: cannot resolve without API | 503 | — |
+
+**Key design decision:** Scenario 2 returns `200 OK` with partial data — not `503`. The caller receives usable lat/lng and can display a map pin. The `formatted_address` field being empty signals that enrichment was unavailable. This prevents blocking the entire booking flow when Google has a transient outage.
+
+**Reverse geocode failures are always graceful:** `reverseGeocodeViaGoogle()` returns `null` on any failure (timeout, HTTP error, non-OK status). It never throws. The caller already has lat/lng from URL parsing.
+
+### Coordinate Validation
+
+All coordinates are validated against WGS-84 ranges before being returned:
+
+| Field | Valid Range | Validation |
+|-------|-----------|------------|
+| `lat` | -90.0 to 90.0 | `isFinite()` + range check |
+| `lng` | -180.0 to 180.0 | `isFinite()` + range check |
+
+Validation is applied at two points:
+1. **URL parsing** — `parseCoordsFromUrl()` calls `isValidCoord()` before returning
+2. **Google API response** — `geocodeViaGoogle()` calls `assertValidCoords()` after receiving Google's response, throwing `LOCATION_INVALID_COORDS` if out of range
+
+### API Key Security
+
+Google Maps API keys are treated as secrets with the same rigor as webhook secrets:
+
+| Protection | Implementation |
+|-----------|----------------|
+| Never logged | All `console.log`/`logger` calls use sanitized messages |
+| Sanitized in errors | `sanitizeApiKey()` replaces key with `[REDACTED_API_KEY]` in all error messages and stack traces |
+| Never in responses | Error responses contain only error codes and human messages — no URLs with keys |
+| `/location/status` | Shows only `googleMapsApiKeyConfigured: true/false` — never the key value |
+| Fetch URL construction | Key is added via `URLSearchParams` (not string interpolation) to prevent accidental logging of the full URL |
+
 ### Security & Constraints
 
 | Constraint | Behavior |
 |-----------|----------|
-| Missing Google API key | `503 Service Unavailable` at resolve time (NOT startup failure) |
-| Feature disabled | `503` with `LOCATION_DISABLED` error code |
+| Missing Google API key | `503 Service Unavailable` at resolve time (NOT startup failure) — `retryable: true` |
+| Feature disabled | `503` with `LOCATION_DISABLED` error code — `retryable: false` |
 | Invalid domain | `400` with `LOCATION_INVALID_URL` error code |
 | Rate limit exceeded | `429` with configurable limit (default: 20/min/IP) |
-| API key in logs | **NEVER** — only `apiKeyConfigured: true/false` in status |
+| API key in logs | **NEVER** — sanitized via `sanitizeApiKey()` |
 | DB columns | All nullable, no backfills required |
 | Writer-lock | **NOT touched** — location is a shared service |
 
