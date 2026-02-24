@@ -10,12 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Slider } from "@/components/ui/slider";
+// Slider removed — calculator now uses button chips
+import CostCalculator from "@/components/CostCalculator";
 import {
   Heart, Share2, MapPin, BedDouble, Bath, Maximize2, Building, Calendar,
   CheckCircle, Star, MessageSquare, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight,
   Wifi, Car, Dumbbell, Shield, Wind, Droplets, Zap, Flame, Tv, Shirt,
-  Phone, UserCog, Clock, Eye, Calculator, X, TrendingUp, Percent, DollarSign
+  Phone, UserCog, Clock, Eye, Calculator, X
 } from "lucide-react";
 import { useState, useRef, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -67,7 +68,6 @@ export default function PropertyDetail() {
   const [currentPhoto, setCurrentPhoto] = useState(0);
   const mapRef = useRef<MapInstance | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
-  const [calcMonths, setCalcMonths] = useState(1);
 
   const id = Number(params?.id);
   const property = trpc.property.getById.useQuery({ id }, { enabled: !!id });
@@ -103,25 +103,7 @@ export default function PropertyDetail() {
     } catch { return ["09:00-10:00","10:00-11:00","14:00-15:00","15:00-16:00"]; }
   }, [siteSetting]);
 
-  // Finance calculator values
-  const serviceFeePercent = Number(siteSetting("fees.serviceFeePercent", "5"));
-  const vatPercent = Number(siteSetting("fees.vatPercent", "15"));
-  const depositPercent = Number(siteSetting("fees.depositPercent", "10"));
-
   const prop = property.data;
-
-  // Calculator computations
-  const calcData = useMemo(() => {
-    if (!prop) return null;
-    const rent = Number(prop.monthlyRent);
-    const totalRent = rent * calcMonths;
-    const deposit = rent * (depositPercent / 100);
-    const serviceFee = totalRent * (serviceFeePercent / 100);
-    const subtotal = totalRent + deposit + serviceFee;
-    const vat = subtotal * (vatPercent / 100);
-    const grandTotal = subtotal + vat;
-    return { rent, totalRent, deposit, serviceFee, subtotal, vat, grandTotal };
-  }, [prop, calcMonths, serviceFeePercent, vatPercent, depositPercent]);
 
   // Map ready handler - works with both Google Maps and Leaflet
   const handleMapReady = useCallback((mapInst: MapInstance) => {
@@ -596,149 +578,18 @@ export default function PropertyDetail() {
                 </Card>
               )}
 
-              {/* Finance Calculator — shown when toggled, replaces booking card */}
-              {showCalculator && calcData && (
-                <Card className="shadow-lg border-[#C9A96E]/30 overflow-hidden">
-                  {/* Calculator Header */}
-                  <div className="bg-gradient-to-r from-[#0B1E2D] to-[#132d42] p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-white">
-                        <Calculator className="h-5 w-5 text-[#C9A96E]" />
-                        <span className="font-heading font-bold text-lg">
-                          {lang === "ar" ? "حاسبة التكاليف" : "Cost Calculator"}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setShowCalculator(false)}
-                        className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-                      >
-                        <X className="h-4 w-4 text-white" />
-                      </button>
-                    </div>
-                    <p className="text-white/60 text-xs mt-1">
-                      {lang === "ar" ? "احسب التكلفة الإجمالية للإيجار" : "Calculate your total rental cost"}
-                    </p>
-                  </div>
-
-                  <CardContent className="p-5 space-y-5">
-                    {/* Monthly Rent Display */}
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-[#3ECFC0]/10 border border-[#3ECFC0]/20">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-[#3ECFC0]" />
-                        <span className="text-sm font-medium">{lang === "ar" ? "الإيجار الشهري" : "Monthly Rent"}</span>
-                      </div>
-                      <span className="font-bold text-[#3ECFC0]">{calcData.rent.toLocaleString()} {lang === "ar" ? "ر.س" : "SAR"}</span>
-                    </div>
-
-                    {/* Duration Slider */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="flex items-center gap-1.5 text-sm">
-                          <Calendar className="h-4 w-4 text-[#C9A96E]" />
-                          {lang === "ar" ? "مدة الإيجار" : "Rental Duration"}
-                        </Label>
-                        <Badge variant="secondary" className="bg-[#C9A96E]/10 text-[#C9A96E] border-[#C9A96E]/20">
-                          {calcMonths} {calcMonths === 1 ? (lang === "ar" ? "شهر" : "month") : (lang === "ar" ? "أشهر" : "months")}
-                        </Badge>
-                      </div>
-                      <Slider
-                        value={[calcMonths]}
-                        onValueChange={(v) => setCalcMonths(v[0])}
-                        min={1}
-                        max={12}
-                        step={1}
-                        className="py-2"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>1 {lang === "ar" ? "شهر" : "mo"}</span>
-                        <span>6 {lang === "ar" ? "أشهر" : "mo"}</span>
-                        <span>12 {lang === "ar" ? "شهر" : "mo"}</span>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Cost Breakdown */}
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-semibold flex items-center gap-1.5">
-                        <TrendingUp className="h-4 w-4 text-primary" />
-                        {lang === "ar" ? "تفاصيل التكلفة" : "Cost Breakdown"}
-                      </h4>
-
-                      <div className="space-y-2.5 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            {lang === "ar" ? `الإيجار (${calcMonths} ${calcMonths === 1 ? "شهر" : "أشهر"})` : `Rent (${calcMonths} ${calcMonths === 1 ? "month" : "months"})`}
-                          </span>
-                          <span className="font-medium">{calcData.totalRent.toLocaleString()} {lang === "ar" ? "ر.س" : "SAR"}</span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            {lang === "ar" ? `التأمين (${depositPercent}%)` : `Deposit (${depositPercent}%)`}
-                          </span>
-                          <span className="font-medium">{calcData.deposit.toLocaleString()} {lang === "ar" ? "ر.س" : "SAR"}</span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            {lang === "ar" ? `رسوم الخدمة (${serviceFeePercent}%)` : `Service Fee (${serviceFeePercent}%)`}
-                          </span>
-                          <span className="font-medium">{calcData.serviceFee.toLocaleString()} {lang === "ar" ? "ر.س" : "SAR"}</span>
-                        </div>
-
-                        <Separator className="my-1" />
-
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">{lang === "ar" ? "المجموع الفرعي" : "Subtotal"}</span>
-                          <span className="font-medium">{calcData.subtotal.toLocaleString()} {lang === "ar" ? "ر.س" : "SAR"}</span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <Percent className="h-3 w-3" />
-                            {lang === "ar" ? `ضريبة القيمة المضافة (${vatPercent}%)` : `VAT (${vatPercent}%)`}
-                          </span>
-                          <span className="font-medium">{calcData.vat.toLocaleString(undefined, { maximumFractionDigits: 0 })} {lang === "ar" ? "ر.س" : "SAR"}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Grand Total */}
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-[#0B1E2D] to-[#132d42] text-white">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white/80 text-sm">{lang === "ar" ? "الإجمالي الكلي" : "Grand Total"}</span>
-                        <div className="text-end">
-                          <div className="text-2xl font-bold font-heading text-[#3ECFC0]">
-                            {calcData.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </div>
-                          <div className="text-xs text-white/50">{lang === "ar" ? "ريال سعودي" : "SAR"}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Back to booking button */}
-                    <Button
-                      className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold"
-                      size="lg"
-                      onClick={() => {
-                        if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول أولاً" : "Please sign in first"); return; }
-                        setLocation(`/book/${id}`);
-                      }}
-                    >
-                      {prop.instantBook ? t("property.bookNow") : t("property.requestBooking")}
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      className="w-full text-muted-foreground"
-                      onClick={() => setShowCalculator(false)}
-                    >
-                      <ArrowLeft className="h-4 w-4 me-2" />
-                      {lang === "ar" ? "العودة لتفاصيل السعر" : "Back to pricing details"}
-                    </Button>
-                  </CardContent>
-                </Card>
+              {/* Finance Calculator — backend-driven component */}
+              {showCalculator && (
+                <CostCalculator
+                  monthlyRent={Number(prop.monthlyRent)}
+                  propertyTitle={lang === "ar" ? prop.titleAr : prop.titleEn}
+                  onClose={() => setShowCalculator(false)}
+                  onBook={() => {
+                    if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول أولاً" : "Please sign in first"); return; }
+                    setLocation(`/book/${id}`);
+                  }}
+                  bookLabel={prop.instantBook ? t("property.bookNow") : t("property.requestBooking")}
+                />
               )}
 
               {/* Property Manager Card */}

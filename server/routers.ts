@@ -2191,5 +2191,124 @@ export const appRouter = router({
         return messages.filter(m => m.rating !== null).slice(-limit).reverse();
       }),
   }),
+
+  // ─── Cost Calculator (fully backend-driven) ──────────────────────────
+  calculator: router({
+    /** GET config: returns all calculator parameters for frontend/mobile */
+    getConfig: publicProcedure.query(async () => {
+      const settings = await cacheThrough(
+        CACHE_KEYS.settings(),
+        CACHE_TTL.SETTINGS,
+        () => db.getAllSettings()
+      );
+      const allowedMonthsRaw = settings["calculator.allowedMonths"] || settings["rental.allowedMonths"] || "[1,2]";
+      let allowedMonths: number[];
+      try {
+        allowedMonths = JSON.parse(allowedMonthsRaw);
+        if (!Array.isArray(allowedMonths) || allowedMonths.length === 0) allowedMonths = [1, 2];
+      } catch {
+        allowedMonths = [1, 2];
+      }
+      return {
+        allowedMonths: allowedMonths.sort((a, b) => a - b),
+        insuranceRate: parseFloat(settings["fees.depositPercent"] || "10"),
+        serviceFeeRate: parseFloat(settings["fees.serviceFeePercent"] || "5"),
+        vatRate: parseFloat(settings["fees.vatPercent"] || "15"),
+        currency: settings["payment.currency"] || "SAR",
+        currencySymbolAr: "ر.س",
+        currencySymbolEn: "SAR",
+        version: settings["calculator.version"] || "1",
+        labels: {
+          insuranceAr: settings["calculator.insuranceLabelAr"] || "التأمين",
+          insuranceEn: settings["calculator.insuranceLabelEn"] || "Insurance/Deposit",
+          serviceFeeAr: settings["calculator.serviceFeeLabelAr"] || "رسوم الخدمة",
+          serviceFeeEn: settings["calculator.serviceFeeLabelEn"] || "Service Fee",
+          vatAr: settings["calculator.vatLabelAr"] || "ضريبة القيمة المضافة",
+          vatEn: settings["calculator.vatLabelEn"] || "VAT",
+          insuranceTooltipAr: settings["calculator.insuranceTooltipAr"] || "مبلغ تأمين قابل للاسترداد عند انتهاء العقد",
+          insuranceTooltipEn: settings["calculator.insuranceTooltipEn"] || "Refundable security deposit returned at end of lease",
+          serviceFeeTooltipAr: settings["calculator.serviceFeeTooltipAr"] || "رسوم إدارة المنصة لتسهيل عملية التأجير",
+          serviceFeeTooltipEn: settings["calculator.serviceFeeTooltipEn"] || "Platform management fee for facilitating the rental",
+          vatTooltipAr: settings["calculator.vatTooltipAr"] || "ضريبة القيمة المضافة وفقاً لنظام هيئة الزكاة والضريبة والجمارك",
+          vatTooltipEn: settings["calculator.vatTooltipEn"] || "Value Added Tax as per ZATCA regulations",
+        },
+      };
+    }),
+
+    /** POST calculate: server-side calculation with full validation */
+    calculate: publicProcedure
+      .input(z.object({
+        monthlyRent: z.number().positive("Monthly rent must be positive"),
+        selectedMonths: z.number().int().positive("Duration must be a positive integer"),
+      }))
+      .mutation(async ({ input }) => {
+        const settings = await cacheThrough(
+          CACHE_KEYS.settings(),
+          CACHE_TTL.SETTINGS,
+          () => db.getAllSettings()
+        );
+
+        // Parse allowed months
+        const allowedMonthsRaw = settings["calculator.allowedMonths"] || settings["rental.allowedMonths"] || "[1,2]";
+        let allowedMonths: number[];
+        try {
+          allowedMonths = JSON.parse(allowedMonthsRaw);
+          if (!Array.isArray(allowedMonths) || allowedMonths.length === 0) allowedMonths = [1, 2];
+        } catch {
+          allowedMonths = [1, 2];
+        }
+
+        // Validate duration
+        if (!allowedMonths.includes(input.selectedMonths)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Duration ${input.selectedMonths} months is not allowed. Allowed: ${allowedMonths.join(", ")} months`,
+          });
+        }
+
+        // Validate rent range
+        const minRent = parseFloat(settings["fees.minRent"] || "500");
+        const maxRent = parseFloat(settings["fees.maxRent"] || "100000");
+        if (input.monthlyRent < minRent || input.monthlyRent > maxRent) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Monthly rent must be between ${minRent} and ${maxRent}`,
+          });
+        }
+
+        // Get rates from settings (single source of truth)
+        const insuranceRate = parseFloat(settings["fees.depositPercent"] || "10") / 100;
+        const serviceFeeRate = parseFloat(settings["fees.serviceFeePercent"] || "5") / 100;
+        const vatRate = parseFloat(settings["fees.vatPercent"] || "15") / 100;
+
+        // Calculate
+        const rentTotal = Math.round(input.monthlyRent * input.selectedMonths);
+        const insuranceAmount = Math.round(input.monthlyRent * insuranceRate);
+        const serviceFeeAmount = Math.round(rentTotal * serviceFeeRate);
+        const subtotal = rentTotal + insuranceAmount + serviceFeeAmount;
+        const vatAmount = Math.round(subtotal * vatRate);
+        const grandTotal = subtotal + vatAmount;
+
+        return {
+          // Input echo
+          monthlyRent: input.monthlyRent,
+          selectedMonths: input.selectedMonths,
+          // Breakdown
+          rentTotal,
+          insuranceAmount,
+          serviceFeeAmount,
+          subtotal,
+          vatAmount,
+          grandTotal,
+          // Applied rates (for transparency)
+          appliedRates: {
+            insuranceRate: parseFloat(settings["fees.depositPercent"] || "10"),
+            serviceFeeRate: parseFloat(settings["fees.serviceFeePercent"] || "5"),
+            vatRate: parseFloat(settings["fees.vatPercent"] || "15"),
+          },
+          currency: settings["payment.currency"] || "SAR",
+        };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

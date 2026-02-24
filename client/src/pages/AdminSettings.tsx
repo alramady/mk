@@ -466,6 +466,41 @@ export default function AdminSettings() {
                   </div>
                 </div>
 
+                {/* Calculator Config */}
+                <div className="border-t pt-6 mt-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    {lang === "ar" ? "إعدادات حاسبة التكاليف" : "Cost Calculator Settings"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {lang === "ar" ? "تحكم في المدد المسموحة والتسميات التي تظهر في حاسبة التكاليف للعملاء" : "Control allowed durations and labels shown in the customer cost calculator"}
+                  </p>
+                  <div className="space-y-4">
+                    <SettingField
+                      label={lang === "ar" ? "المدد المسموحة (JSON array بالأشهر)" : "Allowed Months (JSON array)"}
+                      settingKey="calculator.allowedMonths"
+                      placeholder='[1,2]'
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <SettingField label={lang === "ar" ? "تسمية التأمين (عربي)" : "Insurance Label (Arabic)"} settingKey="calculator.insuranceLabelAr" placeholder="التأمين" />
+                      <SettingField label={lang === "ar" ? "تسمية التأمين (إنجليزي)" : "Insurance Label (English)"} settingKey="calculator.insuranceLabelEn" placeholder="Insurance/Deposit" />
+                      <SettingField label={lang === "ar" ? "تسمية رسوم الخدمة (عربي)" : "Service Fee Label (Arabic)"} settingKey="calculator.serviceFeeLabelAr" placeholder="رسوم الخدمة" />
+                      <SettingField label={lang === "ar" ? "تسمية رسوم الخدمة (إنجليزي)" : "Service Fee Label (English)"} settingKey="calculator.serviceFeeLabelEn" placeholder="Service Fee" />
+                      <SettingField label={lang === "ar" ? "تسمية الضريبة (عربي)" : "VAT Label (Arabic)"} settingKey="calculator.vatLabelAr" placeholder="ضريبة القيمة المضافة" />
+                      <SettingField label={lang === "ar" ? "تسمية الضريبة (إنجليزي)" : "VAT Label (English)"} settingKey="calculator.vatLabelEn" placeholder="VAT" />
+                    </div>
+                    <h4 className="text-sm font-medium text-muted-foreground pt-2">{lang === "ar" ? "نصوص التوضيح (Tooltips)" : "Tooltip Texts"}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <SettingField label={lang === "ar" ? "توضيح التأمين (عربي)" : "Insurance Tooltip (AR)"} settingKey="calculator.insuranceTooltipAr" placeholder="مبلغ تأمين قابل للاسترداد" />
+                      <SettingField label={lang === "ar" ? "توضيح التأمين (إنجليزي)" : "Insurance Tooltip (EN)"} settingKey="calculator.insuranceTooltipEn" placeholder="Refundable security deposit" />
+                      <SettingField label={lang === "ar" ? "توضيح رسوم الخدمة (عربي)" : "Service Fee Tooltip (AR)"} settingKey="calculator.serviceFeeTooltipAr" placeholder="رسوم إدارة المنصة" />
+                      <SettingField label={lang === "ar" ? "توضيح رسوم الخدمة (إنجليزي)" : "Service Fee Tooltip (EN)"} settingKey="calculator.serviceFeeTooltipEn" placeholder="Platform management fee" />
+                      <SettingField label={lang === "ar" ? "توضيح الضريبة (عربي)" : "VAT Tooltip (AR)"} settingKey="calculator.vatTooltipAr" placeholder="ضريبة القيمة المضافة وفقاً لنظام هيئة الزكاة" />
+                      <SettingField label={lang === "ar" ? "توضيح الضريبة (إنجليزي)" : "VAT Tooltip (EN)"} settingKey="calculator.vatTooltipEn" placeholder="Value Added Tax as per ZATCA" />
+                    </div>
+                  </div>
+                </div>
+
                 <Button onClick={saveSettings} disabled={updateMutation.isPending}>
                   <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
                   {t("settings.save")}
