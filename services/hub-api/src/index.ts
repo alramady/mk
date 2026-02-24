@@ -154,7 +154,9 @@ function validateWebhookSecretConfig(): void {
   const previous = process.env.BEDS24_WEBHOOK_SECRET_PREVIOUS;
   const rotationStart = process.env.BEDS24_WEBHOOK_SECRET_ROTATION_START;
   const secret = process.env.BEDS24_WEBHOOK_SECRET;
+  const isProduction = config.nodeEnv === "production";
 
+  // ── Check 1: PREVIOUS set without ROTATION_START ──────────
   if (previous && !rotationStart) {
     logger.error(
       "⚠️  MISCONFIGURATION: BEDS24_WEBHOOK_SECRET_PREVIOUS is set but BEDS24_WEBHOOK_SECRET_ROTATION_START is MISSING. " +
@@ -162,6 +164,7 @@ function validateWebhookSecretConfig(): void {
     );
   }
 
+  // ── Check 2: Rotation window state ────────────────────────
   if (previous && rotationStart) {
     const startDate = new Date(rotationStart);
     if (isNaN(startDate.getTime())) {
@@ -188,11 +191,26 @@ function validateWebhookSecretConfig(): void {
     }
   }
 
-  if (!secret && !previous) {
-    if (config.features.beds24Webhooks) {
+  // ── Check 3: Webhooks enabled but no secret configured ────
+  //
+  //  PRODUCTION: FAIL FAST — refuse to start without a secret.
+  //              Accepting unsigned webhooks in production is a
+  //              security risk (spoofed bookings, data corruption).
+  //
+  //  DEV/STAGING: WARN only — allow development without secrets.
+  //
+  if (!secret && !previous && config.features.beds24Webhooks) {
+    if (isProduction) {
+      logger.error(
+        "🛑  FATAL: BEDS24_WEBHOOK_SECRET is not configured but ENABLE_BEDS24_WEBHOOKS=true in production. " +
+        "Refusing to start — accepting unsigned webhooks in production is a security risk. " +
+        "Set BEDS24_WEBHOOK_SECRET or disable webhooks (ENABLE_BEDS24_WEBHOOKS=false)."
+      );
+      process.exit(1);
+    } else {
       logger.warn(
-        "⚠️  BEDS24_WEBHOOK_SECRET is not configured but ENABLE_BEDS24_WEBHOOKS=true. " +
-        "Webhooks will be accepted WITHOUT shared secret verification. Set BEDS24_WEBHOOK_SECRET for production."
+        `⚠️  BEDS24_WEBHOOK_SECRET is not configured but ENABLE_BEDS24_WEBHOOKS=true (NODE_ENV=${config.nodeEnv}). ` +
+        "Webhooks will be accepted WITHOUT shared secret verification. This is acceptable for dev/staging but MUST be fixed before production."
       );
     }
   }
