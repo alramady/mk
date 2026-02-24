@@ -236,14 +236,16 @@ export default function Navbar() {
           : "bg-[#0B1E2D]/95 backdrop-blur"
     }`}>
       <div className="container">
-        <div className="flex h-14 sm:h-16 items-center justify-between">
+        <div className="flex h-16 sm:h-20 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center transition-transform duration-300 hover:scale-105">
+          <Link href="/" className="flex items-center gap-3 transition-transform duration-300 hover:scale-105 group">
             <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/AYfAOvfZfKqhhdmZ.png" 
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cmeFBlxDvNwHknXc.png" 
               alt="Monthly Key - المفتاح الشهري" 
-              className="h-10 sm:h-12 w-auto object-contain" 
+              className="h-12 sm:h-14 w-auto object-contain brightness-0 invert drop-shadow-[0_0_8px_rgba(62,207,192,0.3)] group-hover:drop-shadow-[0_0_12px_rgba(62,207,192,0.5)] transition-all duration-300" 
             />
+            <div className="hidden sm:block h-8 w-px bg-gradient-to-b from-transparent via-[#C5A55A]/50 to-transparent" />
+            <span className="hidden sm:block text-sm font-medium text-white/60 font-heading">المفتاح الشهري</span>
           </Link>
 
           {/* Desktop Nav */}

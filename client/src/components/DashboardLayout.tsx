@@ -73,10 +73,11 @@ export default function DashboardLayout({
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
           <div className="flex flex-col items-center gap-6">
             <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/TtUMHsFxunESlVeJ.png" 
-              alt="Monthly Key" 
-              className="h-16 w-auto object-contain" 
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+              alt="Monthly Key - المفتاح الشهري" 
+              className="h-28 w-auto object-contain drop-shadow-lg" 
             />
+            <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#C5A55A] to-transparent" />
             <h1 className="text-2xl font-semibold tracking-tight text-center">
               يرجى تسجيل الدخول للمتابعة
             </h1>
@@ -187,12 +188,20 @@ function DashboardLayoutContent({
               {!isCollapsed ? (
                 <div className="flex items-center min-w-0">
                   <img 
-                    src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/AYfAOvfZfKqhhdmZ.png" 
+                    src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cmeFBlxDvNwHknXc.png" 
                     alt="Monthly Key - المفتاح الشهري" 
-                    className="h-8 w-auto object-contain" 
+                    className="h-10 w-auto object-contain" 
                   />
                 </div>
-              ) : null}
+              ) : (
+                <div className="flex items-center justify-center">
+                  <img 
+                    src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/yyVBpJruTpHFNMtN.png" 
+                    alt="MK" 
+                    className="h-8 w-8 object-contain" 
+                  />
+                </div>
+              )}
             </div>
           </SidebarHeader>
 

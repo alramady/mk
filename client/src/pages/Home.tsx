@@ -426,19 +426,28 @@ export default function Home() {
 
         <div className="container relative z-[3] py-16 sm:py-24 md:py-36">
           <div className="max-w-3xl mx-auto text-center px-2 sm:px-0">
-            {/* Animated Badge */}
-            <div className="inline-flex items-center gap-2 border border-[#3ECFC0]/30 rounded-full px-4 py-1.5 mb-8 animate-slide-left glass-card">
-              <span className="w-2 h-2 rounded-full bg-[#3ECFC0] animate-pulse" />
-              <span className="text-sm text-[#3ECFC0]">
-                {lang === "ar" ? "الآن في المملكة العربية السعودية" : "Now in Saudi Arabia"}
-              </span>
-              <Sparkles className="h-3.5 w-3.5 text-[#C9A96E] animate-pulse" />
+            {/* Brand Logo in Hero */}
+            <div className="mb-6 sm:mb-8 animate-slide-right">
+              <img 
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+                alt="Monthly Key - المفتاح الشهري" 
+                className="h-28 sm:h-40 md:h-48 w-auto object-contain mx-auto brightness-0 invert drop-shadow-[0_0_30px_rgba(197,169,90,0.2)]" 
+              />
             </div>
 
-            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold mb-4 sm:mb-6 leading-snug sm:leading-tight animate-slide-right">
+            {/* Animated Badge */}
+            <div className="inline-flex items-center gap-2 border border-[#C5A55A]/30 rounded-full px-4 py-1.5 mb-6 animate-slide-left glass-card">
+              <span className="w-2 h-2 rounded-full bg-[#C5A55A] animate-pulse" />
+              <span className="text-sm text-[#C5A55A]">
+                {lang === "ar" ? "خبير الإيجار الشهري الآن في السعودية" : "Monthly Rental Expert in Saudi Arabia"}
+              </span>
+              <Sparkles className="h-3.5 w-3.5 text-[#C5A55A] animate-pulse" />
+            </div>
+
+            <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-heading font-extrabold mb-4 sm:mb-6 leading-snug sm:leading-tight">
               {sl("hero.title", lang) || (lang === "ar"
-                ? "المفتاح الشهري"
-                : "المفتاح الشهري")}
+                ? "إدارة إيجارات شهرية متميزة"
+                : "Premium Monthly Rental Management")}
             </h1>
             <p className="text-sm sm:text-lg md:text-xl text-white/70 mb-6 sm:mb-10 leading-relaxed max-w-2xl mx-auto fade-up visible" style={{ animationDelay: '0.3s' }}>
               {sl("hero.subtitle", lang) || (lang === "ar"
@@ -734,6 +743,12 @@ export default function Home() {
         <div className="absolute bottom-0 end-1/4 w-72 h-72 rounded-full bg-[#C9A96E]/5 blur-3xl animate-float" />
         
         <ScrollSection className="container relative text-center">
+          {/* Brand watermark */}
+          <img 
+            src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/yyVBpJruTpHFNMtN.png" 
+            alt="" 
+            className="h-20 sm:h-24 w-auto object-contain mx-auto mb-6 brightness-0 invert opacity-15" 
+          />
           <h2 className="text-xl sm:text-2xl md:text-4xl font-heading font-bold mb-4">
             {lang === "ar" ? "حقق أقصى استفادة من عقارك" : "Maximize Your Property's Potential"}
           </h2>

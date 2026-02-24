@@ -55,13 +55,14 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center justify-center">
+          <Link href="/" className="inline-block">
             <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/KDDwFZIQSHvOUDqK.png" 
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
               alt="Monthly Key - المفتاح الشهري" 
-              className="h-20 w-auto object-contain" 
+              className="h-32 sm:h-36 w-auto object-contain mx-auto drop-shadow-lg" 
             />
           </Link>
+          <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#C5A55A] to-transparent mx-auto mt-4" />
         </div>
 
         <Card className="shadow-xl border-0">
