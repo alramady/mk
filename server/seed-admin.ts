@@ -33,11 +33,48 @@ export async function seedAdminUser() {
 
     if (id) {
       console.log("[Seed] Admin user 'Hobart' created successfully (id:", id, ")");
+      // Grant full root admin permissions
+      const allPermissions = [
+        "manage_users", "manage_properties", "manage_bookings", "manage_payments",
+        "manage_services", "manage_maintenance", "manage_cms", "manage_cities",
+        "manage_knowledge", "manage_roles", "manage_settings", "view_analytics",
+        "send_notifications", "manage_ai"
+      ];
+      await db.setAdminPermissions(id, allPermissions, true);
+      console.log("[Seed] Root admin permissions granted to 'Hobart'");
     } else {
       console.error("[Seed] Failed to create admin user");
     }
+
+    // Also ensure any existing admin users have permissions
+    await ensureAdminPermissions();
   } catch (error) {
     console.error("[Seed] Error seeding admin user:", error);
+  }
+}
+
+async function ensureAdminPermissions() {
+  try {
+    const allPermissions = [
+      "manage_users", "manage_properties", "manage_bookings", "manage_payments",
+      "manage_services", "manage_maintenance", "manage_cms", "manage_cities",
+      "manage_knowledge", "manage_roles", "manage_settings", "view_analytics",
+      "send_notifications", "manage_ai"
+    ];
+    // Check specific known admin users
+    const knownAdmins = ["Hobart", "admin"];
+    for (const userId of knownAdmins) {
+      const user = await db.getUserByUserId(userId);
+      if (user && user.role === "admin") {
+        const existing = await db.getAdminPermissions(user.id);
+        if (!existing) {
+          await db.setAdminPermissions(user.id, allPermissions, true);
+          console.log(`[Seed] Root admin permissions granted to '${userId}' (id: ${user.id})`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[Seed] Error ensuring admin permissions:", error);
   }
 }
 
