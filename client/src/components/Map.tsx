@@ -1,155 +1,168 @@
 /**
- * GOOGLE MAPS FRONTEND INTEGRATION - ESSENTIAL GUIDE
+ * LEAFLET MAP INTEGRATION (OpenStreetMap - Free, no API key required)
  *
- * USAGE FROM PARENT COMPONENT:
- * ======
+ * Replaces Google Maps Forge proxy with Leaflet + OpenStreetMap tiles.
+ * Works on any deployment (Railway, Vercel, etc.) without API keys.
  *
- * const mapRef = useRef<google.maps.Map | null>(null);
- *
+ * USAGE:
  * <MapView
- *   initialCenter={{ lat: 40.7128, lng: -74.0060 }}
- *   initialZoom={15}
- *   onMapReady={(map) => {
- *     mapRef.current = map; // Store to control map from parent anytime, google map itself is in charge of the re-rendering, not react state.
- * </MapView>
- *
- * ======
- * Available Libraries and Core Features:
- * -------------------------------
- * 📍 MARKER (from `marker` library)
- * - Attaches to map using { map, position }
- * new google.maps.marker.AdvancedMarkerElement({
- *   map,
- *   position: { lat: 37.7749, lng: -122.4194 },
- *   title: "San Francisco",
- * });
- *
- * -------------------------------
- * 🏢 PLACES (from `places` library)
- * - Does not attach directly to map; use data with your map manually.
- * const place = new google.maps.places.Place({ id: PLACE_ID });
- * await place.fetchFields({ fields: ["displayName", "location"] });
- * map.setCenter(place.location);
- * new google.maps.marker.AdvancedMarkerElement({ map, position: place.location });
- *
- * -------------------------------
- * 🧭 GEOCODER (from `geocoding` library)
- * - Standalone service; manually apply results to map.
- * const geocoder = new google.maps.Geocoder();
- * geocoder.geocode({ address: "New York" }, (results, status) => {
- *   if (status === "OK" && results[0]) {
- *     map.setCenter(results[0].geometry.location);
- *     new google.maps.marker.AdvancedMarkerElement({
- *       map,
- *       position: results[0].geometry.location,
- *     });
- *   }
- * });
- *
- * -------------------------------
- * 📐 GEOMETRY (from `geometry` library)
- * - Pure utility functions; not attached to map.
- * const dist = google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
- *
- * -------------------------------
- * 🛣️ ROUTES (from `routes` library)
- * - Combines DirectionsService (standalone) + DirectionsRenderer (map-attached)
- * const directionsService = new google.maps.DirectionsService();
- * const directionsRenderer = new google.maps.DirectionsRenderer({ map });
- * directionsService.route(
- *   { origin, destination, travelMode: "DRIVING" },
- *   (res, status) => status === "OK" && directionsRenderer.setDirections(res)
- * );
- *
- * -------------------------------
- * 🌦️ MAP LAYERS (attach directly to map)
- * - new google.maps.TrafficLayer().setMap(map);
- * - new google.maps.TransitLayer().setMap(map);
- * - new google.maps.BicyclingLayer().setMap(map);
- *
- * -------------------------------
- * ✅ SUMMARY
- * - “map-attached” → AdvancedMarkerElement, DirectionsRenderer, Layers.
- * - “standalone” → Geocoder, DirectionsService, DistanceMatrixService, ElevationService.
- * - “data-only” → Place, Geometry utilities.
+ *   initialCenter={{ lat: 24.7136, lng: 46.6753 }}
+ *   initialZoom={12}
+ *   onMapReady={(map) => { mapRef.current = map; }}
+ * />
  */
 
-/// <reference types="@types/google.maps" />
-
-import { useEffect, useRef } from "react";
-import { usePersistFn } from "@/hooks/usePersistFn";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
-declare global {
-  interface Window {
-    google?: typeof google;
-  }
-}
+// Fix Leaflet default marker icons (they break with bundlers)
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-const API_KEY = import.meta.env.VITE_FRONTEND_FORGE_API_KEY;
-const FORGE_BASE_URL =
-  import.meta.env.VITE_FRONTEND_FORGE_API_URL ||
-  "https://forge.butterfly-effect.dev";
-const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
-
-function loadMapScript() {
-  return new Promise(resolve => {
-    const script = document.createElement("script");
-    script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    script.onload = () => {
-      resolve(null);
-      script.remove(); // Clean up immediately
-    };
-    script.onerror = () => {
-      console.error("Failed to load Google Maps script");
-    };
-    document.head.appendChild(script);
-  });
-}
+// @ts-ignore
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 interface MapViewProps {
   className?: string;
-  initialCenter?: google.maps.LatLngLiteral;
+  initialCenter?: { lat: number; lng: number };
   initialZoom?: number;
-  onMapReady?: (map: google.maps.Map) => void;
+  onMapReady?: (map: L.Map) => void;
 }
 
 export function MapView({
   className,
-  initialCenter = { lat: 37.7749, lng: -122.4194 },
+  initialCenter = { lat: 24.7136, lng: 46.6753 },
   initialZoom = 12,
   onMapReady,
 }: MapViewProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<google.maps.Map | null>(null);
-
-  const init = usePersistFn(async () => {
-    await loadMapScript();
-    if (!mapContainer.current) {
-      console.error("Map container not found");
-      return;
-    }
-    map.current = new window.google.maps.Map(mapContainer.current, {
-      zoom: initialZoom,
-      center: initialCenter,
-      mapTypeControl: true,
-      fullscreenControl: true,
-      zoomControl: true,
-      streetViewControl: true,
-      mapId: "DEMO_MAP_ID",
-    });
-    if (onMapReady) {
-      onMapReady(map.current);
-    }
-  });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    init();
-  }, [init]);
+    if (!containerRef.current || mapRef.current) return;
+
+    const map = L.map(containerRef.current, {
+      center: [initialCenter.lat, initialCenter.lng],
+      zoom: initialZoom,
+      zoomControl: true,
+      attributionControl: true,
+    });
+
+    // OpenStreetMap tiles (free, no API key)
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map);
+
+    mapRef.current = map;
+    setReady(true);
+
+    // Notify parent
+    if (onMapReady) {
+      onMapReady(map);
+    }
+
+    // Handle resize
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
 
   return (
-    <div ref={mapContainer} className={cn("w-full h-[500px]", className)} />
+    <div
+      ref={containerRef}
+      className={cn("w-full h-[500px] rounded-lg overflow-hidden", className)}
+      style={{ zIndex: 0 }}
+    />
   );
 }
+
+// ============================================================
+// Utility: Create a custom colored marker for property pins
+// ============================================================
+export function createPropertyMarker(
+  lat: number,
+  lng: number,
+  options: {
+    color?: string;
+    label?: string;
+    title?: string;
+  } = {}
+): L.Marker {
+  const { color = "#3ECFC0", label = "", title = "" } = options;
+
+  const icon = L.divIcon({
+    className: "custom-map-marker",
+    html: `
+      <div style="
+        background: ${color};
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: Tajawal, sans-serif;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        cursor: pointer;
+        white-space: nowrap;
+        border: 2px solid #fff;
+        text-align: center;
+        display: inline-block;
+      ">${label}</div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+
+  return L.marker([lat, lng], { icon, title });
+}
+
+// ============================================================
+// Utility: Create a cluster icon
+// ============================================================
+export function createClusterIcon(count: number): L.DivIcon {
+  const size = count < 10 ? 40 : count < 50 ? 50 : count < 100 ? 60 : 70;
+  const bgColor = count < 10 ? "#3ECFC0" : count < 50 ? "#E8B931" : count < 100 ? "#F97316" : "#EF4444";
+
+  return L.divIcon({
+    className: "custom-cluster-icon",
+    html: `
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        background: ${bgColor};
+        border: 3px solid #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: ${size < 50 ? 14 : 16}px;
+        font-family: Tajawal, sans-serif;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+        cursor: pointer;
+      ">${count}</div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+export default MapView;

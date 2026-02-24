@@ -2,17 +2,20 @@ import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MapView as GoogleMap } from "@/components/Map";
+import { MapView as LeafletMap, createPropertyMarker } from "@/components/Map";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, BedDouble, Bath, Maximize2, SlidersHorizontal, List, X, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
+import { MapPin, BedDouble, Bath, Maximize2, SlidersHorizontal, List, X, Building2 } from "lucide-react";
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Link } from "wouter";
+import L from "leaflet";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 // Property type labels
 const propertyTypeLabels: Record<string, { en: string; ar: string }> = {
@@ -71,10 +74,9 @@ export default function MapViewPage() {
   const [selectedProperty, setSelectedProperty] = useState<MapProperty | null>(null);
 
   // Map refs
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
-  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  const clustererRef = useRef<MarkerClusterer | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersLayerRef = useRef<L.MarkerClusterGroup | null>(null);
+  const markersMapRef = useRef<Map<number, L.Marker>>(new Map());
 
   // Debounce price
   const debouncedMinPrice = useDebounce(minPrice, 400);
@@ -104,8 +106,8 @@ export default function MapViewPage() {
     placeholderData: (prev) => prev,
   });
 
-  // Create info window HTML content
-  const createInfoContent = useCallback((prop: MapProperty) => {
+  // Create info popup HTML content
+  const createPopupContent = useCallback((prop: MapProperty) => {
     const title = isAr ? prop.titleAr : prop.titleEn;
     const location = isAr
       ? [prop.districtAr, prop.cityAr].filter(Boolean).join("، ")
@@ -144,146 +146,89 @@ export default function MapViewPage() {
     `;
   }, [isAr]);
 
-  // Create custom marker element
-  const createMarkerElement = useCallback((prop: MapProperty) => {
-    const color = markerColors[prop.propertyType] || "#3ECFC0";
-    const rent = Number(prop.monthlyRent).toLocaleString();
-    const el = document.createElement("div");
-    el.className = "map-marker-pin";
-    el.innerHTML = `
-      <div style="
-        background:${color};
-        color:#fff;
-        padding:4px 10px;
-        border-radius:20px;
-        font-size:12px;
-        font-weight:700;
-        font-family:Tajawal,sans-serif;
-        box-shadow:0 2px 8px rgba(0,0,0,0.25);
-        cursor:pointer;
-        white-space:nowrap;
-        transition:transform 0.15s ease;
-        border:2px solid #fff;
-      ">${rent}</div>
-    `;
-    el.addEventListener("mouseenter", () => {
-      (el.firstElementChild as HTMLElement).style.transform = "scale(1.15)";
-    });
-    el.addEventListener("mouseleave", () => {
-      (el.firstElementChild as HTMLElement).style.transform = "scale(1)";
-    });
-    return el;
-  }, []);
-
-  // Custom cluster renderer
-  const clusterRenderer = useMemo(() => ({
-    render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
-      const size = count < 10 ? 40 : count < 50 ? 50 : count < 100 ? 60 : 70;
-      const bgColor = count < 10 ? "#3ECFC0" : count < 50 ? "#E8B931" : count < 100 ? "#F97316" : "#EF4444";
-
-      const el = document.createElement("div");
-      el.style.cssText = `
-        width: ${size}px;
-        height: ${size}px;
-        background: ${bgColor};
-        border: 3px solid #fff;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-weight: 800;
-        font-size: ${size < 50 ? 14 : 16}px;
-        font-family: Tajawal, sans-serif;
-        box-shadow: 0 3px 12px rgba(0,0,0,0.3);
-        cursor: pointer;
-        transition: transform 0.2s ease;
-      `;
-      el.textContent = String(count);
-      el.addEventListener("mouseenter", () => { el.style.transform = "scale(1.15)"; });
-      el.addEventListener("mouseleave", () => { el.style.transform = "scale(1)"; });
-
-      return new google.maps.marker.AdvancedMarkerElement({
-        position,
-        content: el,
-        zIndex: 1000 + count,
-      });
-    },
-  }), []);
-
   // Update markers when properties change
   useEffect(() => {
     if (!mapRef.current || !properties) return;
     const map = mapRef.current;
 
-    // Clear existing clusterer and markers
-    if (clustererRef.current) {
-      clustererRef.current.clearMarkers();
-      clustererRef.current.setMap(null);
-      clustererRef.current = null;
+    // Clear existing markers
+    if (markersLayerRef.current) {
+      map.removeLayer(markersLayerRef.current);
     }
-    markersRef.current.forEach(m => (m.map = null));
-    markersRef.current = [];
+    markersMapRef.current.clear();
 
-    if (!infoWindowRef.current) {
-      infoWindowRef.current = new google.maps.InfoWindow({ maxWidth: 300 });
-    }
+    // Create cluster group
+    const clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 80,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      iconCreateFunction: (cluster) => {
+        const count = cluster.getChildCount();
+        const size = count < 10 ? 40 : count < 50 ? 50 : count < 100 ? 60 : 70;
+        const bgColor = count < 10 ? "#3ECFC0" : count < 50 ? "#E8B931" : count < 100 ? "#F97316" : "#EF4444";
+        return L.divIcon({
+          className: "custom-cluster-icon",
+          html: `<div style="
+            width:${size}px;height:${size}px;background:${bgColor};
+            border:3px solid #fff;border-radius:50%;display:flex;
+            align-items:center;justify-content:center;color:#fff;
+            font-weight:800;font-size:${size < 50 ? 14 : 16}px;
+            font-family:Tajawal,sans-serif;box-shadow:0 3px 12px rgba(0,0,0,0.3);
+            cursor:pointer;">${count}</div>`,
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+        });
+      },
+    });
 
-    const bounds = new google.maps.LatLngBounds();
+    const bounds = L.latLngBounds([]);
     let hasValidMarker = false;
-    const newMarkers: google.maps.marker.AdvancedMarkerElement[] = [];
 
     (properties as MapProperty[]).forEach((prop) => {
       const lat = parseFloat(prop.latitude || "");
       const lng = parseFloat(prop.longitude || "");
       if (isNaN(lat) || isNaN(lng)) return;
 
-      const position = { lat, lng };
-      bounds.extend(position);
       hasValidMarker = true;
+      bounds.extend([lat, lng]);
 
-      const markerEl = createMarkerElement(prop);
-      const marker = new google.maps.marker.AdvancedMarkerElement({
-        position,
-        content: markerEl,
+      const color = markerColors[prop.propertyType] || "#3ECFC0";
+      const rent = Number(prop.monthlyRent).toLocaleString();
+      const marker = createPropertyMarker(lat, lng, {
+        color,
+        label: rent,
         title: isAr ? prop.titleAr : prop.titleEn,
       });
 
-      marker.addListener("click", () => {
-        infoWindowRef.current?.setContent(createInfoContent(prop));
-        infoWindowRef.current?.open({ anchor: marker, map });
+      marker.bindPopup(createPopupContent(prop), {
+        maxWidth: 300,
+        className: "property-popup",
+      });
+
+      marker.on("click", () => {
         setSelectedProperty(prop);
       });
 
-      newMarkers.push(marker);
+      clusterGroup.addLayer(marker);
+      markersMapRef.current.set(prop.id, marker);
     });
 
-    markersRef.current = newMarkers;
+    map.addLayer(clusterGroup);
+    markersLayerRef.current = clusterGroup;
 
-    // Create clusterer with all markers
-    if (newMarkers.length > 0) {
-      clustererRef.current = new MarkerClusterer({
-        map,
-        markers: newMarkers,
-        algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 16 }),
-        renderer: clusterRenderer,
-      });
-    }
-
-    // Fit bounds if we have markers
-    if (hasValidMarker && newMarkers.length > 1) {
-      map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: showList ? 380 : 50 });
-    } else if (hasValidMarker && newMarkers.length === 1) {
-      const first = newMarkers[0];
-      if (first.position) {
-        map.setCenter(first.position as google.maps.LatLngLiteral);
-        map.setZoom(14);
+    // Fit bounds
+    if (hasValidMarker) {
+      try {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      } catch (e) {
+        // bounds might be invalid if only one point
       }
     }
-  }, [properties, isAr, createMarkerElement, createInfoContent, showList, clusterRenderer]);
+  }, [properties, isAr, createPopupContent]);
 
   // Handle map ready
-  const handleMapReady = useCallback((map: google.maps.Map) => {
+  const handleMapReady = useCallback((map: L.Map) => {
     mapRef.current = map;
   }, []);
 
@@ -452,16 +397,11 @@ export default function MapViewPage() {
                       const lat = parseFloat(prop.latitude || "");
                       const lng = parseFloat(prop.longitude || "");
                       if (!isNaN(lat) && !isNaN(lng) && mapRef.current) {
-                        mapRef.current.panTo({ lat, lng });
-                        mapRef.current.setZoom(16);
-                        // Open info window for this marker
-                        const marker = markersRef.current.find((m) => {
-                          const pos = m.position as google.maps.LatLngLiteral;
-                          return Math.abs(pos.lat - lat) < 0.0001 && Math.abs(pos.lng - lng) < 0.0001;
-                        });
-                        if (marker && infoWindowRef.current) {
-                          infoWindowRef.current.setContent(createInfoContent(prop));
-                          infoWindowRef.current.open({ anchor: marker, map: mapRef.current });
+                        mapRef.current.setView([lat, lng], 16, { animate: true });
+                        // Open popup for this marker
+                        const marker = markersMapRef.current.get(prop.id);
+                        if (marker) {
+                          marker.openPopup();
                         }
                       }
                     }}
@@ -472,7 +412,7 @@ export default function MapViewPage() {
           </div>
         )}
 
-        {/* Google Map */}
+        {/* Leaflet Map */}
         <div className="flex-1 relative">
           {isLoading && !properties && (
             <div className="absolute inset-0 z-20 bg-background/80 flex items-center justify-center">
@@ -482,9 +422,9 @@ export default function MapViewPage() {
               </div>
             </div>
           )}
-          <GoogleMap
+          <LeafletMap
             className="w-full h-full"
-            initialCenter={{ lat: 24.7136, lng: 46.6753 }} // Riyadh center
+            initialCenter={{ lat: 24.7136, lng: 46.6753 }}
             initialZoom={6}
             onMapReady={handleMapReady}
           />

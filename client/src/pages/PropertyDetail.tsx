@@ -5,6 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { MapView } from "@/components/Map";
+import L from "leaflet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -65,7 +66,7 @@ export default function PropertyDetail() {
   const [, params] = useRoute("/property/:id");
   const [, setLocation] = useLocation();
   const [currentPhoto, setCurrentPhoto] = useState(0);
-  const mapRef = useRef<google.maps.Map | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcMonths, setCalcMonths] = useState(1);
 
@@ -123,13 +124,12 @@ export default function PropertyDetail() {
     return { rent, totalRent, deposit, serviceFee, subtotal, vat, grandTotal };
   }, [prop, calcMonths, serviceFeePercent, vatPercent, depositPercent]);
 
-  // Map ready handler with InfoWindow
-  const handleMapReady = useCallback((map: google.maps.Map) => {
+  // Map ready handler with Leaflet popup
+  const handleMapReady = useCallback((map: L.Map) => {
     if (!prop) return;
     mapRef.current = map;
     const lat = prop.latitude ? Number(prop.latitude) : 24.7136;
     const lng = prop.longitude ? Number(prop.longitude) : 46.6753;
-    const position = { lat, lng };
 
     const titleText = lang === "ar" ? prop.titleAr : prop.titleEn;
     const cityText = lang === "ar" ? prop.cityAr : prop.city;
@@ -141,7 +141,7 @@ export default function PropertyDetail() {
     const bathsLabel = lang === "ar" ? "حمام" : "baths";
     const sqmLabel = lang === "ar" ? "م²" : "sqm";
 
-    const infoContent = `
+    const popupContent = `
       <div style="font-family:'Tajawal',sans-serif;direction:${dir};padding:8px;min-width:220px;max-width:300px;">
         <div style="font-weight:700;font-size:15px;color:#0B1E2D;margin-bottom:4px;">${titleText || ""}</div>
         <div style="font-size:12px;color:#666;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
@@ -160,23 +160,9 @@ export default function PropertyDetail() {
       </div>
     `;
 
-    const marker = new google.maps.marker.AdvancedMarkerElement({
-      map,
-      position,
-      title: titleText || "",
-    });
-
-    const infoWindow = new google.maps.InfoWindow({
-      content: infoContent,
-      ariaLabel: titleText || "",
-    });
-
-    // Open info window by default
-    infoWindow.open({ anchor: marker, map });
-
-    marker.addListener("click", () => {
-      infoWindow.open({ anchor: marker, map });
-    });
+    // Add Leaflet marker with popup
+    const marker = L.marker([lat, lng]).addTo(map);
+    marker.bindPopup(popupContent, { maxWidth: 300 }).openPopup();
   }, [prop, lang, dir]);
 
   if (property.isLoading) {
