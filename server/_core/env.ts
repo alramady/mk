@@ -6,7 +6,7 @@ export const ENV = {
   // OpenAI API - used for LLM, Image Generation, Voice Transcription
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiBaseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
-  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
   openaiImageModel: process.env.OPENAI_IMAGE_MODEL ?? "dall-e-3",
   openaiWhisperModel: process.env.OPENAI_WHISPER_MODEL ?? "whisper-1",
   // Legacy Forge API vars (mapped to OpenAI for backward compat)

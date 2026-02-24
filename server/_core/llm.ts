@@ -278,7 +278,7 @@ const normalizeResponseFormat = ({
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const apiKey = getApiKey();
-  const model = ENV.openaiModel || "gpt-4.1-mini";
+  const model = ENV.openaiModel || "gpt-4o-mini";
 
   const {
     messages,
