@@ -238,6 +238,36 @@ export interface ApiError {
   details?: Record<string, unknown>;
 }
 
+// ─── Location Resolve ──────────────────────────────────────
+export interface LocationResolveRequest {
+  google_maps_url: string;
+  unit_number?: string | null;
+  address_notes?: string | null;
+}
+
+export interface LocationResolveResult {
+  lat: number;
+  lng: number;
+  formatted_address: string;
+  place_id: string | null;
+  google_maps_url: string; // final expanded URL
+  unit_number: string | null;
+  address_notes: string | null;
+}
+
+export interface LocationCacheEntry {
+  id: string;
+  urlHash: string;
+  finalUrl: string;
+  lat: number;
+  lng: number;
+  formattedAddress: string;
+  placeId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+}
+
 // ─── Beds24 Proxy ───────────────────────────────────────────
 export interface Beds24ProxyRequest {
   method: "GET" | "POST" | "PUT" | "DELETE";

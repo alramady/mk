@@ -93,6 +93,10 @@ export const ERROR_CODES = {
   WEBHOOK_INVALID_SIGNATURE: "WEBHOOK_INVALID_SIGNATURE",
   // Payments
   PAYMENTS_DISABLED: "PAYMENTS_DISABLED",
+  // Location
+  LOCATION_DISABLED: "LOCATION_DISABLED",
+  LOCATION_UNRESOLVABLE: "LOCATION_UNRESOLVABLE",
+  LOCATION_INVALID_URL: "LOCATION_INVALID_URL",
   // General
   INTERNAL: "INTERNAL",
   TOO_MANY_REQUESTS: "TOO_MANY_REQUESTS",
@@ -229,7 +233,26 @@ export const FEATURE_FLAG_KEYS = [
   "ENABLE_AUTOMATED_TICKETS",
   "ENABLE_PAYMENTS",
   "ENABLE_BANK_TRANSFER",
+  "ENABLE_LOCATION_RESOLVE",
+  "ENABLE_GOOGLE_MAPS",
+  "ENABLE_MAPBOX_MAPS",
 ] as const;
+
+// ═══════════════════════════════════════════════════════════
+//  Location Resolve — URL Domain Allowlist
+// ═══════════════════════════════════════════════════════════
+
+/** Only these domains are accepted for location resolve input URLs. */
+export const LOCATION_URL_ALLOWLIST = [
+  "google.com",
+  "www.google.com",
+  "maps.google.com",
+  "maps.app.goo.gl",
+  "goo.gl",
+] as const;
+
+/** Cache TTL for resolved locations: 30 days in milliseconds. */
+export const LOCATION_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const HTTP_STATUS = {
   OK: 200,

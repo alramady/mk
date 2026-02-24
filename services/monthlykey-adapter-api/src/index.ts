@@ -437,6 +437,40 @@ app.post("/api/v1/auth/:action", async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
+//  LOCATION RESOLVE — Always proxied to hub-api
+//  (Location is a shared service, not brand-specific)
+//  Does NOT touch writer-lock code paths.
+// ═══════════════════════════════════════════════════════════
+
+app.post("/api/v1/location/resolve", async (req, res) => {
+  try {
+    const { status, data } = await proxyToHub("/api/v1/location/resolve", {
+      method: "POST",
+      body: JSON.stringify(req.body),
+    });
+    res.status(status).json(data);
+  } catch (err) {
+    logger.error({ err }, "Location resolve proxy failed");
+    res.status(HTTP_STATUS.BAD_GATEWAY).json({
+      code: ERROR_CODES.PROXY_ERROR,
+      message: "Failed to reach Hub API for location resolve",
+    });
+  }
+});
+
+app.get("/api/v1/location/status", async (_req, res) => {
+  try {
+    const { status, data } = await proxyToHub("/api/v1/location/status", { method: "GET" });
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(HTTP_STATUS.BAD_GATEWAY).json({
+      code: ERROR_CODES.PROXY_ERROR,
+      message: "Failed to reach Hub API for location status",
+    });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
 //  HEALTH (liveness) — Always 200 if process is alive
 // ═══════════════════════════════════════════════════════════
 

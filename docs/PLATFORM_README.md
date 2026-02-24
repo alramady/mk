@@ -622,8 +622,134 @@ Test coverage:
 - Brand rules — 3 tests (night ranges, no gap, no overlap)
 - HTTP status codes — 3 tests (409, 201, 400)
 
----
+----
 
+## Location Resolve — Hybrid Maps
+
+The platform includes a **hybrid maps location resolution** service that converts Google Maps URLs into structured lat/lng coordinates with formatted addresses.
+
+### Overview
+
+| Feature | Details |
+|---------|--------|
+| **Endpoint** | `POST /api/v1/location/resolve` |
+| **Status** | `GET /api/v1/location/status` |
+| **Feature Flag** | `ENABLE_LOCATION_RESOLVE=false` (off by default) |
+| **Google API** | `ENABLE_GOOGLE_MAPS=false` (off by default) |
+| **Mapbox** | `ENABLE_MAPBOX_MAPS=false` (off by default, frontend display only) |
+| **Additive** | Does NOT touch writer-lock, webhooks, or any existing code paths |
+
+### Resolution Pipeline
+
+```
+Input: Google Maps URL
+  → 1. Validate domain (allowlist: google.com, maps.google.com, maps.app.goo.gl, goo.gl)
+  → 2. Check Redis cache (fast path, 30-day TTL)
+  → 3. Check Postgres cache (persistent fallback)
+  → 4. Expand short URL (follow redirects)
+  → 5. Parse lat/lng from expanded URL
+  → 6. If no coords → extract place name → Google Geocoding API
+  → 7. Reverse geocode for formatted address (Arabic)
+  → 8. Store in Redis + Postgres cache
+  → 9. Return structured result
+Output: { lat, lng, formatted_address, place_id, google_maps_url }
+```
+
+### URL Patterns Supported
+
+| Pattern | Example |
+|---------|--------|
+| `@lat,lng` in path | `google.com/maps/place/Riyadh/@24.7,46.7,12z` |
+| `?q=lat,lng` query | `maps.google.com/?q=24.7,46.7` |
+| `?ll=lat,lng` query | `maps.google.com/?ll=24.7,46.7` |
+| `!3d` / `!4d` embedded | `google.com/maps/place/!3d24.7!4d46.7` |
+| Short URL expansion | `maps.app.goo.gl/abc123` → follow redirects |
+
+### Domain Allowlist
+
+Only these domains are accepted (all others rejected with 400):
+
+```
+google.com, www.google.com, maps.google.com, maps.app.goo.gl, goo.gl
+```
+
+Subdomains of allowed domains are also accepted (e.g., `www.google.com`).
+
+### Security & Constraints
+
+| Constraint | Behavior |
+|-----------|----------|
+| Missing Google API key | `503 Service Unavailable` at resolve time (NOT startup failure) |
+| Feature disabled | `503` with `LOCATION_DISABLED` error code |
+| Invalid domain | `400` with `LOCATION_INVALID_URL` error code |
+| Rate limit exceeded | `429` with configurable limit (default: 20/min/IP) |
+| API key in logs | **NEVER** — only `apiKeyConfigured: true/false` in status |
+| DB columns | All nullable, no backfills required |
+| Writer-lock | **NOT touched** — location is a shared service |
+
+### Adapter Behavior
+
+Both CoBnB and MonthlyKey adapters **always proxy** location requests to hub-api, regardless of standalone/integrated mode. Location resolve is a shared service, not brand-specific.
+
+### Environment Variables
+
+```bash
+# Feature flags (all OFF by default)
+ENABLE_LOCATION_RESOLVE=false
+ENABLE_GOOGLE_MAPS=false
+ENABLE_MAPBOX_MAPS=false
+
+# API keys (only used when corresponding flag is true)
+GOOGLE_MAPS_API_KEY=
+MAPBOX_PUBLIC_TOKEN=
+
+# Rate limit
+LOCATION_RESOLVE_RATE_LIMIT=20
+```
+
+### Request / Response
+
+**Request:**
+```json
+POST /api/v1/location/resolve
+{
+  "google_maps_url": "https://maps.app.goo.gl/abc123",
+  "unit_number": "12A",
+  "address_notes": "البوابة الشمالية"
+}
+```
+
+**Response (200):**
+```json
+{
+  "lat": 24.7135517,
+  "lng": 46.6752957,
+  "formatted_address": "الرياض، المملكة العربية السعودية",
+  "place_id": "ChIJP...",
+  "google_maps_url": "https://www.google.com/maps/place/...",
+  "unit_number": "12A",
+  "address_notes": "البوابة الشمالية",
+  "cached": false,
+  "resolved_via": "url_parse"
+}
+```
+
+### Tests
+
+```bash
+npx vitest run tests/location-resolve.test.ts
+```
+
+Test coverage:
+- URL domain validation — 13 tests (allowlist, rejection, spoofing)
+- Coordinate parsing — 11 tests (all URL patterns, edge cases, out-of-range)
+- URL hash consistency — 5 tests (deterministic, case-insensitive, SHA-256)
+- Place name extraction — 4 tests (encoded, plain, missing)
+- Shared constants — 6 tests (allowlist size, TTL, error codes)
+- LocationServiceError — 2 tests (properties, default status)
+- Real-world Saudi URLs — 4 tests (Riyadh, Jeddah, Makkah, KAUST)
+
+---
 ## Tech Stack
 
 | Layer | Technology |

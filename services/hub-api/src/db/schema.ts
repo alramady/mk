@@ -216,6 +216,31 @@ export const webhookEvents = pgTable("webhook_events", {
   nextRetryIdx: index("webhook_events_next_retry_idx").on(t.nextRetryAt),
 }));
 
+// ─── Location Resolve Cache ────────────────────────────────
+// Fully additive — no existing tables modified.
+// All columns nullable-safe. No backfills required.
+export const locationResolveCache = pgTable("location_resolve_cache", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** SHA-256 hash of the final expanded URL — used for dedup/cache lookup. */
+  urlHash: varchar("url_hash", { length: 64 }).notNull(),
+  /** The original short/compressed URL submitted by the user. */
+  originalUrl: text("original_url").notNull(),
+  /** The final expanded URL after following redirects. */
+  finalUrl: text("final_url").notNull(),
+  lat: numeric("lat", { precision: 10, scale: 7 }).notNull(),
+  lng: numeric("lng", { precision: 10, scale: 7 }).notNull(),
+  formattedAddress: text("formatted_address").notNull().default(""),
+  placeId: varchar("place_id", { length: 200 }),
+  /** Which provider resolved this: "url_parse" | "google_geocode" | "google_place" */
+  resolvedVia: varchar("resolved_via", { length: 50 }).notNull().default("url_parse"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (t) => ({
+  urlHashIdx: uniqueIndex("loc_cache_url_hash_idx").on(t.urlHash),
+  expiresIdx: index("loc_cache_expires_idx").on(t.expiresAt),
+}));
+
 // ─── Proxy Audit Log ───────────────────────────────────────
 export const proxyAuditLog = pgTable("proxy_audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),

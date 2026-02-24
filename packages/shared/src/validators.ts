@@ -85,6 +85,13 @@ export const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+/** Location resolve request */
+export const locationResolveSchema = z.object({
+  google_maps_url: z.string().min(10).max(2000).url(),
+  unit_number: z.string().max(50).nullable().optional(),
+  address_notes: z.string().max(1000).nullable().optional(),
+});
+
 /** Webhook event from Beds24 */
 export const webhookEventSchema = z.object({
   id: z.string().or(z.number()).transform(String),

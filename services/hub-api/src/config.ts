@@ -54,6 +54,15 @@ export const config = {
     automatedTickets: envBool("ENABLE_AUTOMATED_TICKETS", false),
     payments: envBool("ENABLE_PAYMENTS", false),
     bankTransfer: envBool("ENABLE_BANK_TRANSFER", false),
+    locationResolve: envBool("ENABLE_LOCATION_RESOLVE", false),
+    googleMaps: envBool("ENABLE_GOOGLE_MAPS", false),
+    mapboxMaps: envBool("ENABLE_MAPBOX_MAPS", false),
+  },
+
+  // ── Location / Maps (only used when ENABLE_LOCATION_RESOLVE=true) ──
+  location: {
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
+    mapboxPublicToken: process.env.MAPBOX_PUBLIC_TOKEN ?? "",
   },
 
   // ── Beds24 (only used when ENABLE_BEDS24=true) ──────────
@@ -78,9 +87,14 @@ export const config = {
     webhookSecretHeader: (process.env.BEDS24_WEBHOOK_SECRET_HEADER ?? "x-webhook-secret").toLowerCase(),
   },
 
-  // ── Admin Proxy Rate Limit ──────────────────────────────
+   // ── Admin Proxy Rate Limit ──────────────────────────
   adminProxy: {
     maxRequestsPerMinute: parseInt(process.env.ADMIN_PROXY_RATE_LIMIT ?? "30", 10),
+  },
+
+  // ── Location Resolve Rate Limit ─────────────────────
+  locationResolve: {
+    maxRequestsPerMinute: parseInt(process.env.LOCATION_RESOLVE_RATE_LIMIT ?? "20", 10),
   },
 } as const;
 

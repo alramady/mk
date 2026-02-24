@@ -13,6 +13,7 @@ import bookingsRoutes from "./routes/bookings.js";
 import ticketsRoutes from "./routes/tickets.js";
 import adminRoutes from "./routes/admin.js";
 import webhooksRoutes from "./routes/webhooks.js";
+import { locationRouter } from "./routes/location.js";
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use("/api/v1/bookings", bookingsRoutes);
 app.use("/api/v1/tickets", ticketsRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/webhooks", webhooksRoutes);
+app.use("/api/v1/location", locationRouter);
 
 // ─── Health Check (liveness) ──────────────────────────────
 app.get("/health", (_req, res) => {
