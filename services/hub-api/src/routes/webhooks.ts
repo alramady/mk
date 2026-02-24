@@ -8,25 +8,31 @@
  *    → No processing, no queuing, no DB writes
  *
  *  ENABLE_BEDS24_WEBHOOKS=true:
- *    → Layer 1: IP allowlist (PRIMARY — Beds24 does not sign webhooks)
- *    → Layer 2: Static shared secret header (OPTIONAL — set in Beds24
- *               dashboard under "Custom Header" field, verified here)
+ *    → Layer 1: Static shared secret header (PRIMARY — set matching
+ *               "Custom Header" in Beds24 dashboard)
+ *    → Layer 2: IP allowlist (OPTIONAL — Beds24 IPs may change)
  *    → Dedup via webhook_events table (UNIQUE on event_id)
  *    → If duplicate: returns 200 with dedup notice (skip)
  *    → If new: inserts PENDING event, enqueues to BullMQ, returns 200
  *    → Processing happens asynchronously in the worker service
  *
  *  IMPORTANT — Beds24 Webhook Security:
- *    Beds24 does NOT send HMAC signatures on webhooks. Their V2 booking
- *    webhooks are plain POST requests with JSON body. The only built-in
- *    security options are:
- *      1. IP allowlist (recommended — restrict to Beds24 server IPs)
- *      2. Static shared secret via "Custom Header" in Beds24 dashboard
+ *    Beds24 does NOT send HMAC signatures on webhooks. Their V2
+ *    booking webhooks are plain POST requests with JSON body.
+ *    The only built-in security options are:
+ *      1. Static shared secret via "Custom Header" in Beds24 dashboard
  *         (set a header like X-Webhook-Secret: your-secret, we verify it)
+ *      2. IP allowlist (restrict to Beds24 server IPs)
  *      3. URL token (include a secret in the webhook URL path/query)
  *
- *    We implement options 1 and 2. Option 3 is not used because it leaks
- *    secrets in access logs.
+ *    We implement options 1 (PRIMARY) and 2 (OPTIONAL).
+ *    Option 3 is not used because it leaks secrets in access logs.
+ *
+ *  SECURITY — Secret Handling:
+ *    - The webhook secret value is NEVER logged, not even partially.
+ *    - Log messages only indicate "mismatch" or "missing" without the value.
+ *    - The /webhooks/status endpoint shows only a boolean (configured or not).
+ *    - Audit logs do not store any header values.
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -40,17 +46,19 @@ import { webhookEventSchema, ERROR_CODES, HTTP_STATUS, WEBHOOK_MAX_RETRIES } fro
 const router = Router();
 
 // ─── Configuration ────────────────────────────────────────
+// Static shared secret: set in Beds24 dashboard as a Custom Header.
+// This is the PRIMARY authentication layer.
+// Header name is configurable via BEDS24_WEBHOOK_SECRET_HEADER.
+const WEBHOOK_SECRET = config.beds24.webhookSecret;
+const WEBHOOK_SECRET_HEADER = config.beds24.webhookSecretHeader;
+
 // IP allowlist: loaded from env at startup. Comma-separated.
-// Empty = IP check disabled (not recommended for production).
+// This is the OPTIONAL secondary layer (Beds24 IPs may change).
+// Empty = IP check disabled.
 const WEBHOOK_IP_ALLOWLIST: string[] = (process.env.BEDS24_WEBHOOK_IP_ALLOWLIST ?? "")
   .split(",")
   .map((ip) => ip.trim())
   .filter(Boolean);
-
-// Static shared secret: set in Beds24 dashboard as a Custom Header.
-// Header name is configurable via BEDS24_WEBHOOK_SECRET_HEADER (default: x-webhook-secret).
-const WEBHOOK_SECRET = config.beds24.webhookSecret;
-const WEBHOOK_SECRET_HEADER = (process.env.BEDS24_WEBHOOK_SECRET_HEADER ?? "x-webhook-secret").toLowerCase();
 
 // ─── BullMQ Queue (lazy-initialized) ───────────────────────
 let webhookQueue: any = null;
@@ -73,50 +81,87 @@ async function getQueue() {
   }
 }
 
-// ─── Layer 1: IP Allowlist Verification (PRIMARY) ─────────
-// Beds24 does NOT sign webhooks, so IP allowlist is the strongest
-// authentication method available. Populate BEDS24_WEBHOOK_IP_ALLOWLIST
-// with Beds24's server IPs from their documentation or support.
-function verifySourceIP(req: import("express").Request): boolean {
-  if (WEBHOOK_IP_ALLOWLIST.length === 0) return true; // Empty = disabled
-  const forwarded = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim();
-  const ip = forwarded ?? req.socket.remoteAddress ?? "";
-  return WEBHOOK_IP_ALLOWLIST.some((allowed) => {
-    // Exact match
-    if (ip === allowed) return true;
-    // CIDR prefix match (simplified: /16 → first two octets)
-    if (allowed.includes("/")) {
-      const prefix = allowed.split("/")[0];
-      const prefixParts = prefix.split(".");
-      const ipParts = ip.split(".");
-      const cidr = parseInt(allowed.split("/")[1], 10);
-      const octets = Math.floor(cidr / 8);
-      return prefixParts.slice(0, octets).join(".") === ipParts.slice(0, octets).join(".");
-    }
-    return false;
-  });
-}
-
-// ─── Layer 2: Static Shared Secret Header (OPTIONAL) ──────
-// Beds24's Inventory Webhooks support "Custom Header" fields.
-// Set a custom header in Beds24 dashboard like:
-//   Header name:  X-Webhook-Secret
-//   Header value: your-random-secret-here
-// Then set BEDS24_WEBHOOK_SECRET=your-random-secret-here in .env
+// ═══════════════════════════════════════════════════════════
+//  Layer 1: Static Shared Secret Header (PRIMARY)
+// ═══════════════════════════════════════════════════════════
+//
+// Beds24's Inventory Webhooks support "Custom Header" fields in
+// their dashboard. You set a header name + value in Beds24, and
+// Beds24 includes it in every webhook request as-is.
 //
 // This is NOT HMAC — it's a simple static string comparison.
-// Beds24 does not compute signatures; it just forwards the header as-is.
-function verifySharedSecret(req: import("express").Request): boolean {
-  if (!WEBHOOK_SECRET) return true; // No secret configured = skip
+// We use constant-time comparison to prevent timing attacks.
+//
+// SECURITY: The secret value is NEVER logged. Log messages only
+// indicate "missing" or "mismatch" without revealing the value.
+//
+function verifySharedSecret(req: import("express").Request): { ok: boolean; reason: string } {
+  if (!WEBHOOK_SECRET) {
+    return { ok: true, reason: "shared-secret-not-configured" };
+  }
+
   const provided = req.headers[WEBHOOK_SECRET_HEADER] as string | undefined;
-  if (!provided) return false;
-  // Constant-length comparison to prevent timing attacks
-  if (provided.length !== WEBHOOK_SECRET.length) return false;
+
+  if (!provided) {
+    return {
+      ok: false,
+      reason: `shared-secret-header-missing (expected header: ${WEBHOOK_SECRET_HEADER})`,
+    };
+  }
+
+  // Constant-time comparison to prevent timing attacks
+  if (provided.length !== WEBHOOK_SECRET.length) {
+    return { ok: false, reason: "shared-secret-mismatch" };
+  }
+
   let mismatch = 0;
   for (let i = 0; i < provided.length; i++) {
     mismatch |= provided.charCodeAt(i) ^ WEBHOOK_SECRET.charCodeAt(i);
   }
-  return mismatch === 0;
+
+  if (mismatch !== 0) {
+    return { ok: false, reason: "shared-secret-mismatch" };
+  }
+
+  return { ok: true, reason: "shared-secret-verified" };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Layer 2: IP Allowlist Verification (OPTIONAL)
+// ═══════════════════════════════════════════════════════════
+//
+// Beds24 server IPs may change without notice, so this layer
+// is optional. When configured, it provides defense-in-depth.
+// Populate BEDS24_WEBHOOK_IP_ALLOWLIST with IPs from Beds24
+// support or by observing X-Forwarded-For during initial testing.
+//
+// SECURITY: Source IPs are logged on rejection (acceptable for
+// debugging). The allowlist itself is logged at startup only.
+//
+function verifySourceIP(req: import("express").Request): { ok: boolean; ip: string } {
+  if (WEBHOOK_IP_ALLOWLIST.length === 0) {
+    return { ok: true, ip: "check-disabled" };
+  }
+
+  const forwarded = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim();
+  const ip = forwarded ?? req.socket.remoteAddress ?? "unknown";
+
+  const allowed = WEBHOOK_IP_ALLOWLIST.some((entry) => {
+    // Exact match
+    if (ip === entry) return true;
+    // CIDR prefix match (simplified: /16 → first two octets, /24 → first three)
+    if (entry.includes("/")) {
+      const prefix = entry.split("/")[0];
+      const cidr = parseInt(entry.split("/")[1], 10);
+      const octets = Math.floor(cidr / 8);
+      const prefixParts = prefix.split(".");
+      const ipParts = ip.split(".");
+      return prefixParts.slice(0, octets).join(".") === ipParts.slice(0, octets).join(".");
+    }
+    return false;
+  });
+
+  return { ok: allowed, ip };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -131,22 +176,31 @@ router.post("/beds24", async (req, res) => {
   }
 
   try {
-    // ── Layer 1: IP allowlist check (PRIMARY) ─────────────
-    if (!verifySourceIP(req)) {
-      const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ?? req.socket.remoteAddress;
-      logger.warn({ ip, allowlist: WEBHOOK_IP_ALLOWLIST }, "Webhook rejected — source IP not in allowlist");
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
-        code: ERROR_CODES.FORBIDDEN,
-        message: "Source IP not in webhook allowlist",
+    // ── Layer 1: Shared secret check (PRIMARY) ────────────
+    const secretCheck = verifySharedSecret(req);
+    if (!secretCheck.ok) {
+      // SECURITY: Never log the secret value itself
+      logger.warn(
+        { reason: secretCheck.reason, headerName: WEBHOOK_SECRET_HEADER },
+        "Webhook rejected — shared secret verification failed"
+      );
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        code: ERROR_CODES.WEBHOOK_INVALID_SIGNATURE,
+        message: "Invalid or missing webhook secret — check Custom Header configuration in Beds24 dashboard",
       });
     }
 
-    // ── Layer 2: Static shared secret check (OPTIONAL) ────
-    if (WEBHOOK_SECRET && !verifySharedSecret(req)) {
-      logger.warn("Webhook rejected — shared secret header mismatch");
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        code: ERROR_CODES.WEBHOOK_INVALID_SIGNATURE,
-        message: "Invalid webhook secret — check Custom Header configuration in Beds24 dashboard",
+    // ── Layer 2: IP allowlist check (OPTIONAL) ────────────
+    const ipCheck = verifySourceIP(req);
+    if (!ipCheck.ok) {
+      // IP is safe to log for debugging
+      logger.warn(
+        { ip: ipCheck.ip, allowlistCount: WEBHOOK_IP_ALLOWLIST.length },
+        "Webhook rejected — source IP not in allowlist"
+      );
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        code: ERROR_CODES.FORBIDDEN,
+        message: "Source IP not in webhook allowlist",
       });
     }
 
@@ -224,23 +278,36 @@ router.post("/beds24", async (req, res) => {
 // ═══════════════════════════════════════════════════════════
 //  GET /webhooks/status — Health check for webhook system
 // ═══════════════════════════════════════════════════════════
+//
+// SECURITY: This endpoint NEVER exposes secret values.
+// It only shows boolean flags and non-sensitive metadata.
+//
 
 router.get("/status", async (_req, res) => {
   res.json({
     enabled: isFeatureEnabled("beds24Webhooks"),
     behavior: isFeatureEnabled("beds24Webhooks") ? "200 + queue" : "204 no-op",
     security: {
-      ipAllowlist: {
-        enabled: WEBHOOK_IP_ALLOWLIST.length > 0,
-        count: WEBHOOK_IP_ALLOWLIST.length,
-        note: "PRIMARY — Beds24 does not sign webhooks",
-      },
       sharedSecret: {
-        enabled: !!WEBHOOK_SECRET,
+        configured: !!WEBHOOK_SECRET,
         headerName: WEBHOOK_SECRET_HEADER,
-        note: "OPTIONAL — set matching Custom Header in Beds24 dashboard",
+        priority: "PRIMARY",
+        note: "Set matching Custom Header in Beds24 dashboard — NOT HMAC, static string comparison",
+      },
+      ipAllowlist: {
+        configured: WEBHOOK_IP_ALLOWLIST.length > 0,
+        count: WEBHOOK_IP_ALLOWLIST.length,
+        priority: "OPTIONAL",
+        note: "Beds24 IPs may change — use as defense-in-depth, not sole auth",
       },
     },
+    verificationOrder: [
+      "1. Feature flag (204 if off)",
+      "2. Shared secret header (401 if mismatch) — PRIMARY",
+      "3. IP allowlist (403 if blocked) — OPTIONAL",
+      "4. Schema validation (400 if malformed)",
+      "5. Dedup check → Queue → 200",
+    ],
     redisUrl: config.redisUrl ? "configured" : "not configured",
   });
 });
