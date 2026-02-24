@@ -5,23 +5,69 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Users, Building2, Calendar, CreditCard, BarChart3,
   Loader2, CheckCircle, XCircle, Shield, TrendingUp, BookOpen,
-  Package, AlertTriangle, Star, Bot
+  Package, AlertTriangle, Star, Bot, Clock, Send, BanknoteIcon,
+  FileText, Eye
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import { useState } from "react";
+
+// Status badge styling
+function BookingStatusBadge({ status, lang }: { status: string; lang: string }) {
+  const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; labelAr: string; icon: React.ReactNode }> = {
+    pending: { variant: "secondary", label: "Pending Review", labelAr: "بانتظار المراجعة", icon: <Clock className="h-3 w-3" /> },
+    approved: { variant: "outline", label: "Awaiting Payment", labelAr: "بانتظار الدفع", icon: <BanknoteIcon className="h-3 w-3" /> },
+    active: { variant: "default", label: "Active", labelAr: "نشط", icon: <CheckCircle className="h-3 w-3" /> },
+    rejected: { variant: "destructive", label: "Rejected", labelAr: "مرفوض", icon: <XCircle className="h-3 w-3" /> },
+    completed: { variant: "outline", label: "Completed", labelAr: "مكتمل", icon: <CheckCircle className="h-3 w-3" /> },
+    cancelled: { variant: "destructive", label: "Cancelled", labelAr: "ملغي", icon: <XCircle className="h-3 w-3" /> },
+  };
+  const s = map[status] || { variant: "outline" as const, label: status, labelAr: status, icon: null };
+  return (
+    <Badge variant={s.variant} className="gap-1">
+      {s.icon}
+      {lang === "ar" ? s.labelAr : s.label}
+    </Badge>
+  );
+}
 
 export default function AdminDashboard() {
   const { t, lang } = useI18n();
   const { user, isAuthenticated, loading } = useAuth();
   const utils = trpc.useUtils();
+
+  // Dialogs state
+  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; bookingId: number | null }>({ open: false, bookingId: null });
+  const [rejectReason, setRejectReason] = useState("");
+  const [approveDialog, setApproveDialog] = useState<{ open: boolean; bookingId: number | null }>({ open: false, bookingId: null });
+  const [approveNotes, setApproveNotes] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; bookingId: number | null }>({ open: false, bookingId: null });
+  const [paymentMethod, setPaymentMethod] = useState<string>("cash");
 
   const stats = trpc.admin.stats.useQuery(undefined, { enabled: isAuthenticated && user?.role === "admin" });
   const users = trpc.admin.users.useQuery({ limit: 50 }, { enabled: isAuthenticated && user?.role === "admin" });
@@ -33,6 +79,46 @@ export default function AdminDashboard() {
       toast.success(lang === "ar" ? "تم تحديث حالة العقار" : "Property status updated");
       utils.admin.properties.invalidate();
       utils.admin.stats.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const approveBooking = trpc.admin.approveBooking.useMutation({
+    onSuccess: () => {
+      toast.success(lang === "ar" ? "تم قبول الحجز وإرسال الفاتورة للمستأجر" : "Booking approved and bill sent to tenant");
+      utils.admin.bookings.invalidate();
+      utils.admin.stats.invalidate();
+      setApproveDialog({ open: false, bookingId: null });
+      setApproveNotes("");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const rejectBooking = trpc.admin.rejectBooking.useMutation({
+    onSuccess: () => {
+      toast.success(lang === "ar" ? "تم رفض الحجز" : "Booking rejected");
+      utils.admin.bookings.invalidate();
+      utils.admin.stats.invalidate();
+      setRejectDialog({ open: false, bookingId: null });
+      setRejectReason("");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const confirmPayment = trpc.admin.confirmPayment.useMutation({
+    onSuccess: () => {
+      toast.success(lang === "ar" ? "تم تأكيد الدفع - الحجز نشط الآن" : "Payment confirmed - Booking is now active");
+      utils.admin.bookings.invalidate();
+      utils.admin.stats.invalidate();
+      setConfirmDialog({ open: false, bookingId: null });
+      setPaymentMethod("cash");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const sendReminder = trpc.admin.sendBillReminder.useMutation({
+    onSuccess: () => {
+      toast.success(lang === "ar" ? "تم إرسال تذكير الدفع للمستأجر" : "Payment reminder sent to tenant");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -53,6 +139,9 @@ export default function AdminDashboard() {
     );
   }
 
+  const pendingBookings = bookings.data?.filter((b: any) => b.status === "pending") ?? [];
+  const approvedBookings = bookings.data?.filter((b: any) => b.status === "approved") ?? [];
+
   return (
     <div className="min-h-screen flex flex-col">
       <SEOHead title="Admin Dashboard" titleAr="لوحة الإدارة" path="/admin" noindex={true} />
@@ -62,6 +151,34 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-heading font-bold">{t("dashboard.admin")}</h1>
           <p className="text-muted-foreground mt-1">{lang === "ar" ? "إدارة المنصة" : "Platform Management"}</p>
         </div>
+
+        {/* Pending Actions Alert */}
+        {(pendingBookings.length > 0 || approvedBookings.length > 0) && (
+          <div className="mb-6 p-4 rounded-lg border-2 border-amber-500/30 bg-amber-50 dark:bg-amber-950/20">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <h3 className="font-semibold text-amber-700 dark:text-amber-400">
+                {lang === "ar" ? "إجراءات مطلوبة" : "Actions Required"}
+              </h3>
+            </div>
+            <div className="flex flex-wrap gap-3 text-sm">
+              {pendingBookings.length > 0 && (
+                <span className="text-amber-600 dark:text-amber-300">
+                  {lang === "ar" 
+                    ? `${pendingBookings.length} حجز بانتظار الموافقة`
+                    : `${pendingBookings.length} booking(s) awaiting approval`}
+                </span>
+              )}
+              {approvedBookings.length > 0 && (
+                <span className="text-blue-600 dark:text-blue-300">
+                  {lang === "ar"
+                    ? `${approvedBookings.length} حجز بانتظار تأكيد الدفع`
+                    : `${approvedBookings.length} booking(s) awaiting payment confirmation`}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2 mb-6">
@@ -151,12 +268,134 @@ export default function AdminDashboard() {
           </CardContent></Card>
         </div>
 
-        <Tabs defaultValue="properties" className="space-y-6">
+        <Tabs defaultValue="bookings" className="space-y-6">
           <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="bookings" className="gap-1.5">
+              <Calendar className="h-4 w-4" />
+              {t("dashboard.allBookings")}
+              {pendingBookings.length > 0 && (
+                <Badge className="h-5 px-1.5 text-[10px] bg-amber-500 text-white border-0">{pendingBookings.length}</Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="properties" className="gap-1.5"><Building2 className="h-4 w-4" />{t("dashboard.allProperties")}</TabsTrigger>
             <TabsTrigger value="users" className="gap-1.5"><Users className="h-4 w-4" />{t("dashboard.users")}</TabsTrigger>
-            <TabsTrigger value="bookings" className="gap-1.5"><Calendar className="h-4 w-4" />{t("dashboard.allBookings")}</TabsTrigger>
           </TabsList>
+
+          {/* Bookings - Enhanced with approval workflow */}
+          <TabsContent value="bookings">
+            {bookings.isLoading ? (
+              <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24 w-full" />)}</div>
+            ) : bookings.data && bookings.data.length > 0 ? (
+              <div className="space-y-3">
+                {bookings.data.map((b: any) => (
+                  <Card key={b.id} className={`transition-all ${b.status === "pending" ? "border-amber-500/50 shadow-amber-500/10 shadow-md" : b.status === "approved" ? "border-blue-500/50 shadow-blue-500/10 shadow-md" : ""}`}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        {/* Booking info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span className="font-semibold text-base">{lang === "ar" ? `حجز #${b.id}` : `Booking #${b.id}`}</span>
+                            <BookingStatusBadge status={b.status} lang={lang} />
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="h-3.5 w-3.5" />
+                              {new Date(b.moveInDate).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US")} — {new Date(b.moveOutDate).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US")}
+                            </div>
+                            {b.tenantId && (
+                              <div className="flex items-center gap-1.5">
+                                <Users className="h-3.5 w-3.5" />
+                                {lang === "ar" ? `المستأجر #${b.tenantId}` : `Tenant #${b.tenantId}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Amount */}
+                        <div className="text-end sm:text-center shrink-0">
+                          <div className="font-bold text-lg text-primary">{Number(b.totalAmount).toLocaleString()}</div>
+                          <div className="text-xs text-muted-foreground">{t("payment.sar")}</div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-wrap gap-2 shrink-0">
+                          {b.status === "pending" && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white gap-1"
+                                onClick={() => setApproveDialog({ open: true, bookingId: b.id })}
+                                disabled={approveBooking.isPending}
+                              >
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                {lang === "ar" ? "موافقة وإرسال الفاتورة" : "Approve & Send Bill"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="gap-1"
+                                onClick={() => setRejectDialog({ open: true, bookingId: b.id })}
+                                disabled={rejectBooking.isPending}
+                              >
+                                <XCircle className="h-3.5 w-3.5" />
+                                {lang === "ar" ? "رفض" : "Reject"}
+                              </Button>
+                            </>
+                          )}
+                          {b.status === "approved" && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
+                                onClick={() => setConfirmDialog({ open: true, bookingId: b.id })}
+                                disabled={confirmPayment.isPending}
+                              >
+                                <CreditCard className="h-3.5 w-3.5" />
+                                {lang === "ar" ? "تأكيد الدفع" : "Confirm Payment"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => sendReminder.mutate({ bookingId: b.id })}
+                                disabled={sendReminder.isPending}
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                                {lang === "ar" ? "تذكير بالدفع" : "Send Reminder"}
+                              </Button>
+                            </>
+                          )}
+                          {b.status === "active" && (
+                            <Link href={`/admin/lease/${b.id}`}>
+                              <Button size="sm" variant="outline" className="gap-1">
+                                <FileText className="h-3.5 w-3.5" />
+                                {lang === "ar" ? "عقد الإيجار" : "Lease Contract"}
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Rejection reason display */}
+                      {b.status === "rejected" && b.rejectionReason && (
+                        <div className="mt-3 p-2.5 rounded bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm">
+                          <span className="font-medium text-red-700 dark:text-red-400">
+                            {lang === "ar" ? "سبب الرفض: " : "Rejection reason: "}
+                          </span>
+                          <span className="text-red-600 dark:text-red-300">{b.rejectionReason}</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-12 text-center">
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground">{lang === "ar" ? "لا توجد حجوزات" : "No bookings"}</p>
+              </Card>
+            )}
+          </TabsContent>
 
           {/* Properties */}
           <TabsContent value="properties">
@@ -164,7 +403,7 @@ export default function AdminDashboard() {
               <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
             ) : properties.data && properties.data.length > 0 ? (
               <div className="space-y-3">
-                {properties.data.map((p) => (
+                {properties.data.map((p: any) => (
                   <Card key={p.id}>
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex-1">
@@ -204,7 +443,7 @@ export default function AdminDashboard() {
               <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
             ) : users.data && users.data.length > 0 ? (
               <div className="space-y-2">
-                {users.data.map((u) => (
+                {users.data.map((u: any) => (
                   <Card key={u.id}>
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
@@ -228,39 +467,147 @@ export default function AdminDashboard() {
               </Card>
             )}
           </TabsContent>
-
-          {/* Bookings */}
-          <TabsContent value="bookings">
-            {bookings.isLoading ? (
-              <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
-            ) : bookings.data && bookings.data.length > 0 ? (
-              <div className="space-y-3">
-                {bookings.data.map((b) => (
-                  <Card key={b.id}>
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{lang === "ar" ? `حجز #${b.id}` : `Booking #${b.id}`}</span>
-                          <Badge variant={b.status === "active" ? "default" : b.status === "pending" ? "secondary" : "outline"}>{b.status}</Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(b.moveInDate).toLocaleDateString()} — {new Date(b.moveOutDate).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="font-bold text-primary">{Number(b.totalAmount).toLocaleString()} {t("payment.sar")}</div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-12 text-center">
-                <Calendar className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">{lang === "ar" ? "لا توجد حجوزات" : "No bookings"}</p>
-              </Card>
-            )}
-          </TabsContent>
         </Tabs>
       </div>
+
+      {/* Approve Dialog */}
+      <Dialog open={approveDialog.open} onOpenChange={(open) => { setApproveDialog({ open, bookingId: open ? approveDialog.bookingId : null }); if (!open) setApproveNotes(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{lang === "ar" ? "موافقة على الحجز" : "Approve Booking"}</DialogTitle>
+            <DialogDescription>
+              {lang === "ar"
+                ? "سيتم قبول الحجز وإنشاء فاتورة وإرسال إشعار للمستأجر بالدفع."
+                : "This will approve the booking, create a bill, and notify the tenant to pay."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">
+              {lang === "ar" ? "ملاحظات (اختياري)" : "Notes (optional)"}
+            </label>
+            <Textarea
+              value={approveNotes}
+              onChange={(e) => setApproveNotes(e.target.value)}
+              placeholder={lang === "ar" ? "أي ملاحظات للمستأجر..." : "Any notes for the tenant..."}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveDialog({ open: false, bookingId: null })}>
+              {lang === "ar" ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white gap-1"
+              onClick={() => {
+                if (approveDialog.bookingId) {
+                  approveBooking.mutate({ id: approveDialog.bookingId, landlordNotes: approveNotes || undefined });
+                }
+              }}
+              disabled={approveBooking.isPending}
+            >
+              {approveBooking.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <CheckCircle className="h-4 w-4" />
+              {lang === "ar" ? "موافقة وإرسال الفاتورة" : "Approve & Send Bill"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialog.open} onOpenChange={(open) => { setRejectDialog({ open, bookingId: open ? rejectDialog.bookingId : null }); if (!open) setRejectReason(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{lang === "ar" ? "رفض الحجز" : "Reject Booking"}</DialogTitle>
+            <DialogDescription>
+              {lang === "ar"
+                ? "يرجى ذكر سبب الرفض. سيتم إشعار المستأجر."
+                : "Please provide a reason for rejection. The tenant will be notified."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">
+              {lang === "ar" ? "سبب الرفض *" : "Rejection Reason *"}
+            </label>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder={lang === "ar" ? "اذكر سبب رفض الحجز..." : "Explain why the booking is rejected..."}
+              rows={3}
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialog({ open: false, bookingId: null })}>
+              {lang === "ar" ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              variant="destructive"
+              className="gap-1"
+              onClick={() => {
+                if (rejectDialog.bookingId && rejectReason.trim()) {
+                  rejectBooking.mutate({ id: rejectDialog.bookingId, rejectionReason: rejectReason.trim() });
+                }
+              }}
+              disabled={rejectBooking.isPending || !rejectReason.trim()}
+            >
+              {rejectBooking.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <XCircle className="h-4 w-4" />
+              {lang === "ar" ? "رفض الحجز" : "Reject Booking"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Payment Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => { setConfirmDialog({ open, bookingId: open ? confirmDialog.bookingId : null }); if (!open) setPaymentMethod("cash"); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{lang === "ar" ? "تأكيد استلام الدفع" : "Confirm Payment Received"}</DialogTitle>
+            <DialogDescription>
+              {lang === "ar"
+                ? "تأكيد أنه تم استلام الدفع من المستأجر. سيتم تفعيل الحجز وإشعار المستأجر."
+                : "Confirm that payment has been received from the tenant. The booking will be activated and the tenant notified."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">
+              {lang === "ar" ? "طريقة الدفع" : "Payment Method"}
+            </label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">{lang === "ar" ? "نقداً" : "Cash"}</SelectItem>
+                <SelectItem value="bank_transfer">{lang === "ar" ? "تحويل بنكي" : "Bank Transfer"}</SelectItem>
+                <SelectItem value="paypal">{lang === "ar" ? "PayPal" : "PayPal"}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialog({ open: false, bookingId: null })}>
+              {lang === "ar" ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
+              onClick={() => {
+                if (confirmDialog.bookingId) {
+                  confirmPayment.mutate({
+                    bookingId: confirmDialog.bookingId,
+                    paymentMethod: paymentMethod as "paypal" | "cash" | "bank_transfer",
+                  });
+                }
+              }}
+              disabled={confirmPayment.isPending}
+            >
+              {confirmPayment.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <CreditCard className="h-4 w-4" />
+              {lang === "ar" ? "تأكيد الدفع" : "Confirm Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );

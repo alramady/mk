@@ -28,8 +28,8 @@ import SEOHead from "@/components/SEOHead";
 
 const statusBadge = (status: string, lang: string) => {
   const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; labelAr: string }> = {
-    pending: { variant: "secondary", label: "Pending", labelAr: "قيد الانتظار" },
-    approved: { variant: "default", label: "Approved", labelAr: "مقبول" },
+    pending: { variant: "secondary", label: "Pending Review", labelAr: "بانتظار المراجعة" },
+    approved: { variant: "outline", label: "Awaiting Payment", labelAr: "بانتظار الدفع" },
     active: { variant: "default", label: "Active", labelAr: "نشط" },
     rejected: { variant: "destructive", label: "Rejected", labelAr: "مرفوض" },
     cancelled: { variant: "destructive", label: "Cancelled", labelAr: "ملغي" },
@@ -205,14 +205,44 @@ export default function TenantDashboard() {
                         </div>
                       </div>
                       {b.status === "approved" && (
-                        <div className="mt-3 pt-3 border-t">
+                        <div className="mt-3 pt-3 border-t space-y-2">
+                          <div className="p-2.5 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-sm">
+                            <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-medium mb-1">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              {lang === "ar" ? "تم قبول طلبك! يرجى إكمال الدفع" : "Your request was approved! Please complete payment"}
+                            </div>
+                            {(b as any).landlordNotes && (
+                              <p className="text-blue-600 dark:text-blue-300 text-xs">{(b as any).landlordNotes}</p>
+                            )}
+                          </div>
                           <Button
-                            className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] font-semibold border-0"
+                            className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] font-semibold border-0 h-11"
                             onClick={(e) => { e.stopPropagation(); setLocation(`/pay/${b.id}`); }}
                           >
                             <CreditCard className="h-4 w-4 me-2" />
                             {lang === "ar" ? "ادفع الآن" : "Pay Now"}
+                            <span className="ms-2 text-xs opacity-80">({Number(b.totalAmount).toLocaleString()} {t("payment.sar")})</span>
                           </Button>
+                        </div>
+                      )}
+                      {b.status === "rejected" && (b as any).rejectionReason && (
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="p-2.5 rounded bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm">
+                            <span className="font-medium text-red-700 dark:text-red-400">
+                              {lang === "ar" ? "سبب الرفض: " : "Rejection reason: "}
+                            </span>
+                            <span className="text-red-600 dark:text-red-300">{(b as any).rejectionReason}</span>
+                          </div>
+                        </div>
+                      )}
+                      {b.status === "active" && (
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="p-2.5 rounded bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm">
+                            <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400 font-medium">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              {lang === "ar" ? "الحجز نشط - تم تأكيد الدفع" : "Booking active - Payment confirmed"}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </CardContent>

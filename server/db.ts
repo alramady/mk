@@ -602,6 +602,33 @@ export async function getUnreadNotificationCount(userId: number) {
   return result[0]?.count ?? 0;
 }
 
+export async function markAllNotificationsRead(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications).set({ isRead: true })
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+}
+
+export async function deleteNotification(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(notifications).where(eq(notifications.id, id));
+}
+
+export async function getAllPayments(limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(payments).orderBy(desc(payments.createdAt)).limit(limit).offset(offset);
+}
+
+export async function updatePaymentStatus(id: number, status: string, paidAt?: Date) {
+  const db = await getDb();
+  if (!db) return;
+  const data: any = { status };
+  if (paidAt) data.paidAt = paidAt;
+  await db.update(payments).set(data).where(eq(payments.id, id));
+}
+
 // ─── Saved Searches ──────────────────────────────────────────────────
 export async function createSavedSearch(userId: number, name: string, filters: Record<string, unknown>) {
   const db = await getDb();

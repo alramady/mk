@@ -83,6 +83,9 @@ export default function LandlordDashboard() {
   if (!isAuthenticated) { window.location.href = getLoginUrl(); return null; }
 
   const statusBadge = (status: string) => {
+    const labels: Record<string, string> = lang === "ar" 
+      ? { pending: "بانتظار المراجعة", approved: "بانتظار الدفع", active: "نشط", rejected: "مرفوض", completed: "مكتمل", cancelled: "ملغي" }
+      : { pending: "Pending Review", approved: "Awaiting Payment", active: "Active", rejected: "Rejected", completed: "Completed", cancelled: "Cancelled" };
     const colors: Record<string, string> = {
       pending: "bg-yellow-100 text-yellow-800", approved: "bg-[#3ECFC0]/10 text-[#0B1E2D]",
       active: "bg-blue-100 text-blue-800", rejected: "bg-red-100 text-red-800",
@@ -90,7 +93,7 @@ export default function LandlordDashboard() {
       submitted: "bg-yellow-100 text-yellow-800", acknowledged: "bg-blue-100 text-blue-800",
       in_progress: "bg-blue-100 text-blue-800",
     };
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[status] || "bg-gray-100 text-gray-800"}`}>{status}</span>;
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[status] || "bg-gray-100 text-gray-800"}`}>{labels[status] || status}</span>;
   };
 
   const totalRevenue = payments.data?.reduce((sum, p) => p.status === "completed" ? sum + Number(p.amount) : sum, 0) || 0;
@@ -213,8 +216,8 @@ export default function LandlordDashboard() {
                       {b.tenantNotes && <p className="text-sm bg-secondary p-2 rounded mb-2">{b.tenantNotes}</p>}
                       {b.status === "pending" && (
                         <div className="flex gap-2 mt-3">
-                          <Button size="sm" onClick={() => updateBooking.mutate({ id: b.id, status: "approved" })}>
-                            <CheckCircle className="h-4 w-4 me-1" />{lang === "ar" ? "قبول" : "Approve"}
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => updateBooking.mutate({ id: b.id, status: "approved" })}>
+                            <CheckCircle className="h-4 w-4 me-1" />{lang === "ar" ? "قبول وإرسال الفاتورة" : "Approve & Send Bill"}
                           </Button>
                           <Button size="sm" variant="destructive" onClick={() => setBookingDialog({ id: b.id, action: "reject" })}>
                             <XCircle className="h-4 w-4 me-1" />{lang === "ar" ? "رفض" : "Reject"}
@@ -222,6 +225,20 @@ export default function LandlordDashboard() {
                           <Button size="sm" variant="outline" onClick={() => setLocation(`/messages?to=${b.tenantId}`)}>
                             <MessageSquare className="h-4 w-4 me-1" />{lang === "ar" ? "تواصل" : "Message"}
                           </Button>
+                        </div>
+                      )}
+                      {b.status === "approved" && (
+                        <div className="mt-3 p-2.5 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-sm">
+                          <span className="text-blue-700 dark:text-blue-400 font-medium">
+                            {lang === "ar" ? "بانتظار دفع المستأجر" : "Awaiting tenant payment"}
+                          </span>
+                        </div>
+                      )}
+                      {b.status === "active" && (
+                        <div className="mt-3 p-2.5 rounded bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm">
+                          <span className="text-green-700 dark:text-green-400 font-medium">
+                            {lang === "ar" ? "الحجز نشط - تم الدفع" : "Booking active - Payment confirmed"}
+                          </span>
                         </div>
                       )}
                     </CardContent>

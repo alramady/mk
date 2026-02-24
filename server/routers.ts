@@ -727,6 +727,19 @@ export const appRouter = router({
     unreadCount: protectedProcedure.query(async ({ ctx }) => {
       return { count: await db.getUnreadNotificationCount(ctx.user.id) };
     }),
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.markAllNotificationsRead(ctx.user.id);
+      return { success: true };
+    }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const notifications = await db.getNotificationsByUser(ctx.user.id);
+        const owns = notifications.some((n: any) => n.id === input.id);
+        if (!owns) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+        await db.deleteNotification(input.id);
+        return { success: true };
+      }),
   }),
 
   // Reviews
@@ -813,6 +826,148 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => {
         return db.getAllBookings(input.limit, input.offset);
+      }),
+
+    approveBooking: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
+      .input(z.object({ id: z.number(), landlordNotes: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        const booking = await db.getBookingById(input.id);
+        if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Booking not found' });
+        if (booking.status !== 'pending') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Only pending bookings can be approved' });
+        // Update booking to approved
+        await db.updateBooking(input.id, { status: 'approved', landlordNotes: input.landlordNotes });
+        // Create a payment record (bill) for the tenant
+        const paymentId = await db.createPayment({
+          bookingId: input.id,
+          tenantId: booking.tenantId,
+          landlordId: booking.landlordId,
+          type: 'rent',
+          amount: String(booking.totalAmount),
+          status: 'pending',
+          description: `Payment for booking #${input.id}`,
+          descriptionAr: `دفعة الحجز رقم #${input.id}`,
+        });
+        // Notify tenant: booking approved + bill ready
+        await db.createNotification({
+          userId: booking.tenantId,
+          type: 'booking_approved',
+          titleEn: 'Booking Approved - Payment Required',
+          titleAr: 'تم قبول الحجز - يرجى الدفع',
+          contentEn: `Your booking #${input.id} has been approved. Please proceed to payment to confirm your reservation.`,
+          contentAr: `تم قبول حجزك رقم #${input.id}. يرجى إتمام الدفع لتأكيد الحجز.`,
+          relatedId: input.id,
+          relatedType: 'booking',
+        });
+        // Email notification
+        try {
+          const tenant = await db.getUserById(booking.tenantId);
+          const prop = await db.getPropertyById(booking.propertyId);
+          if (tenant?.email && prop) {
+            await sendBookingConfirmation({
+              tenantEmail: tenant.email,
+              tenantName: tenant.displayName || tenant.name || '',
+              propertyTitle: prop.titleAr || prop.titleEn,
+              checkIn: String(booking.moveInDate),
+              checkOut: String(booking.moveOutDate),
+              totalAmount: Number(booking.totalAmount),
+              bookingId: input.id,
+            });
+          }
+        } catch { /* email is best-effort */ }
+        await notifyOwner({ title: `تم قبول الحجز #${input.id}`, content: `تم قبول الحجز وإرسال الفاتورة للمستأجر` });
+        return { success: true, paymentId };
+      }),
+
+    rejectBooking: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
+      .input(z.object({ id: z.number(), rejectionReason: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        const booking = await db.getBookingById(input.id);
+        if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Booking not found' });
+        if (booking.status !== 'pending') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Only pending bookings can be rejected' });
+        await db.updateBooking(input.id, { status: 'rejected', rejectionReason: input.rejectionReason });
+        await db.createNotification({
+          userId: booking.tenantId,
+          type: 'booking_rejected',
+          titleEn: 'Booking Rejected',
+          titleAr: 'تم رفض الحجز',
+          contentEn: `Your booking #${input.id} has been rejected. Reason: ${input.rejectionReason}`,
+          contentAr: `تم رفض حجزك رقم #${input.id}. السبب: ${input.rejectionReason}`,
+          relatedId: input.id,
+          relatedType: 'booking',
+        });
+        await notifyOwner({ title: `تم رفض الحجز #${input.id}`, content: `السبب: ${input.rejectionReason}` });
+        return { success: true };
+      }),
+
+    confirmPayment: adminWithPermission(PERMISSIONS.MANAGE_PAYMENTS)
+      .input(z.object({ bookingId: z.number(), paymentMethod: z.enum(['paypal', 'cash', 'bank_transfer']).optional(), notes: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        const booking = await db.getBookingById(input.bookingId);
+        if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Booking not found' });
+        if (booking.status !== 'approved') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Only approved bookings can have payment confirmed' });
+        // Update booking to active
+        await db.updateBooking(input.bookingId, { status: 'active' });
+        // Update all pending payments for this booking to completed
+        const bookingPayments = await db.getPaymentsByBooking(input.bookingId);
+        for (const p of bookingPayments) {
+          if (p.status === 'pending') {
+            await db.updatePaymentStatus(p.id, 'completed', new Date());
+            if (input.paymentMethod) {
+              await db.updatePayment(p.id, { paymentMethod: input.paymentMethod });
+            }
+          }
+        }
+        // Notify tenant: payment confirmed
+        await db.createNotification({
+          userId: booking.tenantId,
+          type: 'payment_received',
+          titleEn: 'Payment Confirmed - Booking Active',
+          titleAr: 'تم تأكيد الدفع - الحجز نشط الآن',
+          contentEn: `Payment for booking #${input.bookingId} has been confirmed. Your booking is now active!`,
+          contentAr: `تم تأكيد دفعة الحجز رقم #${input.bookingId}. حجزك نشط الآن!`,
+          relatedId: input.bookingId,
+          relatedType: 'booking',
+        });
+        // Send payment receipt email
+        try {
+          const tenant = await db.getUserById(booking.tenantId);
+          if (tenant?.email) {
+            await sendPaymentReceipt({
+              tenantEmail: tenant.email,
+              tenantName: tenant.displayName || tenant.name || '',
+              amount: Number(booking.totalAmount),
+              bookingId: input.bookingId,
+              paymentMethod: input.paymentMethod || 'cash',
+            });
+          }
+        } catch { /* email is best-effort */ }
+        await notifyOwner({ title: `تم تأكيد دفع الحجز #${input.bookingId}`, content: `الحجز أصبح نشطاً` });
+        return { success: true };
+      }),
+
+    sendBillReminder: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
+      .input(z.object({ bookingId: z.number() }))
+      .mutation(async ({ input }) => {
+        const booking = await db.getBookingById(input.bookingId);
+        if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Booking not found' });
+        if (booking.status !== 'approved') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Can only send reminders for approved bookings awaiting payment' });
+        await db.createNotification({
+          userId: booking.tenantId,
+          type: 'payment_due',
+          titleEn: 'Payment Reminder',
+          titleAr: 'تذكير بالدفع',
+          contentEn: `Reminder: Your booking #${input.bookingId} is awaiting payment. Total: ${booking.totalAmount} SAR.`,
+          contentAr: `تذكير: حجزك رقم #${input.bookingId} بانتظار الدفع. المبلغ: ${booking.totalAmount} ريال.`,
+          relatedId: input.bookingId,
+          relatedType: 'booking',
+        });
+        return { success: true };
+      }),
+
+    allPayments: adminWithPermission(PERMISSIONS.MANAGE_PAYMENTS)
+      .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
+      .query(async ({ input }) => {
+        return db.getAllPayments(input.limit, input.offset);
       }),
 
     analytics: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
