@@ -114,24 +114,23 @@ locationRouter.post("/resolve", async (req: Request, res: Response) => {
       lat: result.lat,
       lng: result.lng,
       resolved_via: result.resolved_via,
+      resolution_quality: result.resolution_quality,
+      degraded: result.degraded,
       has_address: !!result.formatted_address,
       has_place_id: !!result.place_id,
       timestamp: new Date().toISOString(),
     }));
 
-    // Return result (exclude internal resolved_via from public response)
-    const { resolved_via, ...publicResult } = result;
-
     return res.status(HTTP_STATUS.OK).json({
-      ...publicResult,
+      ...result,
       cached: false,
-      resolved_via,
     });
   } catch (err) {
     if (err instanceof LocationServiceError) {
       return res.status(err.status).json({
         code: err.code,
         message: err.message,
+        retryable: err.retryable,
       });
     }
 

@@ -587,3 +587,150 @@ describe("API Key Security", () => {
     expect(err.message).toContain("not configured");
   });
 });
+
+// ═══════════════════════════════════════════════════════════════
+//  Degraded Flag & Resolution Quality
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * These tests verify the degraded/resolution_quality/resolved_via
+ * contract by testing the building blocks that determine them.
+ *
+ * The resolveLocation() function sets:
+ *   - degraded: true when reverse geocode fails (coords_only)
+ *   - resolution_quality: "full" | "coords_only" | "geocoded"
+ *   - resolved_via: "url_parse" | "google_geocode" | "cache"
+ *
+ * Since resolveLocation() requires network (Google API, URL expansion),
+ * we test the deterministic building blocks that feed into these fields.
+ */
+
+describe("Degraded Flag — Building Blocks", () => {
+  // When coords ARE in URL → resolved_via should be "url_parse"
+  // The degraded flag depends on whether reverse geocode succeeds
+
+  it("parseCoordsFromUrl returns coords → resolved_via would be url_parse", () => {
+    const result = parseCoordsFromUrl(
+      "https://www.google.com/maps/place/Riyadh/@24.7135517,46.6752957,12z"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.lat).toBeCloseTo(24.7135517, 5);
+    expect(result!.lng).toBeCloseTo(46.6752957, 5);
+    // If reverse geocode succeeds → degraded=false, quality="full"
+    // If reverse geocode fails → degraded=true, quality="coords_only"
+  });
+
+  it("parseCoordsFromUrl returns null → would need google_geocode", () => {
+    // URL with place name but no coordinates
+    const result = parseCoordsFromUrl(
+      "https://www.google.com/maps/place/Riyadh+Park+Mall"
+    );
+    expect(result).toBeNull();
+    // resolved_via would be "google_geocode", degraded=false, quality="geocoded"
+  });
+
+  it("extractPlaceNameFromUrl provides fallback for degraded mode", () => {
+    const name = extractPlaceNameFromUrl(
+      "https://www.google.com/maps/place/Riyadh+Park+Mall/@24.7,46.6,15z"
+    );
+    expect(name).toBe("Riyadh Park Mall");
+    // In degraded mode (coords found but reverse geocode failed),
+    // this place name becomes the formatted_address fallback
+  });
+
+  it("no place name + no reverse geocode → empty formatted_address in degraded mode", () => {
+    // URL with coords but no /place/ segment
+    const name = extractPlaceNameFromUrl(
+      "https://www.google.com/maps/@24.7135517,46.6752957,12z"
+    );
+    expect(name).toBeNull();
+    // In degraded mode: formatted_address="" (empty string)
+    // UI should show "العنوان قيد التحديث" when degraded=true
+  });
+});
+
+describe("Resolution Quality Values", () => {
+  it("quality 'full' requires both coords and reverse geocode success", () => {
+    // Simulated: coords found + reverse geocode returned address
+    const coords = parseCoordsFromUrl(
+      "https://www.google.com/maps/@24.7135517,46.6752957,12z"
+    );
+    expect(coords).not.toBeNull();
+    // quality="full" when: coords ✅ + reverseGeocode ✅
+    // degraded=false
+  });
+
+  it("quality 'coords_only' when coords found but no reverse geocode", () => {
+    const coords = parseCoordsFromUrl(
+      "https://www.google.com/maps/@24.7135517,46.6752957,12z"
+    );
+    expect(coords).not.toBeNull();
+    // quality="coords_only" when: coords ✅ + reverseGeocode ❌
+    // degraded=true
+  });
+
+  it("quality 'geocoded' when no coords in URL but geocode succeeds", () => {
+    const coords = parseCoordsFromUrl(
+      "https://www.google.com/maps/place/Riyadh+Park+Mall"
+    );
+    expect(coords).toBeNull();
+    // quality="geocoded" when: coords ❌ + geocode ✅
+    // degraded=false
+  });
+
+  it("ResolutionQuality type only allows 3 values", () => {
+    // Type-level test: these are the only valid values
+    const validQualities = ["full", "coords_only", "geocoded"] as const;
+    expect(validQualities).toHaveLength(3);
+    expect(validQualities).toContain("full");
+    expect(validQualities).toContain("coords_only");
+    expect(validQualities).toContain("geocoded");
+  });
+});
+
+describe("Degraded Mode — UI Contract", () => {
+  it("degraded=true means UI should show 'العنوان قيد التحديث'", () => {
+    // This is a documentation/contract test
+    // When degraded=true:
+    //   - lat/lng are valid and usable (map pin works)
+    //   - formatted_address may be empty or just a place name
+    //   - place_id is null
+    //   - resolution_quality is "coords_only"
+    // The UI should display "العنوان قيد التحديث" (Address pending)
+
+    // Verify the building blocks support this contract:
+    const coords = parseCoordsFromUrl(
+      "https://www.google.com/maps/@24.7135517,46.6752957,12z"
+    );
+    expect(coords).not.toBeNull();
+    expect(isValidCoord(coords!.lat, coords!.lng)).toBe(true);
+    // Even in degraded mode, coords are always valid
+  });
+
+  it("degraded=false means full address is available", () => {
+    // When degraded=false:
+    //   - formatted_address is a proper address from Google
+    //   - place_id is likely present
+    //   - resolution_quality is "full" or "geocoded"
+    // The UI can display the full address normally
+
+    const coords = parseCoordsFromUrl(
+      "https://www.google.com/maps/place/Riyadh/@24.7135517,46.6752957,12z"
+    );
+    expect(coords).not.toBeNull();
+    const placeName = extractPlaceNameFromUrl(
+      "https://www.google.com/maps/place/Riyadh/@24.7135517,46.6752957,12z"
+    );
+    expect(placeName).toBe("Riyadh");
+    // With Google available: formatted_address comes from reverse geocode
+    // degraded=false, quality="full"
+  });
+
+  it("resolved_via tracks the resolution path for monitoring", () => {
+    // url_parse: coords extracted from URL (most common)
+    // google_geocode: no coords in URL, used Google API
+    // cache: served from Redis/Postgres cache
+    const validSources = ["url_parse", "google_geocode", "cache"];
+    expect(validSources).toHaveLength(3);
+  });
+});

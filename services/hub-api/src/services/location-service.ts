@@ -48,6 +48,8 @@ interface CacheEntry {
   place_id: string | null;
   final_url: string;
   resolved_via: string;
+  degraded: boolean;
+  resolution_quality: "full" | "coords_only" | "geocoded";
 }
 
 export class LocationServiceError extends Error {
@@ -602,6 +604,7 @@ export async function resolveLocation(
     // We ALWAYS return success here — Google enrichment is optional
     let formatted_address = "";
     let place_id: string | null = null;
+    let reverseGeocodeSucceeded = false;
 
     // Try place name from URL first (zero-cost fallback)
     const placeName = extractPlaceNameFromUrl(finalUrl);
@@ -612,6 +615,7 @@ export async function resolveLocation(
       if (reverseResult) {
         formatted_address = reverseResult.formatted_address;
         place_id = reverseResult.place_id;
+        reverseGeocodeSucceeded = true;
       }
     }
 
@@ -619,6 +623,11 @@ export async function resolveLocation(
     if (!formatted_address && placeName) {
       formatted_address = placeName;
     }
+
+    // Scenario 1: full (coords + reverse geocode succeeded)
+    // Scenario 2: coords_only (coords found, reverse geocode failed or unavailable)
+    const degraded = !reverseGeocodeSucceeded;
+    const resolution_quality = reverseGeocodeSucceeded ? "full" as const : "coords_only" as const;
 
     return {
       lat: parsed.lat,
@@ -629,6 +638,8 @@ export async function resolveLocation(
       unit_number: request.unit_number ?? null,
       address_notes: request.address_notes ?? null,
       resolved_via: "url_parse",
+      degraded,
+      resolution_quality,
     };
   }
 
@@ -648,6 +659,8 @@ export async function resolveLocation(
       unit_number: request.unit_number ?? null,
       address_notes: request.address_notes ?? null,
       resolved_via: "google_geocode",
+      degraded: false,
+      resolution_quality: "geocoded" as const,
     };
   }
 
@@ -663,6 +676,8 @@ export async function resolveLocation(
       unit_number: request.unit_number ?? null,
       address_notes: request.address_notes ?? null,
       resolved_via: "google_geocode",
+      degraded: false,
+      resolution_quality: "geocoded" as const,
     };
   }
 

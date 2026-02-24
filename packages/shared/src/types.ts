@@ -245,6 +245,8 @@ export interface LocationResolveRequest {
   address_notes?: string | null;
 }
 
+export type ResolutionQuality = "full" | "coords_only" | "geocoded";
+
 export interface LocationResolveResult {
   lat: number;
   lng: number;
@@ -253,6 +255,12 @@ export interface LocationResolveResult {
   google_maps_url: string; // final expanded URL
   unit_number: string | null;
   address_notes: string | null;
+  /** true when reverse geocode failed — UI should show "Address pending" */
+  degraded: boolean;
+  /** full = coords + address + place_id, coords_only = lat/lng only, geocoded = via Google Geocode */
+  resolution_quality: ResolutionQuality;
+  /** How the coordinates were obtained */
+  resolved_via: "url_parse" | "google_geocode" | "cache";
 }
 
 export interface LocationCacheEntry {

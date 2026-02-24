@@ -705,16 +705,24 @@ Error response format:
 
 The system follows a **"return what we have"** philosophy. If coordinates exist in the URL, the request always succeeds — even if Google is unavailable.
 
-| Scenario | Coords in URL | Google Available | Result | HTTP | `resolved_via` |
-|----------|:------------:|:---------------:|--------|:----:|----------------|
-| **1. Full resolve** | ✅ | ✅ | lat/lng + formatted_address + place_id | 200 | `url_parse` |
-| **2. Coords-only** | ✅ | ❌ | lat/lng + place name from URL (or `""`) + `null` place_id | 200 | `url_parse` |
-| **3. Geocode resolve** | ❌ | ✅ | lat/lng + formatted_address + place_id from geocode | 200 | `google_geocode` |
-| **4. Cannot resolve** | ❌ | ❌ | Error: cannot resolve without API | 503 | — |
+| Scenario | Coords in URL | Google Available | `degraded` | `resolution_quality` | `resolved_via` | HTTP |
+|----------|:------------:|:---------------:|:----------:|:-------------------:|:--------------:|:----:|
+| **1. Full resolve** | ✅ | ✅ | `false` | `"full"` | `"url_parse"` | 200 |
+| **2. Coords-only** | ✅ | ❌ | **`true`** | `"coords_only"` | `"url_parse"` | 200 |
+| **3. Geocode resolve** | ❌ | ✅ | `false` | `"geocoded"` | `"google_geocode"` | 200 |
+| **4. Cannot resolve** | ❌ | ❌ | — | — | — | 503 |
 
-**Key design decision:** Scenario 2 returns `200 OK` with partial data — not `503`. The caller receives usable lat/lng and can display a map pin. The `formatted_address` field being empty signals that enrichment was unavailable. This prevents blocking the entire booking flow when Google has a transient outage.
+**UX fields for frontend:**
 
-**Reverse geocode failures are always graceful:** `reverseGeocodeViaGoogle()` returns `null` on any failure (timeout, HTTP error, non-OK status). It never throws. The caller already has lat/lng from URL parsing.
+| Field | Type | Purpose | UI Guidance |
+|-------|------|---------|-------------|
+| `degraded` | `boolean` | `true` when reverse geocode failed | Show **"العنوان قيد التحديث"** (Address pending) |
+| `resolution_quality` | `"full"` \| `"coords_only"` \| `"geocoded"` | Describes how the location was resolved | Use for analytics and conditional UI |
+| `resolved_via` | `"url_parse"` \| `"google_geocode"` \| `"cache"` | Which pipeline stage produced the result | Use for debugging and monitoring |
+
+**Key design decision:** Scenario 2 returns `200 OK` with `degraded: true` — not `503`. The caller receives usable lat/lng and can display a map pin. The `degraded` flag tells the UI to show "Address pending" instead of an empty address field. This prevents blocking the entire booking flow when Google has a transient outage.
+
+**Reverse geocode failures are always graceful:** `reverseGeocodeViaGoogle()` returns `null` on any failure (timeout, HTTP error, non-OK status). It never throws. The caller already has lat/lng from URL parsing. When it fails, `degraded` is set to `true` and `resolution_quality` is set to `"coords_only"`.
 
 ### Coordinate Validation
 
@@ -785,7 +793,7 @@ POST /api/v1/location/resolve
 }
 ```
 
-**Response (200):**
+**Response — Scenario 1: Full resolve (200):**
 ```json
 {
   "lat": 24.7135517,
@@ -795,8 +803,27 @@ POST /api/v1/location/resolve
   "google_maps_url": "https://www.google.com/maps/place/...",
   "unit_number": "12A",
   "address_notes": "البوابة الشمالية",
-  "cached": false,
-  "resolved_via": "url_parse"
+  "degraded": false,
+  "resolution_quality": "full",
+  "resolved_via": "url_parse",
+  "cached": false
+}
+```
+
+**Response — Scenario 2: Coords-only / degraded (200):**
+```json
+{
+  "lat": 24.7135517,
+  "lng": 46.6752957,
+  "formatted_address": "Riyadh Park Mall",
+  "place_id": null,
+  "google_maps_url": "https://www.google.com/maps/place/...",
+  "unit_number": "12A",
+  "address_notes": "البوابة الشمالية",
+  "degraded": true,
+  "resolution_quality": "coords_only",
+  "resolved_via": "url_parse",
+  "cached": false
 }
 ```
 
