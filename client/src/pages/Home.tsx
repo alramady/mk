@@ -532,10 +532,10 @@ export default function Home() {
       <section className="bg-[#f5f7fa] py-12 sm:py-20 section-transition">
         <div className="container">
           <ScrollSection>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-white">
               {lang === "ar" ? "خدماتنا" : "Our Services"}
             </h2>
-            <p className="text-muted-foreground text-center mb-12 max-w-xl mx-auto">
+            <p className="text-[#4a5568] dark:text-gray-400 text-center mb-12 max-w-xl mx-auto">
               {lang === "ar" ? "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة التأجير الشهري" : "A complete suite of services for a seamless monthly rental experience"}
             </p>
           </ScrollSection>
@@ -546,10 +546,10 @@ export default function Home() {
                   <div className="w-12 h-12 rounded-xl bg-[#3ECFC0]/10 flex items-center justify-center mb-4 group-hover:bg-[#3ECFC0]/20 transition-all duration-500 group-hover:scale-110">
                     <service.icon className="h-6 w-6 text-[#3ECFC0] icon-hover transition-transform duration-300 group-hover:scale-110" />
                   </div>
-                  <h3 className="font-heading font-semibold text-lg mb-2 group-hover:text-[#3ECFC0] transition-colors duration-300">
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-[#0B1E2D] dark:text-white group-hover:text-[#3ECFC0] transition-colors duration-300">
                     {lang === "ar" ? service.titleAr : service.titleEn}
                   </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
+                  <p className="text-[#4a5568] dark:text-gray-300 text-sm leading-relaxed">
                     {lang === "ar" ? service.descAr : service.descEn}
                   </p>
                 </CardContent>
@@ -604,10 +604,10 @@ export default function Home() {
           <ScrollSection>
             <div className="flex items-center justify-between mb-6 sm:mb-10">
               <div>
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-[#0B1E2D] dark:text-white">
                   {lang === "ar" ? "عقارات مميزة" : "Featured Properties"}
                 </h2>
-                <p className="text-muted-foreground mt-1">
+                <p className="text-[#4a5568] dark:text-gray-400 mt-1">
                   {lang === "ar" ? "اكتشف أفضل العقارات المتاحة للتأجير الشهري" : "Discover the best monthly rental properties"}
                 </p>
               </div>
@@ -657,10 +657,10 @@ export default function Home() {
       <section className="bg-[#f5f7fa] py-12 sm:py-20 section-transition">
         <div className="container">
           <ScrollSection>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-white">
               {lang === "ar" ? "مدننا" : "Our Cities"}
             </h2>
-            <p className="text-muted-foreground text-center mb-12">
+            <p className="text-[#4a5568] dark:text-gray-400 text-center mb-12">
               {lang === "ar" ? "اكتشف العقارات المتاحة في أبرز المدن السعودية" : "Discover properties in Saudi Arabia's top cities"}
             </p>
           </ScrollSection>
@@ -710,10 +710,10 @@ export default function Home() {
       <section className="py-12 sm:py-20 bg-white section-transition">
         <div className="container">
           <ScrollSection>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-white">
               {lang === "ar" ? "آراء عملائنا" : "What Our Clients Say"}
             </h2>
-            <p className="text-muted-foreground text-center mb-12">
+            <p className="text-[#4a5568] dark:text-gray-400 text-center mb-12">
               {lang === "ar" ? "تجارب حقيقية من مستأجرين وملاك عقارات" : "Real experiences from tenants and property owners"}
             </p>
           </ScrollSection>
