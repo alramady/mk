@@ -1,10 +1,13 @@
 import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const Home = lazy(() => import("./pages/Home"));
 const Search = lazy(() => import("./pages/Search"));
 const UnitDetail = lazy(() => import("./pages/UnitDetail"));
 const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const Verify = lazy(() => import("./pages/Verify"));
 
 function Loading() {
   return (
@@ -16,13 +19,17 @@ function Loading() {
 
 export default function App() {
   return (
-    <Suspense fallback={<Loading />}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/unit/:id" element={<UnitDetail />} />
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    </Suspense>
+    <AuthProvider>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/unit/:id" element={<UnitDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/verify" element={<Verify />} />
+        </Routes>
+      </Suspense>
+    </AuthProvider>
   );
 }

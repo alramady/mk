@@ -425,6 +425,46 @@ app.get("/api/v1/bookings/:id", async (req, res) => {
 //  AUTH — Always proxy to hub-api
 // ═══════════════════════════════════════════════════════════
 
+// Verification endpoints (nested paths: /verification/phone/send, etc.)
+app.post("/api/v1/auth/verification/:channel/send", async (req, res) => {
+  try {
+    const { status, data } = await proxyToHub(`/api/v1/auth/verification/${req.params.channel}/send`, {
+      method: "POST",
+      body: JSON.stringify(req.body),
+      headers: { Authorization: req.headers.authorization ?? "" },
+    });
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(HTTP_STATUS.BAD_GATEWAY).json({ code: ERROR_CODES.PROXY_ERROR, message: "Failed to reach Hub API" });
+  }
+});
+
+app.post("/api/v1/auth/verification/:channel/verify", async (req, res) => {
+  try {
+    const { status, data } = await proxyToHub(`/api/v1/auth/verification/${req.params.channel}/verify`, {
+      method: "POST",
+      body: JSON.stringify(req.body),
+      headers: { Authorization: req.headers.authorization ?? "" },
+    });
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(HTTP_STATUS.BAD_GATEWAY).json({ code: ERROR_CODES.PROXY_ERROR, message: "Failed to reach Hub API" });
+  }
+});
+
+app.get("/api/v1/auth/verification/status", async (req, res) => {
+  try {
+    const { status, data } = await proxyToHub("/api/v1/auth/verification/status", {
+      method: "GET",
+      headers: { Authorization: req.headers.authorization ?? "" },
+    });
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(HTTP_STATUS.BAD_GATEWAY).json({ code: ERROR_CODES.PROXY_ERROR, message: "Failed to reach Hub API" });
+  }
+});
+
+// Single-level auth actions (login, register)
 app.post("/api/v1/auth/:action", async (req, res) => {
   try {
     const { status, data } = await proxyToHub(`/api/v1/auth/${req.params.action}`, {
