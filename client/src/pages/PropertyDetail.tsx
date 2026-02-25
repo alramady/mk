@@ -257,7 +257,7 @@ export default function PropertyDetail() {
                 }}
               />
               {/* Photo count badge */}
-              <div className="absolute bottom-3 end-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 z-10">
+              <div className="absolute bottom-3 end-3 text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 z-10" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', color: '#ffffff' }}>
                 <Eye className="h-3 w-3" />
                 {currentPhoto + 1} / {photos.length}
               </div>
@@ -266,14 +266,16 @@ export default function PropertyDetail() {
                   <button
                     onClick={() => setCurrentPhoto(p => (p - 1 + photos.length) % photos.length)}
                     data-action="true"
-                    className="absolute start-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white"
+                    className="absolute start-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#1f2937' }}
                   >
                     {dir === "rtl" ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
                   </button>
                   <button
                     onClick={() => setCurrentPhoto(p => (p + 1) % photos.length)}
                     data-action="true"
-                    className="absolute end-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#1f2937' }}
                   >
                     {dir === "rtl" ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                   </button>
@@ -282,7 +284,8 @@ export default function PropertyDetail() {
                       <button
                         key={i}
                         onClick={() => setCurrentPhoto(i)}
-                        className={`h-2 rounded-full transition-all ${i === currentPhoto ? "w-6 bg-white" : "w-2 bg-white/50"}`}
+                        className={`h-2 rounded-full transition-all ${i === currentPhoto ? "w-6" : "w-2"}`}
+                        style={{ backgroundColor: i === currentPhoto ? '#ffffff' : 'rgba(255,255,255,0.5)' }}
                       />
                     ))}
                   </div>
