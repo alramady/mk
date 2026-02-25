@@ -13,6 +13,8 @@ import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { rateLimiter, RATE_LIMITS, getClientIP } from "../rate-limiter";
+import { sendOtp, verifyOtp } from "../otp";
+import { ENV } from "./env";
 
 // ─── Auth Event Logger ────────────────────────────────────────────
 function logAuthEvent(event: string, details: Record<string, unknown>) {
@@ -264,6 +266,268 @@ export function registerAuthRoutes(app: Express) {
       console.error("[Auth] Change password failed:", error);
       logAuthEvent("PASSWORD_CHANGE_ERROR", { ip, error: String(error) });
       res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
+  // ─── OTP Send ────────────────────────────────────────────────────
+  app.post("/api/v1/auth/otp/send", async (req: Request, res: Response) => {
+    const ip = getClientIP(req);
+    try {
+      const { channel, destination, purpose, lang } = req.body;
+
+      if (!channel || !destination || !purpose) {
+        res.status(400).json({
+          error: "channel, destination, and purpose are required",
+          errorAr: "القناة والوجهة والغرض مطلوبة",
+        });
+        return;
+      }
+
+      if (channel !== "phone" && channel !== "email") {
+        res.status(400).json({ error: "channel must be phone or email", errorAr: "القناة يجب أن تكون هاتف أو إيميل" });
+        return;
+      }
+
+      // Basic validation
+      if (channel === "phone") {
+        // Must be E.164 format
+        if (!/^\+[1-9]\d{6,14}$/.test(destination)) {
+          res.status(400).json({
+            error: "Phone must be in E.164 format (e.g., +966501234567)",
+            errorAr: "رقم الهاتف يجب أن يكون بصيغة دولية (مثال: +966501234567)",
+          });
+          return;
+        }
+      } else {
+        // Basic email check
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destination)) {
+          res.status(400).json({ error: "Invalid email address", errorAr: "بريد إلكتروني غير صالح" });
+          return;
+        }
+      }
+
+      const result = await sendOtp({
+        channel,
+        destination,
+        purpose,
+        ip,
+        lang: lang || "ar",
+      });
+
+      if (!result.success) {
+        res.status(429).json(result);
+        return;
+      }
+
+      const response: Record<string, unknown> = { success: true };
+      // In dev mode, return the code for testing
+      if (result.devCode) {
+        response.devCode = result.devCode;
+      }
+
+      logAuthEvent("OTP_SENT", { channel, destination, purpose, ip });
+      res.json(response);
+    } catch (error) {
+      console.error("[Auth] OTP send failed:", error);
+      logAuthEvent("OTP_SEND_ERROR", { ip, error: String(error) });
+      res.status(500).json({ error: "Failed to send OTP", errorAr: "فشل إرسال رمز التحقق" });
+    }
+  });
+
+  // ─── OTP Verify ──────────────────────────────────────────────────
+  app.post("/api/v1/auth/otp/verify", async (req: Request, res: Response) => {
+    const ip = getClientIP(req);
+    try {
+      const { channel, destination, code, purpose } = req.body;
+
+      if (!channel || !destination || !code || !purpose) {
+        res.status(400).json({
+          error: "channel, destination, code, and purpose are required",
+          errorAr: "القناة والوجهة والرمز والغرض مطلوبة",
+        });
+        return;
+      }
+
+      const result = await verifyOtp({ channel, destination, code, purpose, ip });
+
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+
+      // If purpose is registration, update user verification status
+      if (purpose === "registration") {
+        const user = channel === "phone"
+          ? await db.getUserByPhone(destination)
+          : await db.getUserByEmail(destination);
+
+        if (user) {
+          const updates: Record<string, unknown> = {};
+          if (channel === "phone") {
+            updates.phoneVerified = true;
+            updates.verificationStatus = user.emailVerified ? "fully_verified" : "phone_verified";
+          } else {
+            updates.emailVerified = true;
+            updates.verificationStatus = user.phoneVerified ? "fully_verified" : "email_verified";
+          }
+          // If both verified, mark as fully verified and isVerified
+          if ((channel === "phone" && user.emailVerified) || (channel === "email" && user.phoneVerified)) {
+            updates.isVerified = true;
+            updates.verificationStatus = "fully_verified";
+          }
+          await db.updateUserProfile(user.id, updates as any);
+
+          // If fully verified, auto-login
+          const updatedUser = await db.getUserById(user.id);
+          if (updatedUser && updatedUser.verificationStatus === "fully_verified") {
+            const openId = updatedUser.openId;
+            const sessionToken = await sdk.createSessionToken(openId, {
+              name: updatedUser.displayName || updatedUser.name || updatedUser.userId || "User",
+              expiresInMs: ONE_YEAR_MS,
+            });
+            const cookieOptions = getSessionCookieOptions(req);
+            res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+            logAuthEvent("OTP_VERIFY_FULL", { channel, destination, purpose, userId: user.id, ip });
+            res.json({
+              success: true,
+              fullyVerified: true,
+              user: {
+                id: updatedUser.id,
+                userId: updatedUser.userId,
+                displayName: updatedUser.displayName,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+              },
+            });
+            return;
+          }
+        }
+      }
+
+      logAuthEvent("OTP_VERIFIED", { channel, destination, purpose, ip });
+      res.json({ success: true, fullyVerified: false });
+    } catch (error) {
+      console.error("[Auth] OTP verify failed:", error);
+      logAuthEvent("OTP_VERIFY_ERROR", { ip, error: String(error) });
+      res.status(500).json({ error: "Failed to verify OTP", errorAr: "فشل التحقق من الرمز" });
+    }
+  });
+
+  // ─── V1 Register (with pending verification) ─────────────────────
+  app.post("/api/v1/auth/register", async (req: Request, res: Response) => {
+    const ip = getClientIP(req);
+
+    const rl = rateLimiter.check(`auth:register:${ip}`, RATE_LIMITS.AUTH.maxRequests, RATE_LIMITS.AUTH.windowMs);
+    if (!rl.allowed) {
+      logAuthEvent("REGISTER_V1_RATE_LIMITED", { ip, resetIn: rl.resetIn });
+      res.status(429).json({
+        error: "Too many registration attempts. Please try again later.",
+        errorAr: "محاولات تسجيل كثيرة. يرجى المحاولة لاحقاً.",
+        retryAfterMs: rl.resetIn,
+      });
+      return;
+    }
+
+    try {
+      const { userId, password, displayName, name, nameAr, email, phone } = req.body;
+
+      if (!userId || !password || !displayName || !email || !phone) {
+        res.status(400).json({
+          error: "userId, password, displayName, email, and phone are required",
+          errorAr: "معرف المستخدم وكلمة المرور واسم العرض والإيميل ورقم الهاتف مطلوبة",
+        });
+        return;
+      }
+
+      if (password.length < 6) {
+        res.status(400).json({
+          error: "Password must be at least 6 characters",
+          errorAr: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+        });
+        return;
+      }
+
+      // Validate phone E.164
+      if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+        res.status(400).json({
+          error: "Phone must be in E.164 format (e.g., +966501234567)",
+          errorAr: "رقم الهاتف يجب أن يكون بصيغة دولية",
+        });
+        return;
+      }
+
+      // Check if userId already exists
+      const existing = await db.getUserByUserId(userId);
+      if (existing) {
+        res.status(409).json({
+          error: "User ID already exists",
+          errorAr: "معرف المستخدم موجود مسبقاً",
+        });
+        return;
+      }
+
+      // Check if phone already exists
+      const existingPhone = await db.getUserByPhone(phone);
+      if (existingPhone) {
+        res.status(409).json({
+          error: "Phone number already registered",
+          errorAr: "رقم الهاتف مسجل مسبقاً",
+        });
+        return;
+      }
+
+      // Check if email already exists
+      const existingEmail = await db.getUserByEmail(email);
+      if (existingEmail) {
+        res.status(409).json({
+          error: "Email already registered",
+          errorAr: "البريد الإلكتروني مسجل مسبقاً",
+        });
+        return;
+      }
+
+      // Hash password
+      const salt = await bcrypt.genSalt(12);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      // Create user in pending_verification status
+      const newUserId = await db.createLocalUser({
+        userId,
+        passwordHash,
+        displayName,
+        name: name || displayName,
+        nameAr,
+        email,
+        phone,
+        role: "user",
+      });
+
+      if (!newUserId) {
+        res.status(500).json({
+          error: "Failed to create user",
+          errorAr: "فشل إنشاء الحساب",
+        });
+        return;
+      }
+
+      logAuthEvent("REGISTER_V1_SUCCESS", { userId, newUserId, ip, status: "pending_verification" });
+
+      res.json({
+        success: true,
+        userId: newUserId,
+        verificationStatus: "pending",
+        phone,
+        email,
+      });
+    } catch (error) {
+      console.error("[Auth] V1 Register failed:", error);
+      logAuthEvent("REGISTER_V1_ERROR", { ip, error: String(error) });
+      res.status(500).json({
+        error: "Registration failed",
+        errorAr: "فشل التسجيل",
+      });
     }
   });
 

@@ -736,6 +736,20 @@ export async function createLocalUser(data: {
   return result[0].insertId;
 }
 
+export async function getUserByPhone(phone: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function updateUserPassword(userId: number, passwordHash: string) {
   const db = await getDb();
   if (!db) return;

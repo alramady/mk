@@ -39,6 +39,9 @@ export const users = mysqlTable("users", {
   bioAr: text("bioAr"),
   preferredLang: mysqlEnum("preferredLang", ["ar", "en"]).default("ar"),
   isVerified: boolean("isVerified").default(false),
+  phoneVerified: boolean("phoneVerified").default(false),
+  emailVerified: boolean("emailVerified").default(false),
+  verificationStatus: mysqlEnum("verificationStatus", ["pending", "phone_verified", "email_verified", "fully_verified"]).default("pending"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -585,3 +588,20 @@ export const aiDocuments = mysqlTable("ai_documents", {
 });
 export type AiDocument = typeof aiDocuments.$inferSelect;
 export type InsertAiDocument = typeof aiDocuments.$inferInsert;
+
+// ─── OTP Codes ──────────────────────────────────────────────────────
+export const otpCodes = mysqlTable("otp_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"),
+  channel: mysqlEnum("channel", ["phone", "email"]).notNull(),
+  destination: varchar("destination", { length: 320 }).notNull(),
+  codeHash: varchar("codeHash", { length: 255 }).notNull(),
+  purpose: varchar("purpose", { length: 50 }).notNull().default("registration"),
+  expiresAt: timestamp("expiresAt").notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  maxAttempts: int("maxAttempts").default(5).notNull(),
+  consumedAt: timestamp("consumedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type OtpCode = typeof otpCodes.$inferSelect;
+export type InsertOtpCode = typeof otpCodes.$inferInsert;

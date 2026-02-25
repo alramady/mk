@@ -26,4 +26,11 @@ export const ENV = {
   // Push Notifications (VAPID) - local web-push
   vapidPublicKey: process.env.VITE_VAPID_PUBLIC_KEY ?? "",
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
+  // OTP / Verification
+  otpSecretPepper: process.env.OTP_SECRET_PEPPER ?? "dev-otp-pepper-change-in-production",
+  otpTtlSeconds: parseInt(process.env.OTP_TTL_SECONDS ?? "300"),
+  smsProvider: process.env.SMS_PROVIDER ?? "dev",
+  smsApiKey: process.env.SMS_API_KEY ?? "",
+  emailProvider: process.env.EMAIL_PROVIDER ?? "dev",
+  emailApiKey: process.env.EMAIL_API_KEY ?? "",
 };
