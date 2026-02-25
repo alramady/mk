@@ -230,6 +230,9 @@ export default function Search() {
         )}
       </div>
 
+      {/* Bottom spacer for FABs on mobile */}
+      <div className="h-20 sm:h-0" />
+
       <HelpFAB locale={locale} />
     </div>
   );

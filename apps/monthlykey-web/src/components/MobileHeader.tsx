@@ -58,7 +58,7 @@ export default function MobileHeader({ transparent = false, hideSearch = false }
     : "bg-mk-navy sticky top-0 z-50 shadow-sm";
 
   return (
-    <header className={bgClass}>
+    <header className={bgClass} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Row A: Controls + Logo + Controls */}
       <div className="flex items-center justify-between px-4 py-3">
         {/* Left: Hamburger (mobile) */}

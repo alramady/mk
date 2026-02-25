@@ -343,7 +343,7 @@ function MobileFilterSheet({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div
         className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
+        style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 16px))" }}
       >
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-gray-300" />

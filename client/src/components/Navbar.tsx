@@ -252,7 +252,7 @@ export default function Navbar() {
         : isHome 
           ? "bg-[#0B1E2D]" 
           : "bg-[#0B1E2D]/95 backdrop-blur"
-    }`}>
+    }`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="container">
         <div className="flex h-16 sm:h-20 items-center justify-between">
           {/* Logo — light variant on dark navbar, fixed height, no stretch */}

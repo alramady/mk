@@ -171,7 +171,7 @@ export default function Footer() {
 
       {/* Copyright Bar */}
       <div className="border-t border-white/5 bg-[#071520]">
-        <div className="container py-3.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-white/20">
+        <div className="container py-3.5 pb-24 sm:pb-3.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-white/20">
           <p>&copy; {year} Monthly Key - {siteName}. {t("footer.rights")}.</p>
           <div className="flex items-center gap-3">
             <Link href="/privacy" className="hover:text-[#3ECFC0] transition-colors">{t("footer.privacy")}</Link>
