@@ -33,83 +33,58 @@ dotenv.config();
 // ─── Photo URL Pools ────────────────────────────────────────────────────────
 
 const CDN = {
-  apt1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt1.jpeg",
-  apt2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt2.jpeg",
-  apt3: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt3.jpeg",
-  villa1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa1.jpg",
-  villa2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa2.jpg",
-  villa3: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa3.webp",
-  studio1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/studio1.jpeg",
-  studio2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/studio2.jpeg",
+  apt1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
+  apt2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XiUOcEDYrBvXeHBV.jpg",
+  apt3: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
+  villa1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+  villa2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+  villa3: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+  studio1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
+  studio2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
 };
 
 const U = {
   apt: [
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XiUOcEDYrBvXeHBV.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",
   ],
   villa: [
-    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/YVFDFNOrkJFOHnnK.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",
   ],
   studio: [
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
   ],
   room: [
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
   ],
   duplex: [
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/RtkavXViypgMuShv.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",
   ],
   hotel: [
-    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/fWMwLCqNgiFXqzBU.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",
   ],
   compound: [
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/YVFDFNOrkJFOHnnK.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
   ],
 };
 
@@ -123,6 +98,10 @@ function isValidPhotoUrl(url) {
   if (typeof url !== "string") return false;
   if (!url.startsWith("https://")) return false;
   if (url.includes("/uploads/")) return false;
+  // Reject Unsplash URLs — they are blocked on some browsers/environments
+  if (url.includes("images.unsplash.com")) return false;
+  // Reject old jsdelivr CDN URLs that may not exist
+  if (url.includes("cdn.jsdelivr.net")) return false;
   // Must be a real image host, not the app's own domain serving HTML
   return true;
 }

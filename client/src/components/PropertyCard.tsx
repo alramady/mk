@@ -6,18 +6,18 @@ import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-// Reliable fallback images by property type (Unsplash, always available)
+// Reliable fallback images by property type (S3 CDN, always available)
 const FALLBACK_IMAGES: Record<string, string> = {
-  apartment: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop",
-  villa: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&h=400&fit=crop",
-  studio: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=400&fit=crop",
-  duplex: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop",
-  furnished_room: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&h=400&fit=crop",
-  compound: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=400&fit=crop",
-  hotel_apartment: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600&h=400&fit=crop",
-  default: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&h=400&fit=crop",
+  apartment: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
+  villa: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+  studio: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
+  duplex: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/RtkavXViypgMuShv.jpg",
+  furnished_room: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",
+  compound: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/YVFDFNOrkJFOHnnK.jpg",
+  hotel_apartment: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/fWMwLCqNgiFXqzBU.jpg",
+  default: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
 };
 
 interface PropertyCardProps {
@@ -49,7 +49,6 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
   const { t, lang } = useI18n();
   const { isAuthenticated } = useAuth();
   const utils = trpc.useUtils();
-  const imgRef = useRef<HTMLImageElement>(null);
 
   const favCheck = trpc.favorite.check.useQuery(
     { propertyId: property.id },
@@ -69,20 +68,16 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
   const fallbackImg = FALLBACK_IMAGES[property.propertyType] || FALLBACK_IMAGES.default;
   const originalPhoto = property.photos?.[0];
-  const [imgSrc, setImgSrc] = useState(originalPhoto || fallbackImg);
+  // Skip broken /uploads/ URLs immediately — they return HTML on Railway
+  const isValidPhoto = originalPhoto && !originalPhoto.startsWith("/uploads/") && originalPhoto.startsWith("http");
+  const [imgSrc, setImgSrc] = useState(isValidPhoto ? originalPhoto : fallbackImg);
   const [imgStatus, setImgStatus] = useState<"loading" | "loaded" | "error">("loading");
 
-  // Validate that the image actually rendered pixels (catches HTML-as-image responses)
+  // When image loads successfully, mark as loaded
+  // Note: naturalWidth check removed — it caused false negatives with some CDN images
   const handleLoad = useCallback(() => {
-    const img = imgRef.current;
-    if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
-      setImgStatus("loaded");
-    } else {
-      // Image "loaded" but has no pixels — it's not a real image
-      setImgSrc(fallbackImg);
-      setImgStatus("loading"); // will re-trigger load with fallback
-    }
-  }, [fallbackImg]);
+    setImgStatus("loaded");
+  }, []);
 
   const handleError = useCallback(() => {
     if (imgSrc !== fallbackImg) {
@@ -136,7 +131,6 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             </div>
           )}
           <img
-            ref={imgRef}
             src={imgSrc}
             alt={title}
             loading="lazy"

@@ -161,7 +161,7 @@ export default function LandlordDashboard() {
                   <Card key={p.id} className="card-hover transition-shadow">
                     <CardContent className="p-4 flex items-center gap-4">
                       <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-muted">
-                        <img src={p.photos?.[0] || "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=200&fit=crop"} alt="" className="w-full h-full object-cover" />
+                        <img src={p.photos?.[0] || "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg"} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

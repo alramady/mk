@@ -161,7 +161,7 @@ export default function BookingFlow() {
           <CardContent className="p-0">
             <div className="flex items-stretch">
               <div className="w-28 h-28 shrink-0 bg-muted">
-                <img src={prop.photos?.[0] || "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=200&fit=crop"} alt="" className="w-full h-full object-cover" />
+                <img src={prop.photos?.[0] || "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg"} alt="" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 p-4 flex flex-col justify-center">
                 <h3 className="font-semibold text-base">{title}</h3>

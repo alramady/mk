@@ -5,93 +5,61 @@ dotenv.config();
 
 const pool = mysql.createPool(process.env.DATABASE_URL);
 
-// CDN image URLs (original repo assets)
+// S3 CDN image URLs (permanent, reliable)
 const CDN = {
-  apt1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt1.jpeg",
-  apt2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt2.jpeg",
-  apt3: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt3.jpeg",
-  villa1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa1.jpg",
-  villa2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa2.jpg",
-  villa3: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa3.webp",
-  studio1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/studio1.jpeg",
-  studio2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/studio2.jpeg",
+  apt1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
+  apt2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XiUOcEDYrBvXeHBV.jpg",
+  apt3: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
+  villa1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+  villa2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+  villa3: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
+  studio1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
+  studio2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
 };
 
-// Stable Unsplash photo pools by property type (direct image URLs, no redirects)
+// S3 CDN photo pools by property type (permanent, reliable URLs)
 const U = {
-  // Modern apartments — interiors, living rooms, kitchens, bedrooms, bathrooms, balconies
   apt: [
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",  // living room
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",  // apartment interior
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",  // cozy living
-    "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&h=600&fit=crop",  // bedroom
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",  // kitchen
-    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",  // modern apt
-    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",  // bathroom
-    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",  // balcony view
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",  // exterior
-    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop",  // dining
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",  // luxury apartment living room
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XiUOcEDYrBvXeHBV.jpg",  // sea view apartment
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // master bedroom
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // modern kitchen
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",  // furnished room
   ],
-  // Villas — exteriors, gardens, pools, spacious interiors
   villa: [
-    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop",  // modern villa
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",  // villa exterior
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",  // luxury home
-    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",  // villa interior
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",  // modern house
-    "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop",  // pool
-    "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop",  // house front
-    "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800&h=600&fit=crop",  // garden
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop",  // luxury exterior
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",  // villa exterior with pool
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/YVFDFNOrkJFOHnnK.jpg",  // compound/villa community
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // kitchen
   ],
-  // Studios — compact, modern, efficient spaces
   studio: [
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",  // studio living
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",  // bedroom
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",  // interior
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",  // kitchen
-    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",  // bathroom
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",  // living
-    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",  // modern
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",  // studio interior
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",  // furnished room
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // kitchen
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
   ],
-  // Duplexes — two-story, spacious
   duplex: [
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",  // exterior
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",  // home
-    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",  // interior
-    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop",  // dining
-    "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&h=600&fit=crop",  // bedroom
-    "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop",  // front
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",  // modern
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/RtkavXViypgMuShv.jpg",  // duplex staircase interior
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",  // living room
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // kitchen
   ],
-  // Furnished rooms — cozy, compact, hotel-like
   room: [
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",  // bedroom
-    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&h=600&fit=crop",  // hotel room
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",  // interior
-    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",  // bathroom
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",  // living
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",  // room
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",  // furnished room
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",  // studio
   ],
-  // Compounds — gated communities, shared amenities
   compound: [
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",  // compound
-    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop",  // villa
-    "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop",  // pool
-    "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800&h=600&fit=crop",  // garden
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",  // house
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",  // exterior
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop",  // luxury
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/YVFDFNOrkJFOHnnK.jpg",  // compound aerial
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",  // villa
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",  // living room
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
   ],
-  // Hotel apartments — premium, serviced
   hotel: [
-    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&h=600&fit=crop",  // hotel room
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",  // bedroom
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",  // living
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",  // kitchen
-    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",  // bathroom
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",  // interior
-    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",  // modern
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/fWMwLCqNgiFXqzBU.jpg",  // hotel apartment suite
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",  // furnished room
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // kitchen
   ],
 };
 
