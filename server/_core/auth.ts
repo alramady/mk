@@ -103,9 +103,6 @@ export function registerAuthRoutes(app: Express) {
       res.status(500).json({
         error: "Login failed",
         errorAr: "فشل تسجيل الدخول",
-        debug: String(error),
-        debugStack: (error as any)?.stack?.substring(0, 500),
-        debugCause: String((error as any)?.cause),
       });
     }
   });
@@ -367,24 +364,12 @@ export function registerAuthRoutes(app: Express) {
           : await db.getUserByEmail(destination);
 
         if (user) {
-          const updates: Record<string, unknown> = {};
-          if (channel === "phone") {
-            updates.phoneVerified = true;
-            updates.verificationStatus = user.emailVerified ? "fully_verified" : "phone_verified";
-          } else {
-            updates.emailVerified = true;
-            updates.verificationStatus = user.phoneVerified ? "fully_verified" : "email_verified";
-          }
-          // If both verified, mark as fully verified and isVerified
-          if ((channel === "phone" && user.emailVerified) || (channel === "email" && user.phoneVerified)) {
-            updates.isVerified = true;
-            updates.verificationStatus = "fully_verified";
-          }
-          await db.updateUserProfile(user.id, updates as any);
+          // Mark user as verified after OTP confirmation
+          await db.updateUserProfile(user.id, { isVerified: true } as any);
 
-          // If fully verified, auto-login
+          // Auto-login after verification
           const updatedUser = await db.getUserById(user.id);
-          if (updatedUser && updatedUser.verificationStatus === "fully_verified") {
+          if (updatedUser) {
             const openId = updatedUser.openId;
             const sessionToken = await sdk.createSessionToken(openId, {
               name: updatedUser.displayName || updatedUser.name || updatedUser.userId || "User",
