@@ -34,7 +34,7 @@ export default function NotFound() {
           {/* Gold key icon overlay */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+              src="/logo-mark.svg" 
               alt="" 
               className="h-16 sm:h-20 w-auto opacity-20 drop-shadow-lg"
             />

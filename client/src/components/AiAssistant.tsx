@@ -202,8 +202,11 @@ export default function AiAssistant() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow group"
-            style={{ [dir === "rtl" ? "left" : "right"]: "1.5rem" }}
+            className="fixed z-50 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow group"
+            style={{
+              bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))",
+              ...(dir === "rtl" ? { left: "1.5rem" } : { right: "1.5rem" }),
+            }}
           >
             <Bot className="w-7 h-7 group-hover:hidden" />
             <Sparkles className="w-7 h-7 hidden group-hover:block" />
@@ -221,8 +224,11 @@ export default function AiAssistant() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-4 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-2rem)]"
-            style={{ [dir === "rtl" ? "left" : "right"]: "1rem" }}
+            className="fixed z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-2rem)]"
+            style={{
+              bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+              ...(dir === "rtl" ? { left: "1rem" } : { right: "1rem" }),
+            }}
           >
             <Card className="flex flex-col h-full overflow-hidden shadow-2xl border-emerald-200/50">
               {/* Header */}

@@ -57,7 +57,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+              src="/logo-mark.svg" 
               alt="Monthly Key - المفتاح الشهري" 
               className="h-32 sm:h-36 w-auto object-contain mx-auto drop-shadow-lg" 
             />

@@ -907,3 +907,16 @@
 - [ ] F1: i18n tab title: AR=المفتاح الشهري / EN=Monthly Key
 - [ ] F2: html lang/dir switch + RTL layout stability
 - [ ] G: Commit + push to GitHub
+
+
+## Remaining Items from Requirements A-E (pasted_content_8)
+- [ ] B: logo-mark.svg (icon only, clean SVG of current M+Key concept)
+- [ ] B: logo-horizontal.svg (icon + wordmark)
+- [ ] B: logo-ar.svg (Arabic wordmark: المفتاح الشهري)
+- [ ] B: Dark/light logo variants for navbar
+- [ ] B: Fix logo sizing/spacing in navbar (premium centered look)
+- [ ] B: Browser tab title: EN → "Monthly Key", AR → "المفتاح الشهري" (i18n)
+- [ ] B: Favicon: key mark, crisp at 16/32/48
+- [ ] B: Implement Helmet or equivalent for document.title + meta tags
+- [ ] A: WhatsApp + AI FAB: organized, RTL-aware, safe spacing from iOS bottom bar
+- [ ] E: Tests for i18n title switching

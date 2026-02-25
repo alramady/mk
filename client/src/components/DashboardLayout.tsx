@@ -73,7 +73,7 @@ export default function DashboardLayout({
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
           <div className="flex flex-col items-center gap-6">
             <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+              src="/logo-mark.svg" 
               alt="Monthly Key - المفتاح الشهري" 
               className="h-28 w-auto object-contain drop-shadow-lg" 
             />
@@ -188,7 +188,7 @@ function DashboardLayoutContent({
               {!isCollapsed ? (
                 <div className="flex items-center min-w-0">
                   <img 
-                    src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cmeFBlxDvNwHknXc.png" 
+                    src="/logo-horizontal.svg" 
                     alt="Monthly Key - المفتاح الشهري" 
                     className="h-10 w-auto object-contain" 
                   />
@@ -196,7 +196,7 @@ function DashboardLayoutContent({
               ) : (
                 <div className="flex items-center justify-center">
                   <img 
-                    src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/yyVBpJruTpHFNMtN.png" 
+                    src="/logo-mark.svg" 
                     alt="MK" 
                     className="h-8 w-8 object-contain" 
                   />

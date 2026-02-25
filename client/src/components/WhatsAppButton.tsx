@@ -36,9 +36,13 @@ export default function WhatsAppButton() {
 
   return (
     <div
-      className={`fixed bottom-6 start-6 z-50 flex items-end gap-3 transition-all duration-700 ${
+      className={`fixed z-50 flex items-end gap-3 transition-all duration-700 ${
         visible ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
       }`}
+      style={{
+        bottom: "calc(5.5rem + env(safe-area-inset-bottom, 0px))",
+        ...(lang === "ar" ? { left: "1.5rem" } : { right: "1.5rem" }),
+      }}
     >
       {/* Tooltip bubble */}
       <div

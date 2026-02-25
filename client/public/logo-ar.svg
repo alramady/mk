@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" fill="none">
+  <!-- M letter - dark navy -->
+  <path d="M12 65V20l16 20 16-20v45" stroke="#0B1E2D" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Key shaft - gold -->
+  <path d="M44 42v26" stroke="#C9A96E" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Key teeth - gold -->
+  <path d="M44 60h6M44 53h5" stroke="#C9A96E" stroke-width="3" stroke-linecap="round"/>
+  <!-- Key bow - gold -->
+  <circle cx="44" cy="36" r="6" stroke="#C9A96E" stroke-width="3" fill="none"/>
+  <!-- Arabic wordmark "المفتاح الشهري" -->
+  <text x="72" y="52" font-family="'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', sans-serif" font-size="26" font-weight="600" fill="#0B1E2D" letter-spacing="0.5" direction="rtl">المفتاح الشهري</text>
+</svg>

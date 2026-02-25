@@ -36,8 +36,8 @@ export default function Footer() {
           <div className="md:col-span-4 flex flex-col items-center md:items-start">
             {/* Logo - transparent, no card */}
             <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
-              alt="Monthly Key - المفتاح الشهري" 
+              src={lang === "ar" ? "/logo-ar-light.svg" : "/logo-horizontal-light.svg"}
+              alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"} 
               className="h-20 sm:h-24 w-auto object-contain mb-5 drop-shadow-lg" 
             />
             <div className="w-12 h-0.5 bg-gradient-to-r from-[#C9A96E] to-[#3ECFC0] mb-4 rounded-full" />

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useI18n } from "@/lib/i18n";
 
 interface SEOHeadProps {
   title?: string;
@@ -11,7 +12,10 @@ interface SEOHeadProps {
 }
 
 const BASE_URL = "https://www.monthlykey.com";
-const SITE_NAME = "المفتاح الشهري";
+const SITE_NAME_EN = "Monthly Key";
+const SITE_NAME_AR = "المفتاح الشهري";
+const TAGLINE_EN = "Premium Monthly Rentals in Saudi Arabia";
+const TAGLINE_AR = "منصة التأجير الشهري في السعودية";
 
 export default function SEOHead({
   title,
@@ -22,15 +26,25 @@ export default function SEOHead({
   type = "website",
   noindex = false,
 }: SEOHeadProps) {
+  const { lang } = useI18n();
+
   useEffect(() => {
-    const fullTitle = title
-      ? `${title}${titleAr ? ` | ${titleAr}` : ""} - ${SITE_NAME}`
-      : `${SITE_NAME} | إيجار شهري - منصة التأجير الشهري في السعودية`;
+    const siteName = lang === "ar" ? SITE_NAME_AR : SITE_NAME_EN;
+    const tagline = lang === "ar" ? TAGLINE_AR : TAGLINE_EN;
+
+    let fullTitle: string;
+    if (title || titleAr) {
+      const pageTitle = lang === "ar" ? (titleAr || title) : (title || titleAr);
+      fullTitle = `${pageTitle} - ${siteName}`;
+    } else {
+      fullTitle = `${siteName} | ${tagline}`;
+    }
 
     const fullDesc =
-      description ||
-      descriptionAr ||
-      "المفتاح الشهري - المنصة الرائدة للتأجير الشهري في المملكة العربية السعودية";
+      (lang === "ar" ? (descriptionAr || description) : (description || descriptionAr)) ||
+      (lang === "ar"
+        ? "المفتاح الشهري - المنصة الرائدة للتأجير الشهري في المملكة العربية السعودية"
+        : "Monthly Key - The leading monthly rental platform in Saudi Arabia");
 
     const url = `${BASE_URL}${path}`;
 
@@ -54,11 +68,17 @@ export default function SEOHead({
       setMeta("name", "robots", "noindex, nofollow");
     }
 
+    // Update html lang and dir
+    document.documentElement.lang = lang === "ar" ? "ar" : "en";
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+
     // Open Graph
     setMeta("property", "og:title", fullTitle);
     setMeta("property", "og:description", fullDesc);
     setMeta("property", "og:url", url);
     setMeta("property", "og:type", type);
+    setMeta("property", "og:site_name", siteName);
+    setMeta("property", "og:locale", lang === "ar" ? "ar_SA" : "en_US");
 
     // Twitter
     setMeta("name", "twitter:title", fullTitle);
@@ -76,9 +96,11 @@ export default function SEOHead({
 
     return () => {
       // Reset title on unmount
-      document.title = `${SITE_NAME} - منصة التأجير الشهري في السعودية`;
+      const resetName = lang === "ar" ? SITE_NAME_AR : SITE_NAME_EN;
+      const resetTag = lang === "ar" ? TAGLINE_AR : TAGLINE_EN;
+      document.title = `${resetName} | ${resetTag}`;
     };
-  }, [title, titleAr, description, descriptionAr, path, type, noindex]);
+  }, [title, titleAr, description, descriptionAr, path, type, noindex, lang]);
 
   return null;
 }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- M letter - dark navy -->
+  <path d="M20 85V35l20 25 20-25v50" stroke="#0B1E2D" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Key shaft (right leg of M extends down as key) - gold -->
+  <path d="M60 60v32" stroke="#C9A96E" stroke-width="6" stroke-linecap="round"/>
+  <!-- Key teeth - gold -->
+  <path d="M60 82h8M60 74h6" stroke="#C9A96E" stroke-width="4" stroke-linecap="round"/>
+  <!-- Key bow (circle at top of key, integrated with M) - gold -->
+  <circle cx="60" cy="52" r="8" stroke="#C9A96E" stroke-width="4" fill="none"/>
+</svg>

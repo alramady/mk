@@ -257,10 +257,10 @@ export default function Navbar() {
         <div className="flex h-16 sm:h-20 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center transition-transform duration-300 hover:scale-105 group">
-            <div className="bg-white rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
               <img 
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cmeFBlxDvNwHknXc.png" 
-                alt="Monthly Key - المفتاح الشهري" 
+                src={lang === "ar" ? "/logo-ar.svg" : "/logo-horizontal.svg"}
+                alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
                 className="h-8 sm:h-10 w-auto object-contain" 
               />
             </div>

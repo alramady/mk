@@ -85,7 +85,7 @@ export default function Register() {
         <div className="text-center mb-6">
           <Link href="/" className="inline-block">
             <img 
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+              src="/logo-mark.svg" 
               alt="Monthly Key - المفتاح الشهري" 
               className="h-28 sm:h-32 w-auto object-contain mx-auto drop-shadow-lg" 
             />

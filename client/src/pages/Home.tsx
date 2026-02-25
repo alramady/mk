@@ -453,7 +453,7 @@ export default function Home() {
             {/* Brand Logo in Hero - clean inline mark, no card */}
             <div className="hero-logo mb-3 animate-slide-right">
               <img 
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/LAetNVqmPGBDJbDc.png" 
+                src="/logo-horizontal-light.svg" 
                 alt="المفتاح الشهري - شعار منصة التأجير الشهري في السعودية" 
                 className="h-[56px] sm:h-[72px] md:h-[88px] w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" 
               />
@@ -759,7 +759,7 @@ export default function Home() {
         <ScrollSection className="container relative text-center">
           {/* Brand watermark */}
           <img 
-            src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/yyVBpJruTpHFNMtN.png" 
+            src="/logo-mark.svg" 
             alt="" 
             className="h-20 sm:h-24 w-auto object-contain mx-auto mb-6 opacity-10" 
           />
