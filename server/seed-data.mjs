@@ -5,8 +5,8 @@ dotenv.config();
 
 const pool = mysql.createPool(process.env.DATABASE_URL);
 
-// CDN image URLs
-const IMAGES = {
+// CDN image URLs (original repo assets)
+const CDN = {
   apt1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt1.jpeg",
   apt2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt2.jpeg",
   apt3: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt3.jpeg",
@@ -15,6 +15,84 @@ const IMAGES = {
   villa3: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa3.webp",
   studio1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/studio1.jpeg",
   studio2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/studio2.jpeg",
+};
+
+// Stable Unsplash photo pools by property type (direct image URLs, no redirects)
+const U = {
+  // Modern apartments — interiors, living rooms, kitchens, bedrooms, bathrooms, balconies
+  apt: [
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",  // living room
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",  // apartment interior
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",  // cozy living
+    "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&h=600&fit=crop",  // bedroom
+    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",  // kitchen
+    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",  // modern apt
+    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",  // bathroom
+    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",  // balcony view
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",  // exterior
+    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop",  // dining
+  ],
+  // Villas — exteriors, gardens, pools, spacious interiors
+  villa: [
+    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop",  // modern villa
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",  // villa exterior
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",  // luxury home
+    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",  // villa interior
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",  // modern house
+    "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop",  // pool
+    "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop",  // house front
+    "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800&h=600&fit=crop",  // garden
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop",  // luxury exterior
+  ],
+  // Studios — compact, modern, efficient spaces
+  studio: [
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",  // studio living
+    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",  // bedroom
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",  // interior
+    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",  // kitchen
+    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",  // bathroom
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",  // living
+    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",  // modern
+  ],
+  // Duplexes — two-story, spacious
+  duplex: [
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",  // exterior
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",  // home
+    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",  // interior
+    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop",  // dining
+    "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&h=600&fit=crop",  // bedroom
+    "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop",  // front
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",  // modern
+  ],
+  // Furnished rooms — cozy, compact, hotel-like
+  room: [
+    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",  // bedroom
+    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&h=600&fit=crop",  // hotel room
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",  // interior
+    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",  // bathroom
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",  // living
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",  // room
+  ],
+  // Compounds — gated communities, shared amenities
+  compound: [
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",  // compound
+    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop",  // villa
+    "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop",  // pool
+    "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800&h=600&fit=crop",  // garden
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",  // house
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",  // exterior
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop",  // luxury
+  ],
+  // Hotel apartments — premium, serviced
+  hotel: [
+    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&h=600&fit=crop",  // hotel room
+    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=600&fit=crop",  // bedroom
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",  // living
+    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop",  // kitchen
+    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop",  // bathroom
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",  // interior
+    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop",  // modern
+  ],
 };
 
 async function seed() {
@@ -137,7 +215,7 @@ async function seed() {
       houseRules: "No smoking, no pets, quiet hours after 10 PM",
       houseRulesAr: "ممنوع التدخين، ممنوع الحيوانات الأليفة، ساعات الهدوء بعد 10 مساءً",
       minStayMonths: 1, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.apt1, IMAGES.apt2, IMAGES.apt3]),
+      photos: JSON.stringify([CDN.apt1, CDN.apt2, CDN.apt3, U.apt[3], U.apt[4], U.apt[5], U.apt[7]]),
       isFeatured: true, isVerified: true,
     },
     {
@@ -161,7 +239,7 @@ async function seed() {
       houseRules: "Family only, no parties",
       houseRulesAr: "عائلات فقط، ممنوع الحفلات",
       minStayMonths: 3, maxStayMonths: 12, instantBook: false,
-      photos: JSON.stringify([IMAGES.villa2, IMAGES.villa3, IMAGES.villa1]),
+      photos: JSON.stringify([CDN.villa2, CDN.villa3, CDN.villa1, U.villa[3], U.villa[4], U.villa[5], U.villa[7]]),
       isFeatured: true, isVerified: true,
     },
     {
@@ -185,7 +263,7 @@ async function seed() {
       houseRules: "No smoking inside, no loud music",
       houseRulesAr: "ممنوع التدخين داخل الوحدة، ممنوع الموسيقى الصاخبة",
       minStayMonths: 1, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.studio1, IMAGES.studio2, IMAGES.apt1]),
+      photos: JSON.stringify([CDN.studio1, CDN.studio2, U.studio[2], U.studio[3], U.studio[4], U.studio[6]]),
       isFeatured: false, isVerified: true,
     },
     {
@@ -209,7 +287,7 @@ async function seed() {
       houseRules: "Families only",
       houseRulesAr: "عائلات فقط",
       minStayMonths: 6, maxStayMonths: 12, instantBook: false,
-      photos: JSON.stringify([IMAGES.apt2, IMAGES.apt3, IMAGES.apt1]),
+      photos: JSON.stringify([CDN.apt2, CDN.apt3, CDN.apt1, U.apt[0], U.apt[4], U.apt[9]]),
       isFeatured: false, isVerified: true,
     },
 
@@ -235,7 +313,7 @@ async function seed() {
       houseRules: "No smoking, respect quiet hours",
       houseRulesAr: "ممنوع التدخين، احترام ساعات الهدوء",
       minStayMonths: 1, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.apt1, IMAGES.apt3, IMAGES.studio1]),
+      photos: JSON.stringify([CDN.apt1, CDN.apt3, U.apt[2], U.apt[5], U.apt[7], U.apt[8]]),
       isFeatured: true, isVerified: true,
     },
     {
@@ -259,7 +337,7 @@ async function seed() {
       houseRules: "Hotel rules apply",
       houseRulesAr: "تطبق قوانين الفندق",
       minStayMonths: 1, maxStayMonths: 6, instantBook: true,
-      photos: JSON.stringify([IMAGES.apt3, IMAGES.apt2, IMAGES.studio1]),
+      photos: JSON.stringify([U.hotel[0], U.hotel[1], U.hotel[2], U.hotel[3], U.hotel[4], U.hotel[6]]),
       isFeatured: false, isVerified: true,
     },
     {
@@ -283,7 +361,7 @@ async function seed() {
       houseRules: "No smoking, no pets",
       houseRulesAr: "ممنوع التدخين، ممنوع الحيوانات",
       minStayMonths: 1, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.studio2, IMAGES.studio1, IMAGES.apt2]),
+      photos: JSON.stringify([CDN.studio2, CDN.studio1, U.studio[2], U.studio[3], U.studio[4]]),
       isFeatured: false, isVerified: true,
     },
 
@@ -309,7 +387,7 @@ async function seed() {
       houseRules: "Families only, no modifications to structure",
       houseRulesAr: "عائلات فقط، ممنوع التعديل على الهيكل",
       minStayMonths: 6, maxStayMonths: 12, instantBook: false,
-      photos: JSON.stringify([IMAGES.villa1, IMAGES.villa3, IMAGES.apt3]),
+      photos: JSON.stringify([U.duplex[0], U.duplex[1], U.duplex[2], U.duplex[3], U.duplex[4], U.duplex[5], U.duplex[6]]),
       isFeatured: true, isVerified: true,
     },
     {
@@ -333,7 +411,7 @@ async function seed() {
       houseRules: "No pets",
       houseRulesAr: "ممنوع الحيوانات الأليفة",
       minStayMonths: 3, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.apt2, IMAGES.apt1, IMAGES.studio2]),
+      photos: JSON.stringify([CDN.apt2, CDN.apt1, U.apt[3], U.apt[6], U.apt[8]]),
       isFeatured: false, isVerified: true,
     },
 
@@ -359,7 +437,7 @@ async function seed() {
       houseRules: "Compound rules apply, families only",
       houseRulesAr: "تطبق قوانين الكمباوند، عائلات فقط",
       minStayMonths: 6, maxStayMonths: 12, instantBook: false,
-      photos: JSON.stringify([IMAGES.villa3, IMAGES.villa2, IMAGES.villa1]),
+      photos: JSON.stringify([U.compound[0], U.compound[1], U.compound[2], U.compound[3], U.compound[4], U.compound[5], U.compound[6]]),
       isFeatured: true, isVerified: true,
     },
 
@@ -385,7 +463,7 @@ async function seed() {
       houseRules: "Respect Islamic values, quiet hours after Isha prayer",
       houseRulesAr: "احترام القيم الإسلامية، ساعات الهدوء بعد صلاة العشاء",
       minStayMonths: 1, maxStayMonths: 6, instantBook: true,
-      photos: JSON.stringify([IMAGES.studio1, IMAGES.apt2, IMAGES.studio2]),
+      photos: JSON.stringify([U.room[0], U.room[1], U.room[2], U.room[3], U.room[4], U.room[5]]),
       isFeatured: true, isVerified: true,
     },
 
@@ -411,7 +489,7 @@ async function seed() {
       houseRules: "Family-friendly, no smoking",
       houseRulesAr: "مناسب للعائلات، ممنوع التدخين",
       minStayMonths: 1, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.apt3, IMAGES.apt1, IMAGES.apt2]),
+      photos: JSON.stringify([CDN.apt3, CDN.apt1, CDN.apt2, U.apt[0], U.apt[3], U.apt[9]]),
       isFeatured: false, isVerified: true,
     },
 
@@ -437,7 +515,7 @@ async function seed() {
       houseRules: "Standard residential rules",
       houseRulesAr: "قوانين سكنية عادية",
       minStayMonths: 3, maxStayMonths: 12, instantBook: false,
-      photos: JSON.stringify([IMAGES.apt1, IMAGES.apt2, IMAGES.apt3]),
+      photos: JSON.stringify([CDN.apt1, CDN.apt2, CDN.apt3, U.apt[2], U.apt[5], U.apt[7]]),
       isFeatured: false, isVerified: true,
     },
 
@@ -463,7 +541,7 @@ async function seed() {
       houseRules: "No parties, respect neighbors",
       houseRulesAr: "ممنوع الحفلات، احترام الجيران",
       minStayMonths: 1, maxStayMonths: 6, instantBook: true,
-      photos: JSON.stringify([IMAGES.villa1, IMAGES.villa2, IMAGES.villa3]),
+      photos: JSON.stringify([CDN.villa1, CDN.villa2, CDN.villa3, U.villa[0], U.villa[4], U.villa[7], U.villa[8]]),
       isFeatured: true, isVerified: true,
     },
 
@@ -489,7 +567,7 @@ async function seed() {
       houseRules: "No smoking, shared facilities rules apply",
       houseRulesAr: "ممنوع التدخين، تطبق قوانين المرافق المشتركة",
       minStayMonths: 1, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.studio2, IMAGES.studio1]),
+      photos: JSON.stringify([CDN.studio2, CDN.studio1, U.room[0], U.room[1], U.room[3], U.room[4]]),
       isFeatured: false, isVerified: true,
     },
     {
@@ -513,7 +591,7 @@ async function seed() {
       houseRules: "Professional conduct, no pets",
       houseRulesAr: "سلوك مهني، ممنوع الحيوانات الأليفة",
       minStayMonths: 1, maxStayMonths: 12, instantBook: false,
-      photos: JSON.stringify([IMAGES.apt1, IMAGES.apt3, IMAGES.apt2]),
+      photos: JSON.stringify([CDN.apt1, CDN.apt3, CDN.apt2, U.apt[1], U.apt[4], U.apt[6], U.apt[8]]),
       isFeatured: true, isVerified: true,
     },
 
@@ -539,7 +617,7 @@ async function seed() {
       houseRules: "Families only, no structural modifications",
       houseRulesAr: "عائلات فقط، ممنوع التعديلات الإنشائية",
       minStayMonths: 6, maxStayMonths: 12, instantBook: false,
-      photos: JSON.stringify([IMAGES.villa2, IMAGES.villa1, IMAGES.villa3]),
+      photos: JSON.stringify([CDN.villa2, CDN.villa1, CDN.villa3, U.villa[1], U.villa[3], U.villa[5], U.villa[6]]),
       isFeatured: false, isVerified: true,
     },
 
@@ -565,7 +643,7 @@ async function seed() {
       houseRules: "No smoking, no parties",
       houseRulesAr: "ممنوع التدخين، ممنوع الحفلات",
       minStayMonths: 1, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.apt3, IMAGES.apt1, IMAGES.apt2]),
+      photos: JSON.stringify([CDN.apt3, CDN.apt1, CDN.apt2, U.apt[0], U.apt[3], U.apt[5], U.apt[7], U.apt[9]]),
       isFeatured: true, isVerified: true,
     },
 
@@ -591,7 +669,7 @@ async function seed() {
       houseRules: "No smoking",
       houseRulesAr: "ممنوع التدخين",
       minStayMonths: 1, maxStayMonths: 12, instantBook: true,
-      photos: JSON.stringify([IMAGES.studio1, IMAGES.studio2]),
+      photos: JSON.stringify([CDN.studio1, CDN.studio2, U.studio[0], U.studio[3], U.studio[4]]),
       isFeatured: false, isVerified: false,
     },
     {
@@ -615,7 +693,7 @@ async function seed() {
       houseRules: "Standard rules",
       houseRulesAr: "قوانين عادية",
       minStayMonths: 3, maxStayMonths: 12, instantBook: false,
-      photos: JSON.stringify([IMAGES.apt2, IMAGES.apt3]),
+      photos: JSON.stringify([CDN.apt2, CDN.apt3, U.apt[1], U.apt[4], U.apt[6]]),
       isFeatured: false, isVerified: false,
     },
   ];

@@ -35,6 +35,15 @@ export default function PropertyImage({
     setStatus("loading");
   }, [src]);
 
+  // Safety timeout: if image hasn't loaded after 5s, show error
+  useEffect(() => {
+    if (status !== "loading") return;
+    const timer = setTimeout(() => {
+      if (status === "loading") setStatus("error");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [status]);
+
   return (
     <div
       className={`relative overflow-hidden bg-gray-100 ${className}`}
@@ -66,7 +75,14 @@ export default function PropertyImage({
           src={src}
           alt={alt}
           loading="lazy"
-          onLoad={() => setStatus("loaded")}
+          onLoad={() => {
+            const img = imgRef.current;
+            if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+              setStatus("loaded");
+            } else {
+              setStatus("error");
+            }
+          }}
           onError={() => setStatus("error")}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
             status === "loaded" ? "opacity-100" : "opacity-0"

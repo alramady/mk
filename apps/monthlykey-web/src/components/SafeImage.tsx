@@ -42,6 +42,7 @@ export default function SafeImage({
 
   const allPhotos = photos && photos.length > 1 ? photos : null;
   const displayCount = photoCount || (allPhotos?.length ?? (src ? 1 : 0));
+  const imgRef = useRef<HTMLImageElement>(null);
   const currentSrc = allPhotos && hoverIndex > 0 ? allPhotos[hoverIndex]?.url : src;
 
   useEffect(() => {
@@ -52,6 +53,15 @@ export default function SafeImage({
     setStatus("loading");
     setHoverIndex(0);
   }, [src]);
+
+  // Safety timeout: if image hasn't loaded after 5s, show error
+  useEffect(() => {
+    if (status !== "loading") return;
+    const timer = setTimeout(() => {
+      if (status === "loading") setStatus("error");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   // Hover carousel: divide container into zones
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -108,11 +118,19 @@ export default function SafeImage({
       {/* Actual image */}
       {currentSrc && (
         <img
+          ref={imgRef}
           key={currentSrc}
           src={currentSrc}
           alt={alt}
           loading="lazy"
-          onLoad={() => setStatus("loaded")}
+          onLoad={() => {
+            const img = imgRef.current;
+            if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+              setStatus("loaded");
+            } else {
+              setStatus("error");
+            }
+          }}
           onError={() => setStatus("error")}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
             status === "loaded" || hoverIndex > 0 ? "opacity-100" : "opacity-0"

@@ -1,12 +1,24 @@
 import { useI18n } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle, UserCog, ImageOff } from "lucide-react";
+import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle, ImageOff } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// Reliable fallback images by property type (Unsplash, always available)
+const FALLBACK_IMAGES: Record<string, string> = {
+  apartment: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop",
+  villa: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&h=400&fit=crop",
+  studio: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=400&fit=crop",
+  duplex: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop",
+  furnished_room: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&h=400&fit=crop",
+  compound: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=400&fit=crop",
+  hotel_apartment: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600&h=400&fit=crop",
+  default: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&h=400&fit=crop",
+};
 
 interface PropertyCardProps {
   property: {
@@ -37,6 +49,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
   const { t, lang } = useI18n();
   const { isAuthenticated } = useAuth();
   const utils = trpc.useUtils();
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const favCheck = trpc.favorite.check.useQuery(
     { propertyId: property.id },
@@ -53,8 +66,48 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
   const city = lang === "ar" ? property.cityAr : property.city;
   const district = lang === "ar" ? property.districtAr : property.district;
   const typeKey = `type.${property.propertyType}` as any;
-  const photo = property.photos?.[0] || "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&h=400&fit=crop";
+
+  const fallbackImg = FALLBACK_IMAGES[property.propertyType] || FALLBACK_IMAGES.default;
+  const originalPhoto = property.photos?.[0];
+  const [imgSrc, setImgSrc] = useState(originalPhoto || fallbackImg);
   const [imgStatus, setImgStatus] = useState<"loading" | "loaded" | "error">("loading");
+
+  // Validate that the image actually rendered pixels (catches HTML-as-image responses)
+  const handleLoad = useCallback(() => {
+    const img = imgRef.current;
+    if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      setImgStatus("loaded");
+    } else {
+      // Image "loaded" but has no pixels — it's not a real image
+      setImgSrc(fallbackImg);
+      setImgStatus("loading"); // will re-trigger load with fallback
+    }
+  }, [fallbackImg]);
+
+  const handleError = useCallback(() => {
+    if (imgSrc !== fallbackImg) {
+      // Try fallback image
+      setImgSrc(fallbackImg);
+      setImgStatus("loading");
+    } else {
+      setImgStatus("error");
+    }
+  }, [imgSrc, fallbackImg]);
+
+  // Safety timeout: if image hasn't loaded after 5s, switch to fallback
+  useEffect(() => {
+    if (imgStatus !== "loading") return;
+    const timer = setTimeout(() => {
+      if (imgStatus === "loading") {
+        if (imgSrc !== fallbackImg) {
+          setImgSrc(fallbackImg);
+        } else {
+          setImgStatus("error");
+        }
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [imgStatus, imgSrc, fallbackImg]);
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -70,27 +123,28 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
     <Link href={`/property/${property.id}`}>
       <Card className="property-card group overflow-hidden cursor-pointer border-border/40 py-0 gap-0 bg-white dark:bg-card rounded-xl">
         {/* Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-800">
           {/* Skeleton shimmer while loading */}
           {imgStatus === "loading" && (
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100" />
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800" />
           )}
           {/* Error fallback */}
           {imgStatus === "error" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-              <ImageOff className="h-8 w-8 text-gray-300 mb-1" />
-              <span className="text-xs text-gray-400">{lang === "ar" ? "صورة غير متوفرة" : "Image unavailable"}</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-900">
+              <ImageOff className="h-8 w-8 text-gray-300 dark:text-gray-600 mb-1" />
+              <span className="text-xs text-gray-400 dark:text-gray-500">{lang === "ar" ? "صورة غير متوفرة" : "Image unavailable"}</span>
             </div>
           )}
           <img
-            src={photo}
+            ref={imgRef}
+            src={imgSrc}
             alt={title}
             loading="lazy"
             decoding="async"
             width={400}
             height={300}
-            onLoad={() => setImgStatus("loaded")}
-            onError={() => setImgStatus("error")}
+            onLoad={handleLoad}
+            onError={handleError}
             className={`w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110 ${imgStatus === "loaded" ? "opacity-100" : "opacity-0"}`}
           />
           {/* Gradient overlay on hover */}
