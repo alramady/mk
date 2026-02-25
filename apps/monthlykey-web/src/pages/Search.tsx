@@ -3,18 +3,10 @@ import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useState, useMemo } from "react";
 import MobileHeader from "../components/MobileHeader";
 import HelpFAB from "../components/HelpFAB";
-import FilterSheet, { FilterTrigger, type FilterValues } from "../components/FilterSheet";
+import { SearchBarWithFilters, EMPTY_FILTERS, type FilterValues } from "../components/FilterSheet";
 import SafeImage from "../components/SafeImage";
 import { useLocale } from "../contexts/LocaleContext";
 import { filterSeedListings } from "../data/seed-listings";
-
-const EMPTY_FILTERS: FilterValues = {
-  city: "",
-  type: "",
-  minBudget: "",
-  maxBudget: "",
-  bedrooms: "",
-};
 
 const PAGE_SIZE = 9;
 
@@ -28,7 +20,8 @@ export default function Search() {
   const type = params.get("type") ?? "";
   const page = Math.max(1, Number(params.get("page") ?? "1"));
 
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(query);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [filters, setFilters] = useState<FilterValues>({
     ...EMPTY_FILTERS,
     city,
@@ -36,9 +29,12 @@ export default function Search() {
     minBudget: params.get("minPrice") ?? "",
     maxBudget: params.get("maxPrice") ?? "",
     bedrooms: params.get("beds") ?? "",
+    bathrooms: params.get("baths") ?? "",
+    furnished: params.get("furnished") ?? "",
+    minArea: params.get("minArea") ?? "",
+    maxArea: params.get("maxArea") ?? "",
+    amenities: params.get("amenities") ? params.get("amenities")!.split(",") : [],
   });
-
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
   const results = useMemo(() => {
     return filterSeedListings({
@@ -55,12 +51,27 @@ export default function Search() {
 
   const handleApplyFilters = () => {
     const p = new URLSearchParams();
+    if (searchQuery) p.set("q", searchQuery);
     if (filters.city) p.set("city", filters.city);
     if (filters.type) p.set("type", filters.type);
     if (filters.minBudget) p.set("minPrice", filters.minBudget);
     if (filters.maxBudget) p.set("maxPrice", filters.maxBudget);
     if (filters.bedrooms) p.set("beds", filters.bedrooms);
+    if (filters.bathrooms) p.set("baths", filters.bathrooms);
+    if (filters.furnished) p.set("furnished", filters.furnished);
+    if (filters.minArea) p.set("minArea", filters.minArea);
+    if (filters.maxArea) p.set("maxArea", filters.maxArea);
+    if (filters.amenities?.length) p.set("amenities", filters.amenities.join(","));
     navigate(`/search?${p}`);
+  };
+
+  const handleSearch = () => {
+    handleApplyFilters();
+  };
+
+  const handleReset = () => {
+    setFilters(EMPTY_FILTERS);
+    setSearchQuery("");
   };
 
   const goToPage = (p: number) => {
@@ -74,31 +85,33 @@ export default function Search() {
       <MobileHeader />
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
-        {/* Breadcrumb + filters */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Link to="/" className="hover:text-mk-teal transition-colors">
-              {t("الرئيسية", "Home")}
-            </Link>
-            <span>/</span>
-            <span className="text-mk-navy font-medium">
-              {t("نتائج البحث", "Search Results")}
-              {(city || query) && (
-                <span className="text-gray-400 font-normal"> — {city || query}</span>
-              )}
-            </span>
-          </div>
-          <div className="relative">
-            <FilterTrigger onClick={() => setFiltersOpen(!filtersOpen)} activeCount={activeFilterCount} />
-            <FilterSheet
-              open={filtersOpen}
-              onOpenChange={setFiltersOpen}
-              values={filters}
-              onChange={setFilters}
-              onApply={handleApplyFilters}
-              onReset={() => setFilters(EMPTY_FILTERS)}
-            />
-          </div>
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-5">
+          <Link to="/" className="hover:text-mk-teal transition-colors">
+            {t("الرئيسية", "Home")}
+          </Link>
+          <span>/</span>
+          <span className="text-mk-navy font-medium">
+            {t("نتائج البحث", "Search Results")}
+            {(city || query) && (
+              <span className="text-gray-400 font-normal"> — {city || query}</span>
+            )}
+          </span>
+        </div>
+
+        {/* Search Bar + Quick Filters + Advanced */}
+        <div className="mb-6">
+          <SearchBarWithFilters
+            query={searchQuery}
+            onQueryChange={setSearchQuery}
+            onSearch={handleSearch}
+            filters={filters}
+            onFiltersChange={setFilters}
+            onAdvancedOpen={setAdvancedOpen}
+            advancedOpen={advancedOpen}
+            onApply={handleApplyFilters}
+            onReset={handleReset}
+          />
         </div>
 
         {/* Results count */}
@@ -133,7 +146,7 @@ export default function Search() {
                     className="rounded-t-xl"
                   />
                   {/* Manager badge */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 z-[5]">
+                  <div className="absolute top-3 end-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 z-[5]">
                     <div className="w-6 h-6 rounded-full bg-mk-teal text-white text-[10px] font-bold flex items-center justify-center">
                       {listing.manager.initials}
                     </div>
@@ -142,7 +155,7 @@ export default function Search() {
                     </span>
                   </div>
                   {/* Price badge */}
-                  <div className="absolute bottom-3 left-3 bg-mk-navy/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-bold z-[5]">
+                  <div className="absolute bottom-3 start-3 bg-mk-navy/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-bold z-[5]">
                     {listing.price.toLocaleString()} {t("ر.س", "SAR")}{" "}
                     <span className="text-gray-300 font-normal text-xs">/ {t("شهر", "mo")}</span>
                   </div>

@@ -1,20 +1,12 @@
-import { Search, MapPin, Building2, ArrowLeft } from "lucide-react";
+import { MapPin, Building2, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import MobileHeader from "../components/MobileHeader";
 import HelpFAB from "../components/HelpFAB";
-import FilterSheet, { FilterTrigger, type FilterValues } from "../components/FilterSheet";
+import { SearchBarWithFilters, EMPTY_FILTERS, type FilterValues } from "../components/FilterSheet";
 import SafeImage from "../components/SafeImage";
 import { useLocale } from "../contexts/LocaleContext";
 import { SEED_LISTINGS } from "../data/seed-listings";
-
-const EMPTY_FILTERS: FilterValues = {
-  city: "",
-  type: "",
-  minBudget: "",
-  maxBudget: "",
-  bedrooms: "",
-};
 
 /** Show first 6 listings on the homepage */
 const FEATURED = SEED_LISTINGS.slice(0, 6);
@@ -22,20 +14,25 @@ const FEATURED = SEED_LISTINGS.slice(0, 6);
 export default function Home() {
   const navigate = useNavigate();
   const { locale, t } = useLocale();
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [filters, setFilters] = useState<FilterValues>(EMPTY_FILTERS);
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams();
+    if (searchQuery) params.set("q", searchQuery);
     if (filters.city) params.set("city", filters.city);
     if (filters.type) params.set("type", filters.type);
     if (filters.minBudget) params.set("minPrice", filters.minBudget);
     if (filters.maxBudget) params.set("maxPrice", filters.maxBudget);
     if (filters.bedrooms) params.set("beds", filters.bedrooms);
+    if (filters.bathrooms) params.set("baths", filters.bathrooms);
+    if (filters.furnished) params.set("furnished", filters.furnished);
+    if (filters.minArea) params.set("minArea", filters.minArea);
+    if (filters.maxArea) params.set("maxArea", filters.maxArea);
+    if (filters.amenities?.length) params.set("amenities", filters.amenities.join(","));
     navigate(`/search?${params}`);
   };
-
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-mk-light">
@@ -58,50 +55,18 @@ export default function Home() {
           </p>
 
           {/* Search bar */}
-          <div className="bg-white rounded-2xl shadow-xl p-3 max-w-2xl mx-auto">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 relative">
-                <Search
-                  size={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                />
-                <input
-                  type="text"
-                  placeholder={t(
-                    "ابحث بالمدينة، الحي، المعلم...",
-                    "Search by city, neighborhood, landmark..."
-                  )}
-                  className="w-full pr-10 pl-3 py-3 text-sm rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-mk-teal/30 text-gray-700 placeholder:text-gray-400"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      const val = (e.target as HTMLInputElement).value.trim();
-                      if (val) navigate(`/search?q=${encodeURIComponent(val)}`);
-                    }
-                  }}
-                />
-              </div>
-              <div className="relative">
-                <FilterTrigger
-                  onClick={() => setFiltersOpen(!filtersOpen)}
-                  activeCount={activeFilterCount}
-                />
-                <FilterSheet
-                  open={filtersOpen}
-                  onOpenChange={setFiltersOpen}
-                  values={filters}
-                  onChange={setFilters}
-                  onApply={handleApplyFilters}
-                  onReset={() => setFilters(EMPTY_FILTERS)}
-                />
-              </div>
-              <button
-                onClick={handleApplyFilters}
-                className="bg-mk-teal text-white px-5 py-3 rounded-xl flex items-center gap-2 font-medium hover:bg-mk-teal/90 transition-colors shrink-0 text-sm"
-              >
-                <Search size={16} />
-                <span className="hidden sm:inline">{t("ابحث", "Search")}</span>
-              </button>
-            </div>
+          <div className="max-w-2xl mx-auto">
+            <SearchBarWithFilters
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              onSearch={handleApplyFilters}
+              filters={filters}
+              onFiltersChange={setFilters}
+              onAdvancedOpen={setAdvancedOpen}
+              advancedOpen={advancedOpen}
+              onApply={handleApplyFilters}
+              onReset={() => { setFilters(EMPTY_FILTERS); setSearchQuery(""); }}
+            />
           </div>
         </div>
       </section>
