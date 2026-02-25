@@ -29,9 +29,19 @@ export default function Search() {
   const [bedrooms, setBedrooms] = useState<number | undefined>();
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const debouncedSearchText = useDebounce(searchText, 300);
+
+  // Lock body scroll when mobile filter overlay is open
+  useEffect(() => {
+    if (showFilters && window.innerWidth < 768) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [showFilters]);
 
   // Load districts from DB
   const districtsQuery = trpc.districts.all.useQuery();
@@ -136,7 +146,7 @@ export default function Search() {
 
         <div className="flex gap-6">
           {/* Filters Sidebar */}
-          <div className={`${showFilters ? "fixed inset-0 z-40 bg-background/95 backdrop-blur-sm overflow-y-auto p-4 pt-6 md:relative md:inset-auto md:z-auto md:bg-transparent md:backdrop-blur-none md:overflow-visible md:p-0 md:pt-0" : "hidden"} md:block w-full md:w-72 shrink-0`}>
+          <div className={`${showFilters ? "fixed inset-0 z-40 bg-background/95 backdrop-blur-sm overflow-y-auto p-4 pt-6 pb-24 md:relative md:inset-auto md:z-auto md:bg-transparent md:backdrop-blur-none md:overflow-visible md:p-0 md:pt-0 md:pb-0" : "hidden"} md:block w-full md:w-72 shrink-0`}>
             {/* Mobile close button */}
             <div className="flex items-center justify-between mb-4 md:hidden">
               <h2 className="text-lg font-semibold">{t("search.filters")}</h2>
@@ -276,8 +286,16 @@ export default function Search() {
 
               </CardContent>
             </Card>
-            {/* Mobile bottom spacer for FABs */}
-            <div className="h-24 md:hidden" />
+            {/* Mobile sticky Apply/Close bar */}
+            <div className="fixed bottom-0 inset-x-0 z-50 bg-background border-t p-3 flex gap-3 md:hidden" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
+              <Button variant="outline" className="flex-1" onClick={clearFilters}>
+                <X className="h-4 w-4 me-1.5" />
+                {lang === "ar" ? "مسح" : "Clear"}
+              </Button>
+              <Button className="flex-1 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D]" onClick={() => setShowFilters(false)}>
+                {lang === "ar" ? "عرض النتائج" : "Show Results"}
+              </Button>
+            </div>
           </div>
 
           {/* Results */}

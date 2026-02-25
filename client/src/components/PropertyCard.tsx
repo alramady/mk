@@ -1,11 +1,12 @@
 import { useI18n } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle, UserCog } from "lucide-react";
+import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle, UserCog, ImageOff } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
+import { useState } from "react";
 
 interface PropertyCardProps {
   property: {
@@ -53,6 +54,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
   const district = lang === "ar" ? property.districtAr : property.district;
   const typeKey = `type.${property.propertyType}` as any;
   const photo = property.photos?.[0] || "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&h=400&fit=crop";
+  const [imgStatus, setImgStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -68,7 +70,18 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
     <Link href={`/property/${property.id}`}>
       <Card className="property-card group overflow-hidden cursor-pointer border-border/40 py-0 gap-0 bg-white dark:bg-card rounded-xl">
         {/* Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden">
+        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+          {/* Skeleton shimmer while loading */}
+          {imgStatus === "loading" && (
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100" />
+          )}
+          {/* Error fallback */}
+          {imgStatus === "error" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+              <ImageOff className="h-8 w-8 text-gray-300 mb-1" />
+              <span className="text-xs text-gray-400">{lang === "ar" ? "صورة غير متوفرة" : "Image unavailable"}</span>
+            </div>
+          )}
           <img
             src={photo}
             alt={title}
@@ -76,7 +89,9 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             decoding="async"
             width={400}
             height={300}
-            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+            onLoad={() => setImgStatus("loaded")}
+            onError={() => setImgStatus("error")}
+            className={`w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110 ${imgStatus === "loaded" ? "opacity-100" : "opacity-0"}`}
           />
           {/* Gradient overlay on hover */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-70 transition-opacity duration-500" />
@@ -120,6 +135,14 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
               <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center text-white text-[8px] font-bold select-none ${property.managerPhotoUrl ? 'hidden' : ''}`}>
                 {(property.managerName || '').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || 'PM'}
               </div>
+            </div>
+          )}
+
+          {/* Photo count badge */}
+          {property.photos && property.photos.length > 1 && (
+            <div className="absolute top-3 start-3 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded-md text-xs font-medium flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+              <span>+{property.photos.length}</span>
             </div>
           )}
 
