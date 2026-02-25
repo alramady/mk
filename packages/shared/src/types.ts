@@ -27,6 +27,8 @@ export type Channel = "COBNB" | "MONTHLYKEY";
 export type FeatureFlagScope = "GLOBAL" | "COBNB" | "MONTHLYKEY" | "OPS";
 
 export type WebhookEventStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "DEAD_LETTER";
+export type PreferredLocale = "ar" | "en";
+export type VerificationState = "PENDING_VERIFICATION" | "VERIFIED";
 
 // ─── Data Models ────────────────────────────────────────────
 export interface Unit {
@@ -112,12 +114,44 @@ export interface TicketTask {
 export interface User {
   id: string;
   name: string;
+  fullNameAr: string | null;
+  fullNameEn: string | null;
+  preferredLocale: PreferredLocale;
   phone: string;
+  phoneE164: string | null;
   email: string;
   role: UserRole;
   zones: string[];
   isActive: boolean;
+  verificationState: VerificationState;
+  emailVerifiedAt: string | null;
+  phoneVerifiedAt: string | null;
   createdAt: string;
+}
+
+// ─── Signup / Verification ─────────────────────────────────
+export interface SignupRequest {
+  preferred_locale: PreferredLocale;
+  full_name_ar?: string;
+  full_name_en?: string;
+  email: string;
+  phone_e164: string;
+  password: string;
+}
+
+export interface OtpSendRequest {
+  channel: "phone" | "email";
+}
+
+export interface OtpVerifyRequest {
+  channel: "phone" | "email";
+  code: string;
+}
+
+export interface VerificationStatus {
+  phone_verified: boolean;
+  email_verified: boolean;
+  verification_state: VerificationState;
 }
 
 export interface FeatureFlag {

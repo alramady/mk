@@ -37,6 +37,10 @@ export const userRoleEnum = pgEnum("user_role", [
 export const featureFlagScopeEnum = pgEnum("feature_flag_scope", [
   "GLOBAL", "COBNB", "MONTHLYKEY", "OPS",
 ]);
+export const preferredLocaleEnum = pgEnum("preferred_locale", ["ar", "en"]);
+export const verificationStateEnum = pgEnum("verification_state", [
+  "PENDING_VERIFICATION", "VERIFIED",
+]);
 
 // ─── Units ──────────────────────────────────────────────────
 export const units = pgTable("units", {
@@ -143,16 +147,45 @@ export const ticketTasks = pgTable("ticket_tasks", {
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 200 }).notNull(),
+  fullNameAr: varchar("full_name_ar", { length: 300 }),
+  fullNameEn: varchar("full_name_en", { length: 300 }),
+  preferredLocale: preferredLocaleEnum("preferred_locale").notNull().default("ar"),
   phone: varchar("phone", { length: 30 }).notNull().default(""),
+  phoneE164: varchar("phone_e164", { length: 20 }),
   email: varchar("email", { length: 300 }).notNull(),
   passwordHash: varchar("password_hash", { length: 200 }).notNull(),
   role: userRoleEnum("role").notNull().default("TENANT"),
   zones: jsonb("zones").$type<string[]>().notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
+  verificationState: verificationStateEnum("verification_state").notNull().default("PENDING_VERIFICATION"),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   emailIdx: uniqueIndex("users_email_idx").on(t.email),
+  phoneE164Idx: uniqueIndex("users_phone_e164_idx").on(t.phoneE164),
   roleIdx: index("users_role_idx").on(t.role),
+}));
+
+// ─── OTP Codes ──────────────────────────────────────────────
+export const otpCodes = pgTable("otp_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  /** "phone" or "email" */
+  channel: varchar("channel", { length: 10 }).notNull(),
+  /** The destination: E.164 phone or email address */
+  destination: varchar("destination", { length: 300 }).notNull(),
+  /** SHA-256(otp + salt) — never store plaintext */
+  otpHash: varchar("otp_hash", { length: 128 }).notNull(),
+  salt: varchar("salt", { length: 64 }).notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(5),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  userChannelIdx: index("otp_user_channel_idx").on(t.userId, t.channel),
+  expiresIdx: index("otp_expires_idx").on(t.expiresAt),
 }));
 
 // ─── Feature Flags ──────────────────────────────────────────

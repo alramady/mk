@@ -103,3 +103,54 @@ export const webhookEventSchema = z.object({
   checkOut: z.string().optional(),
   timestamp: z.string().optional(),
 });
+
+// ─── Auth / Signup / OTP ──────────────────────────────────────
+
+const E164_REGEX = /^\+[1-9]\d{6,14}$/;
+const ARABIC_REGEX = /[\u0600-\u06FF]/;
+
+export const preferredLocaleSchema = z.enum(["ar", "en"]);
+
+export const signupSchema = z
+  .object({
+    preferred_locale: preferredLocaleSchema,
+    full_name_ar: z.string().min(2).max(300).optional(),
+    full_name_en: z.string().min(2).max(300).optional(),
+    email: z.string().email(),
+    phone_e164: z.string().regex(E164_REGEX, "Invalid E.164 phone format"),
+    password: z.string().min(8).max(128),
+  })
+  .superRefine((data, ctx) => {
+    if (data.preferred_locale === "ar") {
+      if (!data.full_name_ar || data.full_name_ar.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "الاسم الكامل بالعربي مطلوب",
+          path: ["full_name_ar"],
+        });
+      } else if (!ARABIC_REGEX.test(data.full_name_ar)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "الاسم بالعربي يجب أن يحتوي على حروف عربية",
+          path: ["full_name_ar"],
+        });
+      }
+    } else {
+      if (!data.full_name_en || data.full_name_en.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Full name in English is required",
+          path: ["full_name_en"],
+        });
+      }
+    }
+  });
+
+export const otpVerifySchema = z.object({
+  code: z.string().length(6).regex(/^\d{6}$/, "Must be 6 digits"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
