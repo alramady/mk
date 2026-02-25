@@ -420,12 +420,15 @@ export default function Navbar() {
                     {t("nav.messages")}
                   </Button>
                 </Link>
-                <Link href="/list-property" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
-                    <Plus className="h-4 w-4 me-2" />
-                    {t("nav.listProperty")}
-                  </Button>
-                </Link>
+                {/* List property — only for landlord role; tenants use footer/menu link */}
+                {user?.role === "landlord" && (
+                  <Link href="/list-property" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
+                      <Plus className="h-4 w-4 me-2" />
+                      {t("nav.listProperty")}
+                    </Button>
+                  </Link>
+                )}
               </>
             )}
           </div>

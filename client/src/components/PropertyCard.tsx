@@ -139,7 +139,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             height={300}
             onLoad={handleLoad}
             onError={handleError}
-            className={`w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110 ${imgStatus === "loaded" ? "opacity-100" : "opacity-0"}`}
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110 ${imgStatus === "loaded" ? "opacity-100" : "opacity-0"}`}
           />
           {/* Gradient overlay on hover */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-70 transition-opacity duration-500" />
