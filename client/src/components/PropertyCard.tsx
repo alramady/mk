@@ -194,7 +194,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
           {/* Photo count badge */}
           {property.photos && property.photos.length > 1 && (
-            <div className="absolute top-3 start-3 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded-md text-xs font-medium flex items-center gap-1">
+            <div className="absolute bottom-3 end-3 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded-md text-xs font-medium flex items-center gap-1">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
               <span>+{property.photos.length}</span>
             </div>

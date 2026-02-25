@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Search as SearchIcon, SlidersHorizontal, Grid3X3, List, MapPin, X, Building2, Navigation } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export default function Search() {
@@ -32,15 +32,27 @@ export default function Search() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const debouncedSearchText = useDebounce(searchText, 300);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
 
   // Lock body scroll when mobile filter overlay is open
   useEffect(() => {
-    if (showFilters && window.innerWidth < 768) {
+    const isMobile = window.innerWidth < 768;
+    if (showFilters && isMobile) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+      return () => {
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.body.style.right = "";
+        document.body.style.overflow = "";
+        window.scrollTo(0, scrollY);
+      };
     }
-    return () => { document.body.style.overflow = ""; };
   }, [showFilters]);
 
   // Load districts from DB
@@ -95,6 +107,10 @@ export default function Search() {
     window.history.replaceState({}, '', '/search');
   };
 
+  const closeFilters = useCallback(() => {
+    setShowFilters(false);
+  }, []);
+
   const hasFilters = searchText || city || district || propertyType || minPrice || maxPrice || bedrooms;
 
   return (
@@ -145,15 +161,180 @@ export default function Search() {
         </div>
 
         <div className="flex gap-6">
-          {/* Filters Sidebar */}
-          <div className={`${showFilters ? "fixed inset-0 z-40 bg-background/95 backdrop-blur-sm overflow-y-auto p-4 pt-6 pb-24 md:relative md:inset-auto md:z-auto md:bg-transparent md:backdrop-blur-none md:overflow-visible md:p-0 md:pt-0 md:pb-0" : "hidden"} md:block w-full md:w-72 shrink-0`}>
-            {/* Mobile close button */}
-            <div className="flex items-center justify-between mb-4 md:hidden">
-              <h2 className="text-lg font-semibold">{t("search.filters")}</h2>
-              <Button variant="ghost" size="icon" onClick={() => setShowFilters(false)} className="h-9 w-9">
-                <X className="h-5 w-5" />
-              </Button>
+          {/* ── Mobile Filter Overlay (portal-style) ── */}
+          {showFilters && (
+            <div className="fixed inset-0 z-50 md:hidden">
+              {/* Backdrop — tap to close */}
+              <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+                onClick={closeFilters}
+              />
+              {/* Panel */}
+              <div
+                ref={filterPanelRef}
+                className="absolute inset-x-0 top-0 bottom-0 bg-background overflow-y-auto overscroll-contain"
+                style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+              >
+                {/* Mobile header bar */}
+                <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b px-4 py-3 flex items-center justify-between">
+                  <h2 className="text-lg font-heading font-semibold">{t("search.filters")}</h2>
+                  <Button variant="ghost" size="icon" onClick={closeFilters} className="h-9 w-9 -me-2">
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Filter content */}
+                <div className="px-4 py-5 space-y-5">
+                  {/* Clear filters link */}
+                  {hasFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-sm text-[#3ECFC0] hover:underline flex items-center gap-1"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      {t("search.clearFilters")}
+                    </button>
+                  )}
+
+                  {/* Text Search */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">
+                      {lang === "ar" ? "بحث" : "Search"}
+                    </label>
+                    <div className="relative">
+                      <SearchIcon className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={searchText}
+                        onChange={(e) => { setSearchText(e.target.value); setPage(0); }}
+                        placeholder={lang === "ar" ? "اسم العقار، الحي، الوصف..." : "Property name, district, description..."}
+                        className="ps-9 h-11"
+                        dir={lang === "ar" ? "rtl" : "ltr"}
+                      />
+                      {searchText && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchText("")}
+                          className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* City */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">{t("search.city")}</label>
+                    <Select value={city} onValueChange={(v) => { setCity(v); setDistrict(""); setPage(0); }}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder={t("search.city")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map(c => (
+                          <SelectItem key={c.city} value={c.city.toLowerCase()}>
+                            {lang === "ar" ? c.cityAr : c.city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* District */}
+                  {city && districtsForCity.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">
+                        {lang === "ar" ? "الحي" : "District"}
+                      </label>
+                      <Select value={district} onValueChange={(v) => { setDistrict(v); setPage(0); }}>
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder={lang === "ar" ? "اختر الحي" : "Select district"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {districtsForCity.map((d: any) => (
+                            <SelectItem key={d.id} value={d.nameEn.toLowerCase()}>
+                              {lang === "ar" ? d.nameAr : d.nameEn}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Property Type */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">{t("search.propertyType")}</label>
+                    <Select value={propertyType} onValueChange={(v) => { setPropertyType(v); setPage(0); }}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder={t("search.propertyType")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {propertyTypes.map(pt => (
+                          <SelectItem key={pt.value} value={pt.value}>{pt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Price Range */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">{t("search.priceRange")}</label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder={t("search.minPrice")}
+                        value={minPrice ?? ""}
+                        onChange={(e) => { setMinPrice(e.target.value ? Number(e.target.value) : undefined); setPage(0); }}
+                        className="h-11"
+                      />
+                      <Input
+                        type="number"
+                        placeholder={t("search.maxPrice")}
+                        value={maxPrice ?? ""}
+                        onChange={(e) => { setMaxPrice(e.target.value ? Number(e.target.value) : undefined); setPage(0); }}
+                        className="h-11"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bedrooms */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">{t("search.bedrooms")}</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <Button
+                          key={n}
+                          variant={bedrooms === n ? "default" : "outline"}
+                          size="sm"
+                          className="h-10 w-10 p-0"
+                          onClick={() => { setBedrooms(bedrooms === n ? undefined : n); setPage(0); }}
+                        >
+                          {n}{n === 5 ? "+" : ""}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sticky bottom bar — Show Results + Clear */}
+                <div
+                  className="sticky bottom-0 bg-background border-t px-4 py-3 flex gap-3"
+                  style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+                >
+                  <Button variant="outline" className="flex-1 h-11" onClick={() => { clearFilters(); closeFilters(); }}>
+                    <X className="h-4 w-4 me-1.5" />
+                    {lang === "ar" ? "مسح" : "Clear"}
+                  </Button>
+                  <Button className="flex-1 h-11 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] font-semibold" onClick={closeFilters}>
+                    {lang === "ar" ? "عرض النتائج" : "Show Results"}
+                    {results.data ? ` (${results.data.total})` : ""}
+                  </Button>
+                </div>
+              </div>
             </div>
+          )}
+
+          {/* ── Desktop Filters Sidebar ── */}
+          <div className="hidden md:block w-72 shrink-0">
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -283,19 +464,8 @@ export default function Search() {
                   </div>
                 </div>
 
-
               </CardContent>
             </Card>
-            {/* Mobile sticky Apply/Close bar */}
-            <div className="fixed bottom-0 inset-x-0 z-50 bg-background border-t p-3 flex gap-3 md:hidden" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
-              <Button variant="outline" className="flex-1" onClick={clearFilters}>
-                <X className="h-4 w-4 me-1.5" />
-                {lang === "ar" ? "مسح" : "Clear"}
-              </Button>
-              <Button className="flex-1 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D]" onClick={() => setShowFilters(false)}>
-                {lang === "ar" ? "عرض النتائج" : "Show Results"}
-              </Button>
-            </div>
           </div>
 
           {/* Results */}
@@ -331,7 +501,7 @@ export default function Search() {
             )}
 
             {results.isLoading ? (
-              <div className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
+              <div className={`grid gap-4 sm:gap-6 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
                 {[1, 2, 3, 4, 5, 6].map(i => (
                   <Card key={i} className="overflow-hidden">
                     <Skeleton className="aspect-[4/3]" />
@@ -345,7 +515,7 @@ export default function Search() {
               </div>
             ) : results.data && results.data.items.length > 0 ? (
               <>
-                <div className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
+                <div className={`grid gap-4 sm:gap-6 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
                   {results.data.items.map((prop) => (
                     <PropertyCard key={prop.id} property={prop} />
                   ))}
