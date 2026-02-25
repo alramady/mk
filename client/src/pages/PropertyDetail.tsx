@@ -305,10 +305,11 @@ export default function PropertyDetail() {
                     if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; }
                     toggleFav.mutate({ propertyId: id });
                   }}
-                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:bg-gray-50 active:scale-90 transition-all touch-manipulation"
+                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
+                  style={{ backgroundColor: '#ffffff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.12)' }}
                   aria-label={lang === "ar" ? "المفضلة" : "Favorite"}
                 >
-                  <Heart className={`h-[18px] w-[18px] sm:h-5 sm:w-5 ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
+                  <Heart className={`h-[18px] w-[18px] sm:h-5 sm:w-5 ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : ""}`} style={favCheck.data?.isFavorite ? undefined : { color: '#4b5563' }} />
                 </button>
                 <button
                   onClick={(e) => {
@@ -333,10 +334,11 @@ export default function PropertyDetail() {
                       toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied");
                     }
                   }}
-                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:bg-gray-50 active:scale-90 transition-all touch-manipulation"
+                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
+                  style={{ backgroundColor: '#ffffff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.12)' }}
                   aria-label={lang === "ar" ? "مشاركة" : "Share"}
                 >
-                  <Share2 className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-gray-600" />
+                  <Share2 className="h-[18px] w-[18px] sm:h-5 sm:w-5" style={{ color: '#4b5563' }} />
                 </button>
               </div>
               {/* Badges */}
