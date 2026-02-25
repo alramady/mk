@@ -289,7 +289,7 @@ export default function PropertyDetail() {
                 </>
               )}
               {/* Actions — z-30 above everything; data-action bypasses gallery swipe */}
-              <div className="absolute top-3 end-3 flex gap-2 z-30 pointer-events-auto" data-action="true">
+              <div className="absolute top-[max(0.75rem,calc(0.75rem+env(safe-area-inset-top)))] sm:top-3 end-3 flex gap-2 z-30 pointer-events-auto" data-action="true">
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -305,10 +305,10 @@ export default function PropertyDetail() {
                     if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; }
                     toggleFav.mutate({ propertyId: id });
                   }}
-                  className="h-11 w-11 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-90 transition-all touch-manipulation"
+                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 active:scale-90 transition-all touch-manipulation"
                   aria-label={lang === "ar" ? "المفضلة" : "Favorite"}
                 >
-                  <Heart className={`h-5 w-5 ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-gray-700"}`} />
+                  <Heart className={`h-[18px] w-[18px] sm:h-5 sm:w-5 ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-gray-700 dark:text-gray-200"}`} />
                 </button>
                 <button
                   onClick={(e) => {
@@ -333,14 +333,14 @@ export default function PropertyDetail() {
                       toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied");
                     }
                   }}
-                  className="h-11 w-11 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-90 transition-all touch-manipulation"
+                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 active:scale-90 transition-all touch-manipulation"
                   aria-label={lang === "ar" ? "مشاركة" : "Share"}
                 >
-                  <Share2 className="h-5 w-5 text-gray-700" />
+                  <Share2 className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-gray-700 dark:text-gray-200" />
                 </button>
               </div>
               {/* Badges */}
-              <div className="absolute top-3 start-3 flex gap-2">
+              <div className="absolute top-[max(0.75rem,calc(0.75rem+env(safe-area-inset-top)))] sm:top-3 start-3 flex gap-2">
                 {prop.isVerified && (
                   <Badge className="bg-primary text-primary-foreground gap-1">
                     <CheckCircle className="h-3 w-3" /> {t("property.verified")}
