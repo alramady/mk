@@ -75,7 +75,8 @@ export default function DashboardLayout({
             <img 
               src="/logo-mark.svg" 
               alt="Monthly Key - المفتاح الشهري" 
-              className="h-28 w-auto object-contain drop-shadow-lg" 
+              className="h-24 w-auto object-contain drop-shadow-lg"
+              style={{ maxWidth: '120px' }} 
             />
             <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#C5A55A] to-transparent" />
             <h1 className="text-2xl font-semibold tracking-tight text-center">
@@ -190,7 +191,8 @@ function DashboardLayoutContent({
                   <img 
                     src="/logo-horizontal.svg" 
                     alt="Monthly Key - المفتاح الشهري" 
-                    className="h-10 w-auto object-contain" 
+                    className="h-8 w-auto object-contain"
+                    style={{ maxWidth: '160px' }} 
                   />
                 </div>
               ) : (
@@ -198,7 +200,7 @@ function DashboardLayoutContent({
                   <img 
                     src="/logo-mark.svg" 
                     alt="MK" 
-                    className="h-8 w-8 object-contain" 
+                    className="h-7 w-7 object-contain" 
                   />
                 </div>
               )}

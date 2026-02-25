@@ -255,15 +255,14 @@ export default function Navbar() {
     }`}>
       <div className="container">
         <div className="flex h-16 sm:h-20 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center transition-transform duration-300 hover:scale-105 group">
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-              <img 
-                src={lang === "ar" ? "/logo-ar.svg" : "/logo-horizontal.svg"}
-                alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
-                className="h-8 sm:h-10 w-auto object-contain" 
-              />
-            </div>
+          {/* Logo — light variant on dark navbar, fixed height, no stretch */}
+          <Link href="/" className="flex items-center shrink-0 me-3 transition-transform duration-300 hover:scale-105">
+            <img 
+              src={lang === "ar" ? "/logo-ar-light.svg" : "/logo-horizontal-light.svg"}
+              alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
+              className="h-7 sm:h-8 md:h-[34px] w-auto object-contain"
+              style={{ maxWidth: '200px' }}
+            />
           </Link>
 
           {/* Desktop Nav */}

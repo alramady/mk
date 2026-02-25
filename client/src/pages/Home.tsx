@@ -450,12 +450,13 @@ export default function Home() {
 
         <div className="container relative z-[3] py-16 sm:py-24 md:py-36">
           <div className="max-w-3xl mx-auto text-center px-2 sm:px-0">
-            {/* Brand Logo in Hero - clean inline mark, no card */}
+            {/* Brand Logo in Hero — locale-aware, light variant on dark hero */}
             <div className="hero-logo mb-3 animate-slide-right">
               <img 
-                src="/logo-horizontal-light.svg" 
-                alt="المفتاح الشهري - شعار منصة التأجير الشهري في السعودية" 
-                className="h-[56px] sm:h-[72px] md:h-[88px] w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" 
+                src={lang === "ar" ? "/logo-ar-light.svg" : "/logo-horizontal-light.svg"}
+                alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
+                className="h-[48px] sm:h-[64px] md:h-[80px] w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                style={{ maxWidth: '360px' }}
               />
             </div>
 

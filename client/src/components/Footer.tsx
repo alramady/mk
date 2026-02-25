@@ -34,11 +34,12 @@ export default function Footer() {
           
           {/* Brand column */}
           <div className="md:col-span-4 flex flex-col items-center md:items-start">
-            {/* Logo - transparent, no card */}
+            {/* Logo — light variant on dark footer, locale-aware */}
             <img 
               src={lang === "ar" ? "/logo-ar-light.svg" : "/logo-horizontal-light.svg"}
               alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"} 
-              className="h-20 sm:h-24 w-auto object-contain mb-5 drop-shadow-lg" 
+              className="h-16 sm:h-20 w-auto object-contain mb-5 drop-shadow-lg"
+              style={{ maxWidth: '240px' }} 
             />
             <div className="w-12 h-0.5 bg-gradient-to-r from-[#C9A96E] to-[#3ECFC0] mb-4 rounded-full" />
             <p className="text-white/40 text-sm leading-relaxed text-center md:text-start max-w-xs">{aboutText}</p>
