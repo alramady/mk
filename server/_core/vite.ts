@@ -22,6 +22,10 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+  // Return proper 404 for missing uploaded files in dev mode too
+  app.use("/uploads/*", (_req, res) => {
+    res.status(404).json({ error: "File not found" });
+  });
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
@@ -101,6 +105,11 @@ export function serveStatic(app: Express) {
       }
     },
   }));
+
+  // Return proper 404 for missing uploaded files (prevents SPA HTML being served as images)
+  app.use("/uploads/*", (_req, res) => {
+    res.status(404).json({ error: "File not found" });
+  });
 
   // SPA fallback: serve index.html for all non-file requests
   app.use("*", (_req, res) => {

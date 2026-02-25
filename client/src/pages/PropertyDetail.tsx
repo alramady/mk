@@ -157,7 +157,7 @@ export default function PropertyDetail() {
 
   if (property.isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
         <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
         <Navbar />
         <div className="container py-8 space-y-6">
@@ -171,7 +171,7 @@ export default function PropertyDetail() {
 
   if (!prop) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
         <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
         <Navbar />
         <div className="container py-20 text-center">
@@ -201,11 +201,11 @@ export default function PropertyDetail() {
   const BackArrow = dir === "rtl" ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
       <Navbar />
 
-      <div className="container py-6">
+      <div className="container py-4 sm:py-6">
         {/* Back button */}
         <Button variant="ghost" size="sm" onClick={() => setLocation("/search")} className="mb-4">
           <BackArrow className="h-4 w-4 me-1.5" />
@@ -217,7 +217,7 @@ export default function PropertyDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Photo gallery — touch swipe enabled; buttons use data-action to bypass swipe */}
             <div
-              className="relative rounded-xl overflow-hidden aspect-[16/10] cursor-pointer"
+              className="relative rounded-xl sm:rounded-xl rounded-lg overflow-hidden aspect-[16/10] sm:aspect-[16/10] cursor-pointer"
               onTouchStart={(e) => {
                 // Skip swipe tracking if touch started on an action button
                 const el = e.target as HTMLElement;
@@ -350,7 +350,7 @@ export default function PropertyDetail() {
             </div>
             {/* Thumbnail strip */}
             {photos.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-thin -mx-1 px-1">
                 {photos.map((photo, i) => (
                   <button
                     key={i}
@@ -761,6 +761,8 @@ export default function PropertyDetail() {
         </div>
       </div>
 
+      {/* Bottom spacer for mobile FABs */}
+      <div className="h-20 sm:h-0" />
       <Footer />
     </div>
   );
