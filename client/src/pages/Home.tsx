@@ -549,7 +549,7 @@ export default function Home() {
             <video
               autoPlay muted loop playsInline preload="auto"
               className="absolute inset-0 w-full h-full object-cover z-[1]"
-              poster={s("hero.bgImage") || undefined}
+              poster={s("hero.bgImage") ? `/api/img-proxy?url=${encodeURIComponent(s("hero.bgImage"))}` : undefined}
               src={s("hero.bgVideo")}
               onLoadedData={(e) => {
                 (e.target as HTMLVideoElement).play().catch(() => {});
@@ -559,7 +559,7 @@ export default function Home() {
             {s("hero.bgImage") && (
               <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat z-[0]"
-                style={{ backgroundImage: `url(${s("hero.bgImage")})` }}
+                style={{ backgroundImage: `url(/api/img-proxy?url=${encodeURIComponent(s("hero.bgImage"))})` }}
               />
             )}
             {/* Gradient overlay for text readability: top darker → bottom lighter */}
@@ -569,7 +569,7 @@ export default function Home() {
           <>
             <div
               className="absolute inset-0 bg-cover bg-center bg-no-repeat z-[0]"
-              style={{ backgroundImage: `url(${s("hero.bgImage")})` }}
+              style={{ backgroundImage: `url(/api/img-proxy?url=${encodeURIComponent(s("hero.bgImage"))})` }}
             />
             {/* Dark overlay with configurable opacity */}
             <div

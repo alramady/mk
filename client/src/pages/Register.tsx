@@ -337,7 +337,12 @@ export default function Register() {
             <img
               src="/logo-mark.png"
               alt="Monthly Key - المفتاح الشهري"
-              className="h-20 sm:h-24 w-auto object-contain mx-auto drop-shadow-lg"
+              className="h-20 sm:h-24 w-auto object-contain mx-auto drop-shadow-lg dark:hidden"
+            />
+            <img
+              src="/logo-mark-light.png"
+              alt="Monthly Key - المفتاح الشهري"
+              className="h-20 sm:h-24 w-auto object-contain mx-auto drop-shadow-lg hidden dark:block"
             />
           </Link>
           <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#C5A55A] to-transparent mx-auto mt-2" />

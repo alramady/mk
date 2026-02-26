@@ -84,6 +84,29 @@ async function startServer() {
     }
   });
 
+  // Image proxy: serve external CDN images through our domain to avoid CORS/CSP issues
+  app.get("/api/img-proxy", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url || !url.startsWith("https://")) {
+        res.status(400).json({ error: "Invalid URL" });
+        return;
+      }
+      const response = await fetch(url);
+      if (!response.ok) {
+        res.status(response.status).json({ error: "Upstream error" });
+        return;
+      }
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+      const buffer = Buffer.from(await response.arrayBuffer());
+      res.send(buffer);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Local authentication routes (login, register, change-password)
   registerAuthRoutes(app);
   // tRPC API

@@ -1,23 +1,32 @@
 import { useI18n } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle, ImageOff } from "lucide-react";
+import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle, Building2 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 
-// Reliable fallback images by property type (CDN, always available)
+// Helper: wrap external URLs through our image proxy to avoid CORS/CSP issues
+function proxyUrl(url: string): string {
+  if (!url) return "";
+  // Already a relative URL or data URL — leave as-is
+  if (url.startsWith("/") || url.startsWith("data:")) return url;
+  // External URL — proxy through our server
+  return `/api/img-proxy?url=${encodeURIComponent(url)}`;
+}
+
+// Reliable fallback images by property type (CDN via proxy)
 const FALLBACK_IMAGES: Record<string, string> = {
-  apartment: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
-  villa: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aQahktKcFBRaoOks.jpg",
-  studio: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mONAuqBKEeQxVXtD.jpg",
-  duplex: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
-  furnished_room: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/CmMNTcoDQOUOOgeL.jpg",
-  compound: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/bzChzmxFKBEOPglq.jpg",
-  hotel_apartment: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
-  default: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
+  apartment: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
+  villa: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aQahktKcFBRaoOks.jpg"),
+  studio: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mONAuqBKEeQxVXtD.jpg"),
+  duplex: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
+  furnished_room: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/CmMNTcoDQOUOOgeL.jpg"),
+  compound: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/bzChzmxFKBEOPglq.jpg"),
+  hotel_apartment: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
+  default: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
 };
 
 interface PropertyCardProps {
@@ -68,20 +77,24 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
   const fallbackImg = FALLBACK_IMAGES[property.propertyType] || FALLBACK_IMAGES.default;
   const originalPhoto = property.photos?.[0];
-  // Skip broken /uploads/ URLs — they return 404 on Railway (both relative and absolute)
-  const isValidPhoto = originalPhoto && originalPhoto.startsWith("http") && !originalPhoto.includes("/uploads/");
-  const [imgSrc, setImgSrc] = useState(isValidPhoto ? originalPhoto : fallbackImg);
+  // Proxy all external URLs; skip broken /uploads/ paths
+  const resolvedPhoto = originalPhoto
+    ? originalPhoto.includes("/uploads/")
+      ? "" // broken Railway upload — skip
+      : originalPhoto.startsWith("http")
+        ? proxyUrl(originalPhoto)
+        : originalPhoto
+    : "";
+
+  const [imgSrc, setImgSrc] = useState(resolvedPhoto || fallbackImg);
   const [imgStatus, setImgStatus] = useState<"loading" | "loaded" | "error">("loading");
 
-  // When image loads successfully, mark as loaded
-  // Note: naturalWidth check removed — it caused false negatives with some CDN images
   const handleLoad = useCallback(() => {
     setImgStatus("loaded");
   }, []);
 
   const handleError = useCallback(() => {
     if (imgSrc !== fallbackImg) {
-      // Try fallback image
       setImgSrc(fallbackImg);
       setImgStatus("loading");
     } else {
@@ -89,7 +102,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
     }
   }, [imgSrc, fallbackImg]);
 
-  // Safety timeout: if image hasn't loaded after 5s, switch to fallback
+  // Safety timeout
   useEffect(() => {
     if (imgStatus !== "loading") return;
     const timer = setTimeout(() => {
@@ -100,7 +113,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           setImgStatus("error");
         }
       }
-    }, 5000);
+    }, 8000);
     return () => clearTimeout(timer);
   }, [imgStatus, imgSrc, fallbackImg]);
 
@@ -123,11 +136,13 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           {imgStatus === "loading" && (
             <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/70 to-muted" />
           )}
-          {/* Error fallback */}
+          {/* Clean error fallback — building icon, no broken image icon */}
           {imgStatus === "error" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
-              <ImageOff className="h-8 w-8 text-muted-foreground/40 mb-1" />
-              <span className="text-xs text-muted-foreground/50">{lang === "ar" ? "صورة غير متوفرة" : "Image unavailable"}</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+              <Building2 className="h-12 w-12 text-[#3ECFC0]/40 mb-2" />
+              <span className="text-xs text-muted-foreground/60 font-medium">
+                {lang === "ar" ? "صورة قريباً" : "Photo coming soon"}
+              </span>
             </div>
           )}
           <img
@@ -194,7 +209,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             </div>
           )}
 
-          {/* Price tag - enhanced with glow effect */}
+          {/* Price tag */}
           <div className="absolute bottom-3 start-3 bg-[#0B1E2D]/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg group-hover:shadow-[#3ECFC0]/20 group-hover:shadow-xl transition-all duration-500">
             <span className="font-bold text-[#3ECFC0] text-base sm:text-lg tracking-tight">
               {Number(property.monthlyRent).toLocaleString()} {t("payment.sar")}
