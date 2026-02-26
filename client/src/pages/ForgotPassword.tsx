@@ -188,8 +188,7 @@ export default function ForgotPassword() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder={lang === "ar" ? "أدخل بريدك الإلكتروني" : "Enter your email"}
                       required
-                      className="h-11 ps-10"
-                      dir="ltr"
+                      className="h-11 ps-10 text-end"
                       autoComplete="email"
                     />
                   </div>
@@ -219,7 +218,6 @@ export default function ForgotPassword() {
                     placeholder={lang === "ar" ? "أدخل الرمز المكون من 6 أرقام" : "Enter 6-digit code"}
                     required
                     className="h-11 text-center tracking-widest text-lg"
-                    dir="ltr"
                     maxLength={6}
                     autoComplete="one-time-code"
                   />
@@ -255,8 +253,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder={lang === "ar" ? "12 حرفاً على الأقل" : "At least 12 characters"}
                     required
-                    className="h-11"
-                    dir="ltr"
+                    className="h-11 text-end"
                     autoComplete="new-password"
                   />
                 </div>
@@ -271,8 +268,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder={lang === "ar" ? "أعد إدخال كلمة المرور" : "Re-enter password"}
                     required
-                    className="h-11"
-                    dir="ltr"
+                    className="h-11 text-end"
                     autoComplete="new-password"
                   />
                 </div>
