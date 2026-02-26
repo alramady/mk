@@ -64,6 +64,30 @@ async function startServer() {
   // ─── Dynamic Sitemap ──────────────────────────────────────────────
   app.get("/sitemap.xml", sitemapHandler);
 
+  // Health check / debug endpoint
+  app.get("/api/health", async (_req, res) => {
+    try {
+      const { getPool } = await import("../db");
+      const pool = getPool();
+      let dbStatus = "no pool";
+      let columns: string[] = [];
+      if (pool) {
+        try {
+          const [rows] = await pool.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' ORDER BY ORDINAL_POSITION");
+          columns = (rows as any[]).map((r: any) => r.COLUMN_NAME);
+          dbStatus = "connected";
+        } catch (e: any) {
+          dbStatus = `error: ${e.message}`;
+        }
+      }
+      const dbUrl = process.env.DATABASE_URL || "not set";
+      const dbHost = dbUrl.includes("@") ? dbUrl.split("@")[1]?.split("/")[0] : "unknown";
+      res.json({ status: "ok", dbStatus, dbHost, userColumns: columns, hasRecoveryEmail: columns.includes("recoveryEmail") });
+    } catch (e: any) {
+      res.json({ status: "error", error: e.message });
+    }
+  });
+
   // Local authentication routes (login, register, change-password)
   registerAuthRoutes(app);
   // tRPC API

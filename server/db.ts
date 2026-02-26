@@ -27,11 +27,23 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+let _pool: mysql.Pool | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const pool = mysql.createPool(process.env.DATABASE_URL);
-      _db = drizzle(pool);
+      _pool = mysql.createPool(process.env.DATABASE_URL);
+      _db = drizzle(_pool);
+      // Auto-migrate: ensure recoveryEmail column exists
+      try {
+        await _pool.execute("ALTER TABLE users ADD COLUMN recoveryEmail VARCHAR(320) DEFAULT NULL");
+        console.log("[Database] Added missing recoveryEmail column");
+      } catch (e: any) {
+        if (e?.code === 'ER_DUP_FIELDNAME' || e?.errno === 1060) {
+          // Column already exists, that's fine
+        } else {
+          console.warn("[Database] recoveryEmail migration note:", e?.message);
+        }
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -39,6 +51,8 @@ export async function getDb() {
   }
   return _db;
 }
+
+export function getPool() { return _pool; }
 
 // ─── Transaction Helper ──────────────────────────────────────────────
 /**
