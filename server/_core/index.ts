@@ -64,6 +64,41 @@ async function startServer() {
   // ─── Dynamic Sitemap ──────────────────────────────────────────────
   app.get("/sitemap.xml", sitemapHandler);
 
+  // Temporary: server-side password reset (bypasses external/internal DB discrepancy)
+  app.post("/api/debug/reset-password", async (req, res) => {
+    try {
+      const { userId, newPassword, secret } = req.body;
+      if (secret !== "mk-temp-reset-2026") {
+        res.status(403).json({ error: "Invalid secret" });
+        return;
+      }
+      const bcrypt = (await import("bcryptjs")).default;
+      const { getUserByUserId, updateUserPassword } = await import("../db");
+      const user = await getUserByUserId(userId);
+      if (!user) {
+        res.json({ error: "User not found", hashInDb: null });
+        return;
+      }
+      // Show current hash for debugging
+      const currentHash = user.passwordHash;
+      const matchesCurrent = currentHash ? await bcrypt.compare(newPassword, currentHash) : false;
+      if (matchesCurrent) {
+        res.json({ success: true, message: "Password already matches", hashInDb: currentHash });
+        return;
+      }
+      // Generate new hash on the server
+      const salt = await bcrypt.genSalt(12);
+      const hash = await bcrypt.hash(newPassword, salt);
+      await updateUserPassword(user.id, hash);
+      // Verify it works
+      const updatedUser = await getUserByUserId(userId);
+      const verifyMatch = updatedUser?.passwordHash ? await bcrypt.compare(newPassword, updatedUser.passwordHash) : false;
+      res.json({ success: true, oldHash: currentHash, newHash: hash, verified: verifyMatch });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Health check / debug endpoint
   app.get("/api/health", async (_req, res) => {
     try {
