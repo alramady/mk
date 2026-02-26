@@ -337,6 +337,69 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  // ─── Reset Password (via OTP) ───────────────────────────────────
+  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    const ip = getClientIP(req);
+    try {
+      const { email, code, newPassword } = req.body;
+
+      if (!email || !code || !newPassword) {
+        res.status(400).json({
+          error: "Email, code, and new password are required",
+          errorAr: "البريد الإلكتروني والرمز وكلمة المرور الجديدة مطلوبة",
+        });
+        return;
+      }
+
+      // Verify the OTP first
+      const otpResult = await verifyOtp({
+        channel: "email",
+        destination: email,
+        code,
+        purpose: "password_reset",
+        ip,
+      });
+
+      if (!otpResult.success) {
+        res.status(400).json({
+          error: otpResult.error || "Invalid or expired code",
+          errorAr: otpResult.errorAr || "رمز التحقق غير صالح أو منتهي الصلاحية",
+        });
+        return;
+      }
+
+      // Validate new password
+      const pwCheck = validatePassword(newPassword);
+      if (!pwCheck.valid) {
+        res.status(400).json({ error: pwCheck.error, errorAr: pwCheck.errorAr });
+        return;
+      }
+
+      // Find user by email
+      const user = await db.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal whether user exists
+        res.json({ success: true });
+        return;
+      }
+
+      // Hash and update password
+      const salt = await bcrypt.genSalt(12);
+      const passwordHash = await bcrypt.hash(newPassword, salt);
+      await db.updateUserPassword(user.id, passwordHash);
+
+      logAuthEvent("PASSWORD_RESET_SUCCESS", { userId: user.userId, userDbId: user.id, ip });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[Auth] Reset password failed:", error);
+      logAuthEvent("PASSWORD_RESET_ERROR", { ip, error: String(error) });
+      res.status(500).json({
+        error: "Failed to reset password",
+        errorAr: "فشل إعادة تعيين كلمة المرور",
+      });
+    }
+  });
+
   // ─── OTP Send ────────────────────────────────────────────────────
   app.post("/api/v1/auth/otp/send", async (req: Request, res: Response) => {
     const ip = getClientIP(req);

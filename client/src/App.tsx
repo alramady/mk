@@ -55,6 +55,7 @@ const AdminHardeningKB = lazy(() => import("./pages/AdminHardeningKB"));
 const AdminHelpCenter = lazy(() => import("./pages/AdminHelpCenter"));
 const AdminAICopilot = lazy(() => import("./pages/AdminAICopilot"));
 const AdminMyAccount = lazy(() => import("./pages/AdminMyAccount"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 
 function PageLoader() {
   return (
@@ -72,6 +73,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/search" component={Search} />
         <Route path="/map" component={MapViewPage} />
         <Route path="/property/:id" component={PropertyDetail} />

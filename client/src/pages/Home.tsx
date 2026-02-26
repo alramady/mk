@@ -171,13 +171,13 @@ function HeroSearchBar({ lang, cities, onSearch }: {
       {/* City & Type */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+          <label className="block text-sm font-semibold text-[#0B1E2D] dark:text-gray-100 mb-2">
             {lang === "ar" ? "المدينة" : "City"}
           </label>
           <select
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
+            className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-[#0B1E2D] dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
           >
             <option value="">{lang === "ar" ? "الكل" : "All"}</option>
             {cities.map(c => (
@@ -186,13 +186,13 @@ function HeroSearchBar({ lang, cities, onSearch }: {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+          <label className="block text-sm font-semibold text-[#0B1E2D] dark:text-gray-100 mb-2">
             {lang === "ar" ? "نوع العقار" : "Property Type"}
           </label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
+            className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-[#0B1E2D] dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
           >
             <option value="">{lang === "ar" ? "الكل" : "All"}</option>
             {propertyTypes.map(pt => (
@@ -204,14 +204,14 @@ function HeroSearchBar({ lang, cities, onSearch }: {
 
       {/* Price Range */}
       <div>
-        <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+        <label className="block text-sm font-semibold text-[#0B1E2D] dark:text-gray-100 mb-2">
           {lang === "ar" ? "نطاق السعر (ر.س/شهر)" : "Price Range (SAR/mo)"}
         </label>
         <div className="flex gap-2 items-center">
           <select
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
+            className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-[#0B1E2D] dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
           >
             <option value="">{lang === "ar" ? "الكل" : "All"}</option>
             <option value="3000">{lang === "ar" ? "حتى 3,000 ر.س" : "Up to 3,000 SAR"}</option>
@@ -227,7 +227,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
       {/* Bedrooms & Bathrooms */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+          <label className="block text-sm font-semibold text-[#0B1E2D] dark:text-gray-100 mb-2">
             {lang === "ar" ? "غرف النوم" : "Bedrooms"}
           </label>
           <div className="flex gap-2 flex-wrap">
@@ -239,7 +239,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
                 className={`min-w-[44px] h-10 px-3 rounded-lg text-sm border font-medium transition-colors ${
                   bedrooms === opt
                     ? "bg-[#3ECFC0] text-white border-[#3ECFC0]"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-[#3ECFC0]/50"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-[#3ECFC0]/50"
                 }`}
               >
                 {opt === "" ? (lang === "ar" ? "الكل" : "All") : opt === "4" ? "4+" : opt}
@@ -248,7 +248,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+          <label className="block text-sm font-semibold text-[#0B1E2D] dark:text-gray-100 mb-2">
             {lang === "ar" ? "دورات المياه" : "Bathrooms"}
           </label>
           <div className="flex gap-2 flex-wrap">
@@ -260,7 +260,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
                 className={`min-w-[44px] h-10 px-3 rounded-lg text-sm border font-medium transition-colors ${
                   bathrooms === opt
                     ? "bg-[#3ECFC0] text-white border-[#3ECFC0]"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-[#3ECFC0]/50"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-[#3ECFC0]/50"
                 }`}
               >
                 {opt === "" ? (lang === "ar" ? "الكل" : "All") : opt}
@@ -272,7 +272,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
 
       {/* Property Size */}
       <div>
-        <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+        <label className="block text-sm font-semibold text-[#0B1E2D] dark:text-gray-100 mb-2">
           {lang === "ar" ? "المساحة (م²)" : "Size (m²)"}
         </label>
         <div className="flex gap-2 items-center">
@@ -281,7 +281,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
             value={minArea}
             onChange={(e) => setMinArea(e.target.value)}
             placeholder={lang === "ar" ? "من" : "Min"}
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0]"
+            className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-[#0B1E2D] dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0]"
           />
           <span className="text-gray-400 text-sm">—</span>
           <input
@@ -289,14 +289,14 @@ function HeroSearchBar({ lang, cities, onSearch }: {
             value={maxArea}
             onChange={(e) => setMaxArea(e.target.value)}
             placeholder={lang === "ar" ? "إلى" : "Max"}
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0]"
+            className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-[#0B1E2D] dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0]"
           />
         </div>
       </div>
 
       {/* Amenities */}
       <div>
-        <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+        <label className="block text-sm font-semibold text-[#0B1E2D] dark:text-gray-100 mb-2">
           {lang === "ar" ? "المرافق" : "Amenities"}
         </label>
         <div className="flex flex-wrap gap-2">
@@ -308,7 +308,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
               className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                 amenities.includes(a.value)
                   ? "bg-[#3ECFC0]/10 text-[#3ECFC0] border-[#3ECFC0]/30"
-                  : "bg-white text-gray-500 border-gray-200 hover:border-[#3ECFC0]/30"
+                  : "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-[#3ECFC0]/30"
               }`}
             >
               {a.label}
@@ -322,7 +322,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
         <button
           type="button"
           onClick={handleReset}
-          className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           {lang === "ar" ? "إعادة تعيين" : "Reset"}
@@ -407,7 +407,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
 
       {/* ── Desktop: Inline Expanded Filters ── */}
       {expanded && (
-        <div className="hidden md:block mt-4 bg-white rounded-2xl border border-gray-100 shadow-lg p-6">
+        <div className="hidden md:block mt-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg p-6">
           {filtersContent}
         </div>
       )}
@@ -417,7 +417,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileSheet(false)} />
           <div
-            className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
+            className="absolute bottom-0 inset-x-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
             style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 16px))" }}
           >
             <div className="flex justify-center pt-3 pb-1">

@@ -68,8 +68,8 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
   const fallbackImg = FALLBACK_IMAGES[property.propertyType] || FALLBACK_IMAGES.default;
   const originalPhoto = property.photos?.[0];
-  // Skip broken /uploads/ URLs immediately — they return HTML on Railway
-  const isValidPhoto = originalPhoto && !originalPhoto.startsWith("/uploads/") && originalPhoto.startsWith("http");
+  // Skip broken /uploads/ URLs — they return 404 on Railway (both relative and absolute)
+  const isValidPhoto = originalPhoto && originalPhoto.startsWith("http") && !originalPhoto.includes("/uploads/");
   const [imgSrc, setImgSrc] = useState(isValidPhoto ? originalPhoto : fallbackImg);
   const [imgStatus, setImgStatus] = useState<"loading" | "loaded" | "error">("loading");
 
@@ -118,16 +118,16 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
     <Link href={`/property/${property.id}`}>
       <Card className="property-card group overflow-hidden cursor-pointer border-border/40 py-0 gap-0 bg-white dark:bg-card rounded-xl">
         {/* Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-800">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl bg-muted">
           {/* Skeleton shimmer while loading */}
           {imgStatus === "loading" && (
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800" />
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/70 to-muted" />
           )}
           {/* Error fallback */}
           {imgStatus === "error" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-900">
-              <ImageOff className="h-8 w-8 text-gray-300 dark:text-gray-600 mb-1" />
-              <span className="text-xs text-gray-400 dark:text-gray-500">{lang === "ar" ? "صورة غير متوفرة" : "Image unavailable"}</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
+              <ImageOff className="h-8 w-8 text-muted-foreground/40 mb-1" />
+              <span className="text-xs text-muted-foreground/50">{lang === "ar" ? "صورة غير متوفرة" : "Image unavailable"}</span>
             </div>
           )}
           <img

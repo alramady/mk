@@ -138,7 +138,13 @@ export default function Login() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-4 text-center">
+              <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-[#3ECFC0] transition-colors">
+                {lang === "ar" ? "نسيت كلمة المرور؟" : "Forgot password?"}
+              </Link>
+            </div>
+
+            <div className="mt-4 text-center text-sm">
               <span className="text-gray-500">{t("auth.noAccount")}</span>{" "}
               <Link href="/register" className="text-[#3ECFC0] hover:text-[#0B1E2D] font-semibold">
                 {t("auth.createAccount")}
