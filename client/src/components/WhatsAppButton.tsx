@@ -1,34 +1,73 @@
 import { useI18n } from "@/lib/i18n";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 
 /**
- * WhatsApp floating action button.
- * Fully controlled by backend settings (whatsapp.* keys in platformSettings).
+ * WhatsApp floating action button — fully backend-controlled.
  *
  * Feature flag:  whatsapp.enabled  ("true" / "false")
  * Route flags:   whatsapp.showOnHome, whatsapp.showOnSearch, whatsapp.showOnPropertyDetail
- * Hidden on:     /login, /register, /verify*, /admin*, /owner*
+ * Hidden on:     /login, /register, /verify*, /otp*, /auth*, /admin*, /owner*
+ *
+ * Context-aware message templates:
+ *   home    → whatsapp.homeMessageTemplateAr / En
+ *   search  → whatsapp.searchMessageTemplateAr / En
+ *   property_detail → whatsapp.propertyMessageTemplateAr / En  (with placeholders)
+ *   fallback → whatsapp.defaultMessageAr / En
  */
 
-// Routes where the FAB is ALWAYS hidden (auth + admin + owner flows)
-const HIDDEN_PREFIXES = ["/login", "/register", "/verify", "/admin", "/owner"];
+// ── Types ────────────────────────────────────────────────────────────
+export type WhatsAppContext = "home" | "search" | "property_detail" | "default";
 
-// Map route patterns to their setting keys
-function getRouteSettingKey(path: string): string | null {
-  if (path === "/" || path === "") return "whatsapp.showOnHome";
-  if (path.startsWith("/search") || path.startsWith("/properties")) return "whatsapp.showOnSearch";
-  if (path.startsWith("/property/")) return "whatsapp.showOnPropertyDetail";
+export interface WhatsAppFABProps {
+  /** Override the auto-detected context */
+  context?: WhatsAppContext;
+  /** Property name — used when context is "property_detail" */
+  propertyName?: string;
+  /** City name — used when context is "property_detail" */
+  city?: string;
+  /** Property ID — used when context is "property_detail" */
+  propertyId?: string | number;
+  /** Full property URL — used when context is "property_detail" */
+  propertyUrl?: string;
+}
+
+// ── Route deny-list ──────────────────────────────────────────────────
+const HIDDEN_PREFIXES = [
+  "/login",
+  "/register",
+  "/verify",
+  "/otp",
+  "/auth",
+  "/admin",
+  "/owner",
+];
+
+// ── Route → setting key + context mapping ────────────────────────────
+interface RouteInfo {
+  settingKey: string;
+  context: WhatsAppContext;
+}
+
+function getRouteInfo(path: string): RouteInfo | null {
+  if (path === "/" || path === "") return { settingKey: "whatsapp.showOnHome", context: "home" };
+  if (path.startsWith("/search") || path.startsWith("/properties")) return { settingKey: "whatsapp.showOnSearch", context: "search" };
+  if (path.startsWith("/property/")) return { settingKey: "whatsapp.showOnPropertyDetail", context: "property_detail" };
   return null; // unknown route → hide by default
 }
 
-/** Build a wa.me click-to-chat URL */
+// ── URL builder ──────────────────────────────────────────────────────
+/**
+ * Build a WhatsApp click-to-chat URL using the official api.whatsapp.com format.
+ * Phone is converted to digits-only (strips + and spaces).
+ */
 export function buildWhatsAppUrl(phone: string, message: string): string {
-  const cleanPhone = phone.replace(/[^0-9]/g, "");
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  const digitsOnly = phone.replace(/[^0-9]/g, "");
+  return `https://api.whatsapp.com/send/?phone=${digitsOnly}&text=${encodeURIComponent(message)}`;
 }
 
+// ── Template filler ──────────────────────────────────────────────────
 /** Fill property placeholders in a message template */
 export function buildPropertyMessage(
   template: string,
@@ -41,7 +80,14 @@ export function buildPropertyMessage(
     .replace(/\{\{url\}\}/g, props.url);
 }
 
-export default function WhatsAppButton() {
+// ── Component ────────────────────────────────────────────────────────
+export default function WhatsAppButton({
+  context: contextOverride,
+  propertyName,
+  city,
+  propertyId,
+  propertyUrl,
+}: WhatsAppFABProps = {}) {
   const { lang } = useI18n();
   const { get: s } = useSiteSettings();
   const [location] = useLocation();
@@ -49,18 +95,60 @@ export default function WhatsAppButton() {
   const [showTooltip, setShowTooltip] = useState(false);
   const [pulse, setPulse] = useState(true);
 
-  // ── Feature flag check ──────────────────────────────────────────
+  // ── Feature flag ───────────────────────────────────────────────────
   const isEnabled = s("whatsapp.enabled", "false") === "true";
   const phone = s("whatsapp.number", "");
 
-  // ── Route-based visibility ──────────────────────────────────────
+  // ── Route-based visibility ─────────────────────────────────────────
   const isHiddenRoute = HIDDEN_PREFIXES.some(
     (p) => location === p || location.startsWith(p + "/") || location.startsWith(p)
   );
-  const routeKey = getRouteSettingKey(location);
-  const isRouteAllowed = routeKey ? s(routeKey, "true") === "true" : false;
+  const routeInfo = getRouteInfo(location);
+  const isRouteAllowed = routeInfo ? s(routeInfo.settingKey, "true") === "true" : false;
 
-  // ── Animations ──────────────────────────────────────────────────
+  // ── Resolve context ────────────────────────────────────────────────
+  const resolvedContext: WhatsAppContext = contextOverride || routeInfo?.context || "default";
+
+  // ── Build message based on context ─────────────────────────────────
+  const message = useMemo(() => {
+    const suffix = lang === "ar" ? "Ar" : "En";
+    const fallback =
+      lang === "ar"
+        ? s("whatsapp.defaultMessageAr", s("whatsapp.message", "مرحباً، أحتاج مساعدة بخصوص الإيجار الشهري"))
+        : s("whatsapp.defaultMessageEn", "Hello, I need help regarding monthly rental");
+
+    switch (resolvedContext) {
+      case "home": {
+        const tmpl = s(`whatsapp.homeMessageTemplate${suffix}`, "");
+        return tmpl || fallback;
+      }
+      case "search": {
+        const tmpl = s(`whatsapp.searchMessageTemplate${suffix}`, "");
+        return tmpl || fallback;
+      }
+      case "property_detail": {
+        const tmpl = s(
+          `whatsapp.propertyMessageTemplate${suffix}`,
+          lang === "ar"
+            ? "مرحباً، أنا مهتم بالعقار: {{property_title}} (رقم: {{property_id}}) في {{city}}. الرابط: {{url}}"
+            : "Hello, I'm interested in: {{property_title}} (ID: {{property_id}}) in {{city}}. Link: {{url}}"
+        );
+        if (propertyName || propertyId) {
+          return buildPropertyMessage(tmpl, {
+            title: propertyName || "",
+            id: propertyId || "",
+            city: city || "",
+            url: propertyUrl || window.location.href,
+          });
+        }
+        return fallback;
+      }
+      default:
+        return fallback;
+    }
+  }, [resolvedContext, lang, s, propertyName, propertyId, city, propertyUrl]);
+
+  // ── Animations ─────────────────────────────────────────────────────
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(timer);
@@ -80,17 +168,13 @@ export default function WhatsAppButton() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ── Bail out if disabled, no phone, or wrong route ──────────────
+  // ── Bail out if disabled, no phone, or wrong route ─────────────────
   if (!isEnabled || !phone || isHiddenRoute || !isRouteAllowed) return null;
 
-  // ── Build link ──────────────────────────────────────────────────
-  const defaultMsg =
-    lang === "ar"
-      ? s("whatsapp.defaultMessageAr", s("whatsapp.message", "مرحباً، أحتاج مساعدة بخصوص الإيجار الشهري"))
-      : s("whatsapp.defaultMessageEn", "Hello, I need help regarding monthly rental");
+  // ── Build link ─────────────────────────────────────────────────────
   const tooltipText =
     lang === "ar" ? s("whatsapp.textAr", "تواصل معنا") : s("whatsapp.textEn", "Chat with us");
-  const waUrl = buildWhatsAppUrl(phone, defaultMsg);
+  const waUrl = buildWhatsAppUrl(phone, message);
 
   return (
     <div
