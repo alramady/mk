@@ -11,6 +11,9 @@ export async function seedAdminUser() {
     // Seed demo property manager
     await seedDemoPropertyManager();
 
+    // Always ensure admin permissions exist (even if user already exists)
+    await ensureAdminPermissions();
+
     const existing = await db.getUserByUserId("Hobart");
     if (existing) {
       console.log("[Seed] Admin user 'Hobart' already exists, skipping.");
@@ -46,8 +49,7 @@ export async function seedAdminUser() {
       console.error("[Seed] Failed to create admin user");
     }
 
-    // Also ensure any existing admin users have permissions
-    await ensureAdminPermissions();
+    // ensureAdminPermissions already called above
   } catch (error) {
     console.error("[Seed] Error seeding admin user:", error);
   }
