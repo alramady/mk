@@ -1,6 +1,6 @@
 # Deployment Guide — Monthly Key App
 
-> **Last updated:** 2026-02-25
+> **Last updated:** 2026-02-26
 > **Production URL:** `https://mk-production-7730.up.railway.app/`
 > **Future domain:** `https://monthlykey.com` (DNS pending)
 
@@ -100,7 +100,7 @@ All environment variables are managed in Railway Dashboard → Monthly Key App �
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `DATABASE_URL` | MySQL connection string | Yes |
-| `JWT_SECRET` | Secret for signing JWT tokens (must be strong, random) | Yes |
+| `JWT_SECRET` | Secret for signing JWT tokens. **Min 32 chars — server exits on startup if missing or too short.** Generate with: `node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"` | Yes (fail-fast) |
 | `OPENAI_API_KEY` | OpenAI API key for AI features | Yes |
 | `BEDS24_REFRESH_TOKEN` | Beds24 API refresh token | Yes (if Beds24 enabled) |
 | `ENABLE_BEDS24` | Enable Beds24 integration (`true`/`false`) | No (default: `false`) |
@@ -108,6 +108,10 @@ All environment variables are managed in Railway Dashboard → Monthly Key App �
 | `ENABLE_BEDS24_WEBHOOKS` | Enable Beds24 webhooks | No (default: `false`) |
 | `NODE_ENV` | Environment (`production`) | Yes |
 | `PORT` | Server port (`8081`) | Yes |
+| `OTP_SECRET_PEPPER` | HMAC pepper for OTP hashing. Min 32 chars. Server logs warning if missing but does not exit. | Recommended |
+| `ADMIN_INITIAL_PASSWORD` | Initial admin password for seed script. Falls back to `MK_Admin_2026!` if not set. | Recommended |
+| `REDIS_URL` | Redis connection for distributed cache/rate-limiting. Falls back to in-memory if not set. | Optional |
+| `SESSION_TTL_MS` | Session lifetime in ms. Default: 1800000 (30 min) in production, 86400000 (24 hr) in dev. | Optional |
 
 **Changing variables:** After updating variables in Railway, the service will automatically redeploy with the new values.
 
