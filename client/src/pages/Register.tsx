@@ -382,7 +382,7 @@ export default function Register() {
                     onChange={(e) => update("userId", e.target.value)}
                     placeholder={lang === "ar" ? "اختر معرف المستخدم" : "Choose a user ID"}
                     required
-                    className="h-10 text-end"
+                    className="h-10 text-right"
                   />
                 </div>
 
@@ -409,7 +409,7 @@ export default function Register() {
                       onChange={(e) => { update("nameAr", e.target.value); update("name", e.target.value); }}
                       placeholder="الاسم الكامل بالعربي"
                       required
-                      className="h-10 text-end"
+                      className="h-10 text-right"
                     />
                   </div>
                 ) : (
@@ -422,7 +422,7 @@ export default function Register() {
                       onChange={(e) => { update("name", e.target.value); update("nameAr", e.target.value); }}
                       placeholder="Full name"
                       required
-                      className="h-10 text-end"
+                      className="h-10 text-right"
                     />
                   </div>
                 )}
@@ -436,7 +436,7 @@ export default function Register() {
                     onChange={(e) => update("email", e.target.value)}
                     placeholder="email@example.com"
                     required
-                    className="h-10 text-end"
+                    className="h-10 text-right"
                   />
                 </div>
 
@@ -494,7 +494,7 @@ export default function Register() {
                       onChange={(e) => update("password", e.target.value)}
                       placeholder={lang === "ar" ? "12 حرف على الأقل" : "At least 12 characters"}
                       required
-                      className="h-10 pe-10 text-end"
+                      className="h-10 pe-10 text-right"
                     />
                     <button
                       type="button"
@@ -515,7 +515,7 @@ export default function Register() {
                     onChange={(e) => update("confirmPassword", e.target.value)}
                     placeholder={lang === "ar" ? "أعد إدخال كلمة المرور" : "Re-enter password"}
                     required
-                    className="h-10 text-end"
+                    className="h-10 text-right"
                   />
                 </div>
 
