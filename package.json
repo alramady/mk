@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
-    "db:fix-photos": "node scripts/fix-photos.mjs"
+    "db:fix-photos": "node scripts/fix-photos.mjs",
+    "check:beds24-immutable": "bash scripts/check-beds24-immutable.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

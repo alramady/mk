@@ -317,6 +317,53 @@ export const financeRouter = router({
       }),
   }),
 
+  // ─── Beds24 Connections ────────────────────────────────────────────
+  beds24: router({
+    /** List all Beds24 mappings with connection type info */
+    list: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({ connectionType: z.enum(["API", "ICAL"]).optional() }).optional())
+      .query(async ({ input }) => {
+        return finance.getBeds24Mappings(input?.connectionType);
+      }),
+    /** Create or update a Beds24 mapping for a unit */
+    upsert: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        unitId: z.number(),
+        beds24PropertyId: z.string().optional(),
+        beds24RoomId: z.string().optional(),
+        connectionType: z.enum(["API", "ICAL"]),
+        icalImportUrl: z.string().optional(),
+        icalExportUrl: z.string().optional(),
+        beds24ApiKey: z.string().optional(),
+        sourceOfTruth: z.enum(["BEDS24", "LOCAL"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return finance.upsertBeds24Mapping(input);
+      }),
+    /** Delete a Beds24 mapping */
+    delete: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return finance.deleteBeds24Mapping(input.id);
+      }),
+    /** Get connection stats (API vs iCal counts, sync status) */
+    stats: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
+      .query(async () => {
+        return occupancy.getConnectionStats();
+      }),
+    /** Sync a single iCal unit */
+    syncUnit: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({ unitId: z.number() }))
+      .mutation(async ({ input }) => {
+        return occupancy.syncICalUnit(input.unitId);
+      }),
+    /** Sync all iCal units */
+    syncAllICal: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .mutation(async () => {
+        return occupancy.syncAllICalUnits();
+      }),
+  }),
+
   // ─── Occupancy Snapshot ───────────────────────────────────────────
   snapshot: router({
     generate: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)

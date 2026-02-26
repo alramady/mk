@@ -56,13 +56,20 @@ CREATE TABLE IF NOT EXISTS `beds24_map` (
   `unitId` int NOT NULL,
   `beds24PropertyId` varchar(100),
   `beds24RoomId` varchar(100),
+  `connectionType` enum('API','ICAL') NOT NULL DEFAULT 'API' COMMENT 'API=full bidirectional, ICAL=read-only calendar sync',
+  `icalImportUrl` varchar(500) DEFAULT NULL COMMENT 'iCal URL from Beds24 (used when connectionType=ICAL)',
+  `icalExportUrl` varchar(500) DEFAULT NULL COMMENT 'iCal URL to push to Beds24 (used when connectionType=ICAL)',
+  `beds24ApiKey` varchar(255) DEFAULT NULL COMMENT 'Beds24 API key (used when connectionType=API)',
   `lastSyncedAt` timestamp NULL,
+  `lastSyncStatus` enum('SUCCESS','FAILED','PENDING') DEFAULT 'PENDING',
+  `lastSyncError` text DEFAULT NULL,
   `sourceOfTruth` enum('BEDS24','LOCAL') NOT NULL DEFAULT 'BEDS24',
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY `uq_beds24_unitId` (`unitId`),
   UNIQUE KEY `uq_beds24_roomId` (`beds24RoomId`),
-  INDEX `idx_beds24_propertyId` (`beds24PropertyId`)
+  INDEX `idx_beds24_propertyId` (`beds24PropertyId`),
+  INDEX `idx_beds24_connectionType` (`connectionType`)
 );
 
 -- ─── Payment Ledger (immutable, audit-grade) ────────────────────────

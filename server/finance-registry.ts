@@ -598,7 +598,10 @@ export async function getBuildingUnitsWithFinance(buildingId: number) {
         WHERE pl.unitId = u.id AND pl.status = 'DUE' AND pl.direction = 'IN'
         ORDER BY pl.dueAt ASC LIMIT 1) as nextDueDate,
        (SELECT pl.guestName FROM payment_ledger pl
-        WHERE pl.unitId = u.id ORDER BY pl.createdAt DESC LIMIT 1) as lastGuestName
+        WHERE pl.unitId = u.id ORDER BY pl.createdAt DESC LIMIT 1) as lastGuestName,
+       (SELECT bm.connectionType FROM beds24_map bm WHERE bm.unitId = u.id LIMIT 1) as beds24ConnectionType,
+       (SELECT bm.lastSyncStatus FROM beds24_map bm WHERE bm.unitId = u.id LIMIT 1) as beds24SyncStatus,
+       (SELECT bm.sourceOfTruth FROM beds24_map bm WHERE bm.unitId = u.id LIMIT 1) as beds24SourceOfTruth
      FROM units u
      WHERE u.buildingId = ?
      ORDER BY u.unitNumber ASC`,
@@ -647,4 +650,88 @@ export async function getEnabledPaymentMethods() {
   } catch {
     return [];
   }
+}
+
+// ─── Beds24 Mapping CRUD ────────────────────────────────────────────
+
+export async function getBeds24Mappings(connectionType?: "API" | "ICAL") {
+  const pool = getPool();
+  if (!pool) return [];
+  let query = `SELECT bm.*, u.unitNumber, u.buildingId, b.buildingName
+    FROM beds24_map bm
+    LEFT JOIN units u ON bm.unitId = u.id
+    LEFT JOIN buildings b ON u.buildingId = b.id`;
+  const params: any[] = [];
+  if (connectionType) {
+    query += " WHERE bm.connectionType = ?";
+    params.push(connectionType);
+  }
+  query += " ORDER BY bm.updatedAt DESC";
+  const [rows] = await pool.query<RowDataPacket[]>(query, params);
+  return rows;
+}
+
+export async function upsertBeds24Mapping(data: {
+  unitId: number;
+  beds24PropertyId?: string;
+  beds24RoomId?: string;
+  connectionType: "API" | "ICAL";
+  icalImportUrl?: string;
+  icalExportUrl?: string;
+  beds24ApiKey?: string;
+  sourceOfTruth?: "BEDS24" | "LOCAL";
+}): Promise<{ id: number; created: boolean }> {
+  const pool = getPool();
+  if (!pool) throw new Error("Database not available");
+
+  // Validate: iCal connections need icalImportUrl, API connections need beds24PropertyId
+  if (data.connectionType === "ICAL" && !data.icalImportUrl) {
+    throw new Error("iCal import URL is required for ICAL connections");
+  }
+  if (data.connectionType === "API" && !data.beds24PropertyId) {
+    throw new Error("Beds24 Property ID is required for API connections");
+  }
+
+  // Check if mapping already exists for this unit
+  const [existing] = await pool.query<RowDataPacket[]>(
+    "SELECT id FROM beds24_map WHERE unitId = ?", [data.unitId]
+  );
+
+  if (existing[0]) {
+    // Update existing mapping
+    await pool.execute(
+      `UPDATE beds24_map SET
+        beds24PropertyId = ?, beds24RoomId = ?, connectionType = ?,
+        icalImportUrl = ?, icalExportUrl = ?, beds24ApiKey = ?,
+        sourceOfTruth = ?, lastSyncStatus = 'PENDING'
+       WHERE unitId = ?`,
+      [
+        data.beds24PropertyId || null, data.beds24RoomId || null, data.connectionType,
+        data.icalImportUrl || null, data.icalExportUrl || null, data.beds24ApiKey || null,
+        data.sourceOfTruth || "BEDS24", data.unitId,
+      ]
+    );
+    return { id: existing[0].id, created: false };
+  }
+
+  // Create new mapping
+  const [result] = await pool.execute<ResultSetHeader>(
+    `INSERT INTO beds24_map (unitId, beds24PropertyId, beds24RoomId, connectionType, icalImportUrl, icalExportUrl, beds24ApiKey, sourceOfTruth, lastSyncStatus)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')`,
+    [
+      data.unitId, data.beds24PropertyId || null, data.beds24RoomId || null, data.connectionType,
+      data.icalImportUrl || null, data.icalExportUrl || null, data.beds24ApiKey || null,
+      data.sourceOfTruth || "BEDS24",
+    ]
+  );
+  return { id: result.insertId, created: true };
+}
+
+export async function deleteBeds24Mapping(id: number): Promise<boolean> {
+  const pool = getPool();
+  if (!pool) return false;
+  const [result] = await pool.execute<ResultSetHeader>(
+    "DELETE FROM beds24_map WHERE id = ?", [id]
+  );
+  return result.affectedRows > 0;
 }

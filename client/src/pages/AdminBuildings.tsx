@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, ArrowLeft, Loader2, TrendingUp, Users, CreditCard,
-  AlertTriangle, Home, ChevronRight, BarChart3, DollarSign, Percent
+  AlertTriangle, Home, ChevronRight, BarChart3, DollarSign, Percent,
+  Wifi, Calendar, Link2
 } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -160,6 +161,7 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
                     <th className="px-4 py-3 text-end font-medium">{lang === "ar" ? "الإيجار" : "Rent"}</th>
                     <th className="px-4 py-3 text-end font-medium">{lang === "ar" ? "محصل MTD" : "Collected MTD"}</th>
                     <th className="px-4 py-3 text-center font-medium">{lang === "ar" ? "متأخر" : "Overdue"}</th>
+                    <th className="px-4 py-3 text-center font-medium">{lang === "ar" ? "Beds24" : "Beds24"}</th>
                     <th className="px-4 py-3 text-center font-medium">{lang === "ar" ? "تفاصيل" : "Details"}</th>
                   </tr>
                 </thead>
@@ -184,6 +186,16 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
                           <Badge variant="destructive" className="text-xs">{u.overdueCount}</Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {u.beds24ConnectionType ? (
+                          <Badge variant="outline" className={`text-xs gap-1 ${u.beds24ConnectionType === 'API' ? 'border-blue-300 text-blue-600' : 'border-amber-300 text-amber-600'}`}>
+                            {u.beds24ConnectionType === 'API' ? <Wifi className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
+                            {u.beds24ConnectionType}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">{lang === "ar" ? "محلي" : "Local"}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">

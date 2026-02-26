@@ -685,7 +685,17 @@ export const beds24Map = mysqlTable("beds24_map", {
   unitId: int("unitId").notNull().unique(),
   beds24PropertyId: varchar("beds24PropertyId", { length: 100 }),
   beds24RoomId: varchar("beds24RoomId", { length: 100 }).unique(),
+  /** Connection method: API (full bidirectional) or ICAL (read-only calendar sync) */
+  connectionType: mysqlEnum("connectionType", ["API", "ICAL"]).default("API").notNull(),
+  /** iCal import URL from Beds24 (used when connectionType=ICAL) */
+  icalImportUrl: varchar("icalImportUrl", { length: 500 }),
+  /** iCal export URL to Beds24 (used when connectionType=ICAL) */
+  icalExportUrl: varchar("icalExportUrl", { length: 500 }),
+  /** Beds24 API key (used when connectionType=API) */
+  beds24ApiKey: varchar("beds24ApiKey", { length: 255 }),
   lastSyncedAt: timestamp("lastSyncedAt"),
+  lastSyncStatus: mysqlEnum("lastSyncStatus", ["SUCCESS", "FAILED", "PENDING"]).default("PENDING"),
+  lastSyncError: text("lastSyncError"),
   sourceOfTruth: mysqlEnum("sourceOfTruth", ["BEDS24", "LOCAL"]).default("BEDS24").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

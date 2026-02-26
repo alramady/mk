@@ -13,6 +13,7 @@
 import { getPool } from "./db";
 import { createLedgerEntry, generateInvoiceNumber } from "./finance-registry";
 import { getOccupancySource } from "./occupancy";
+import { assertNotBeds24Controlled } from "./beds24-guard";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 // ─── Renewal Eligibility Check ──────────────────────────────────────
@@ -26,6 +27,8 @@ export interface RenewalEligibility {
   renewalWindowDays: number;
   daysUntilEnd: number;
   beds24Controlled: boolean;
+  /** Connection type if Beds24-controlled: API or ICAL */
+  connectionType?: "API" | "ICAL";
   monthlyRent: string;
 }
 
@@ -47,11 +50,13 @@ export async function checkRenewalEligibility(bookingId: number): Promise<Renewa
   const maxRenewals = booking.maxRenewals || 1;
   const renewalWindowDays = booking.renewalWindowDays || 14;
 
-  // Check Beds24 control
+  // Check Beds24 control and connection type
   let beds24Controlled = false;
+  let connectionType: "API" | "ICAL" | undefined;
   if (booking.unitId) {
-    const { isBeds24Controlled } = await getOccupancySource(booking.unitId);
-    beds24Controlled = isBeds24Controlled;
+    const mapping = await getOccupancySource(booking.unitId);
+    beds24Controlled = mapping.isBeds24Controlled;
+    connectionType = mapping.connectionType || undefined;
   }
 
   const base: Omit<RenewalEligibility, "eligible" | "reason"> = {
@@ -62,6 +67,7 @@ export async function checkRenewalEligibility(bookingId: number): Promise<Renewa
     renewalWindowDays,
     daysUntilEnd,
     beds24Controlled,
+    connectionType,
     monthlyRent: booking.monthlyRent,
   };
 
@@ -123,11 +129,16 @@ export async function requestRenewal(bookingId: number, requestedBy: number): Pr
 
   if (eligibility.beds24Controlled) {
     // ─── BEDS24 CONTROLLED: Create extension request requiring admin approval ───
-    // Do NOT create or modify Beds24 bookings automatically
+    // Do NOT create or modify Beds24 bookings automatically.
+    // For API connections: admin must update Beds24 via API dashboard manually.
+    // For iCal connections: admin must update Beds24 calendar directly (iCal is read-only).
+    const connectionNote = eligibility.connectionType === "ICAL"
+      ? "iCal connection (read-only) — admin must update Beds24 calendar directly"
+      : "API connection — admin must update Beds24 via dashboard";
     const [extResult] = await pool.execute<ResultSetHeader>(
-      `INSERT INTO booking_extensions (bookingId, unitId, originalEndDate, newEndDate, extensionMonths, status, beds24Controlled, requiresBeds24Update, requestedBy)
-       VALUES (?, ?, ?, ?, 1, 'PENDING_APPROVAL', true, true, ?)`,
-      [bookingId, booking.unitId || null, eligibility.currentEndDate, newEndDate, requestedBy]
+      `INSERT INTO booking_extensions (bookingId, unitId, originalEndDate, newEndDate, extensionMonths, status, beds24Controlled, requiresBeds24Update, requestedBy, adminNotes)
+       VALUES (?, ?, ?, ?, 1, 'PENDING_APPROVAL', true, true, ?, ?)`,
+      [bookingId, booking.unitId || null, eligibility.currentEndDate, newEndDate, requestedBy, connectionNote]
     );
 
     return {
@@ -193,8 +204,21 @@ export async function approveExtension(extensionId: number, adminId: number, bed
   }
 
   // SAFETY: Beds24-controlled extensions REQUIRE a change note
+  // For iCal connections: note should document the manual calendar update
+  // For API connections: note should document the API dashboard change
   if (ext.requiresBeds24Update && !beds24ChangeNote) {
-    return { success: false, error: "Beds24 change note is required for Beds24-controlled extensions. Document what was changed in Beds24." };
+    // Check connection type for better error message
+    let connType = "unknown";
+    if (ext.unitId) {
+      const [mapRows] = await pool.query<RowDataPacket[]>(
+        "SELECT connectionType FROM beds24_map WHERE unitId = ? LIMIT 1", [ext.unitId]
+      );
+      connType = mapRows[0]?.connectionType || "unknown";
+    }
+    const hint = connType === "ICAL"
+      ? "Document what was changed in the Beds24 calendar (iCal is read-only, changes must be made directly in Beds24)."
+      : "Document what was changed in the Beds24 dashboard/API.";
+    return { success: false, error: `Beds24 change note is required. ${hint}` };
   }
 
   // Get booking details
@@ -230,7 +254,8 @@ export async function approveExtension(extensionId: number, adminId: number, bed
     amount: booking.monthlyRent,
     status: "DUE",
     dueAt: ext.originalEndDate,
-    notes: `Approved Beds24 extension for booking #${ext.bookingId}. Admin must update Beds24 manually.`,
+    notes: `Approved Beds24 extension for booking #${ext.bookingId}. ${beds24ChangeNote ? `Change note: ${beds24ChangeNote}` : "Admin must update Beds24 manually."}`,
+    // Note: beds24ChangeNote is stored in booking_extensions.beds24ChangeNote for audit trail
     createdBy: adminId,
   });
 
@@ -278,12 +303,28 @@ export async function activateExtension(extensionId: number): Promise<boolean> {
   // Update extension status
   await pool.execute("UPDATE booking_extensions SET status = 'ACTIVE' WHERE id = ?", [extensionId]);
 
-  // For Beds24-controlled units, only update local booking record
-  // The actual Beds24 booking must have been updated manually by admin (documented in beds24ChangeNote)
-  await pool.execute(
-    `UPDATE bookings SET moveOutDate = ?, renewalsUsed = COALESCE(renewalsUsed, 0) + 1 WHERE id = ?`,
-    [ext.newEndDate, ext.bookingId]
-  );
+  // RUNTIME GUARD: For Beds24-controlled units, block auto-updating booking dates.
+  // The admin must have already updated Beds24 manually (documented in beds24ChangeNote).
+  // We only update the local booking record to reflect the extension.
+  try {
+    await assertNotBeds24Controlled(ext.unitId, "MUTATE_BOOKING_DATES");
+    // LOCAL-controlled: safe to auto-update booking end date
+    await pool.execute(
+      `UPDATE bookings SET moveOutDate = ?, renewalsUsed = COALESCE(renewalsUsed, 0) + 1 WHERE id = ?`,
+      [ext.newEndDate, ext.bookingId]
+    );
+  } catch (err: any) {
+    if (err.name === "Beds24ConflictError") {
+      // Beds24-controlled: only update local record metadata, NOT the actual booking in Beds24
+      // The beds24ChangeNote confirms admin already handled it in Beds24 dashboard
+      await pool.execute(
+        `UPDATE bookings SET renewalsUsed = COALESCE(renewalsUsed, 0) + 1 WHERE id = ?`,
+        [ext.bookingId]
+      );
+    } else {
+      throw err;
+    }
+  }
 
   return true;
 }

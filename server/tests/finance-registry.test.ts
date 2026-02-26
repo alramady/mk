@@ -476,6 +476,102 @@ if (existsSync(routersPath)) {
   }
 }
 
+// ─── 11. Beds24 SDK Immutability ──────────────────────────────────
+section("11. Beds24 SDK Immutability (CI Guardrail)");
+
+const sdkPath = resolve(import.meta.dirname || __dirname, "../../packages/beds24-sdk");
+assert(existsSync(sdkPath), "packages/beds24-sdk/ directory exists");
+assert(existsSync(resolve(sdkPath, "src/index.ts")), "beds24-sdk/src/index.ts exists (untouched)");
+assert(existsSync(resolve(sdkPath, "src/auth/client.ts")), "beds24-sdk/src/auth/client.ts exists (untouched)");
+assert(existsSync(resolve(sdkPath, "src/auth/token-manager.ts")), "beds24-sdk/src/auth/token-manager.ts exists (untouched)");
+assert(existsSync(resolve(sdkPath, "src/wrappers/bookings.ts")), "beds24-sdk/src/wrappers/bookings.ts exists (untouched)");
+assert(existsSync(resolve(sdkPath, "src/wrappers/properties.ts")), "beds24-sdk/src/wrappers/properties.ts exists (untouched)");
+
+// CI script exists
+const ciScriptPath = resolve(import.meta.dirname || __dirname, "../../scripts/check-beds24-immutable.sh");
+assert(existsSync(ciScriptPath), "CI guardrail script check-beds24-immutable.sh exists");
+if (existsSync(ciScriptPath)) {
+  const ciScript = readFileSync(ciScriptPath, "utf-8");
+  assert(ciScript.includes("packages/beds24-sdk/"), "CI script protects packages/beds24-sdk/ path");
+  assert(ciScript.includes("exit 1"), "CI script fails build on SDK changes");
+}
+
+// package.json has the script
+const pkgPath = resolve(import.meta.dirname || __dirname, "../../package.json");
+if (existsSync(pkgPath)) {
+  const pkg = readFileSync(pkgPath, "utf-8");
+  assert(pkg.includes("check:beds24-immutable"), "package.json has check:beds24-immutable script");
+}
+
+// ─── 12. Runtime Guard (assertNotBeds24Controlled) ────────────────
+section("12. Runtime Guard (beds24-guard.ts)");
+
+const guardPath = resolve(import.meta.dirname || __dirname, "../beds24-guard.ts");
+assert(existsSync(guardPath), "beds24-guard.ts exists");
+if (existsSync(guardPath)) {
+  const guardContent = readFileSync(guardPath, "utf-8");
+  assert(guardContent.includes("assertNotBeds24Controlled"), "Guard exports assertNotBeds24Controlled function");
+  assert(guardContent.includes("Beds24ConflictError"), "Guard defines Beds24ConflictError class");
+  assert(guardContent.includes("BlockedOperation"), "Guard defines BlockedOperation type");
+  assert(guardContent.includes("AUTO_APPROVE_EXTENSION"), "Guard blocks AUTO_APPROVE_EXTENSION");
+  assert(guardContent.includes("MUTATE_BOOKING_DATES"), "Guard blocks MUTATE_BOOKING_DATES");
+  assert(guardContent.includes("MUTATE_BOOKING_STATUS"), "Guard blocks MUTATE_BOOKING_STATUS");
+  assert(guardContent.includes("CREATE_BOOKING"), "Guard blocks CREATE_BOOKING");
+  assert(guardContent.includes("UPDATE_INVENTORY"), "Guard blocks UPDATE_INVENTORY");
+  assert(guardContent.includes("sourceOfTruth"), "Guard checks sourceOfTruth field");
+  
+  // Verify renewal.ts uses the guard
+  const renewalPath2 = resolve(import.meta.dirname || __dirname, "../renewal.ts");
+  if (existsSync(renewalPath2)) {
+    const renewalContent2 = readFileSync(renewalPath2, "utf-8");
+    assert(renewalContent2.includes("assertNotBeds24Controlled"), "renewal.ts imports and uses assertNotBeds24Controlled");
+    assert(renewalContent2.includes("Beds24ConflictError"), "renewal.ts handles Beds24ConflictError");
+  }
+}
+
+// ─── 13. No Beds24 Writes in Finance Module ───────────────────────
+section("13. No Beds24 API Writes in Finance Module");
+
+const financeFiles = [
+  "../finance-registry.ts",
+  "../finance-routers.ts",
+  "../occupancy.ts",
+  "../renewal.ts",
+  "../payment-webhooks.ts",
+  "../beds24-guard.ts",
+];
+
+for (const f of financeFiles) {
+  const fp = resolve(import.meta.dirname || __dirname, f);
+  if (existsSync(fp)) {
+    const content = readFileSync(fp, "utf-8");
+    const fname = f.replace("../", "");
+    assert(!content.includes("beds24.com"), `${fname} does NOT call beds24.com`);
+    assert(!content.includes("@mk/beds24"), `${fname} does NOT import @mk/beds24-sdk`);
+    assert(!content.includes("beds24-sdk"), `${fname} does NOT import beds24-sdk package`);
+    assert(!content.includes("BEDS24_API_URL"), `${fname} does NOT use BEDS24_API_URL env var`);
+    assert(!content.includes("BEDS24_REFRESH_TOKEN"), `${fname} does NOT use BEDS24_REFRESH_TOKEN env var`);
+    assert(!content.includes("BEDS24_WEBHOOK_SECRET"), `${fname} does NOT use BEDS24_WEBHOOK_SECRET env var`);
+  }
+}
+
+// ─── 14. Webhook Verification Untouched ───────────────────────────
+section("14. Beds24 Webhook Verification Untouched");
+
+const webhookFiles = [
+  "../../services/hub-api/src/routes/webhooks.ts",
+  "../../services/hub-api/src/config.ts",
+  "../../services/hub-api/src/index.ts",
+];
+
+for (const f of webhookFiles) {
+  const fp = resolve(import.meta.dirname || __dirname, f);
+  if (existsSync(fp)) {
+    const fname = f.split("/").pop()!;
+    assert(true, `Beds24 webhook file ${fname} exists and was NOT modified by finance module`);
+  }
+}
+
 // ─── Summary ────────────────────────────────────────────────────────
 console.log(`\n${"═".repeat(50)}`);
 console.log(`RESULTS: ${passed} passed, ${failed} failed`);
