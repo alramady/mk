@@ -1,0 +1,69 @@
+graph TB
+    subgraph Client["Client (React 19 + Tailwind 4)"]
+        direction TB
+        Pages["Pages (46)"]
+        Components["Components (19)"]
+        Contexts["Contexts (Auth, Settings, I18n)"]
+        Hooks["Custom Hooks"]
+        Pages --> Components
+        Pages --> Contexts
+        Pages --> Hooks
+    end
+
+    subgraph Server["Server (Express + tRPC)"]
+        direction TB
+        CoreRouter["Core Router (routers.ts)"]
+        FinanceRouter["Finance Router"]
+        AuthMiddleware["Auth + RBAC Middleware"]
+        
+        subgraph Modules["Domain Modules"]
+            direction LR
+            FinanceReg["Finance Registry"]
+            Occupancy["Occupancy Engine"]
+            Renewal["Renewal Engine"]
+            Moyasar["Moyasar Adapter"]
+            Webhooks["Webhook Handlers"]
+            AuditLog["Audit Logger"]
+            Beds24Guard["Beds24 Guard"]
+            ImageOpt["Image Optimizer"]
+            Email["Email Service"]
+            AI["AI Assistant"]
+            OTP["OTP Service"]
+            Cache["Cache Layer"]
+        end
+        
+        CoreRouter --> AuthMiddleware
+        FinanceRouter --> AuthMiddleware
+        AuthMiddleware --> Modules
+    end
+
+    subgraph Database["MySQL (PlanetScale)"]
+        direction LR
+        UserTables["Users & Auth (3)"]
+        PropertyTables["Properties (4)"]
+        BookingTables["Bookings (2)"]
+        FinanceTables["Finance (3)"]
+        PaymentTables["Payments (2)"]
+        Beds24Tables["Beds24 (2)"]
+        CMSTables["CMS (5)"]
+        AuditTable["Audit (1)"]
+    end
+
+    subgraph External["External Services"]
+        direction LR
+        Beds24["Beds24 (Channel Mgmt)"]
+        MoyasarAPI["Moyasar (Payments)"]
+        Railway["Railway (Hosting)"]
+        Resend["Resend (Email)"]
+    end
+
+    Client -->|"tRPC over HTTP"| Server
+    Server -->|"Drizzle ORM"| Database
+    Moyasar -->|"Webhook POST"| Webhooks
+    Occupancy -.->|"Read-only"| Beds24
+    Beds24Guard -.->|"Blocks writes"| Beds24
+    Email -->|"SMTP"| Resend
+
+    style Beds24Guard fill:#ff6b6b,color:#fff
+    style Beds24 fill:#ffd93d,color:#333
+    style Moyasar fill:#6bcb77,color:#fff
