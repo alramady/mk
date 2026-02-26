@@ -90,13 +90,16 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
   if (!building) return <div className="text-center py-16 text-muted-foreground">{lang === "ar" ? "المبنى غير موجود" : "Building not found"}</div>;
 
   const kpiCards = kpis ? [
-    { icon: Home, label: lang === "ar" ? "إجمالي الوحدات" : "Total Units", value: kpis.totalUnits, color: "text-blue-600" },
+    { icon: Home, label: lang === "ar" ? "إجمالي الوحدات" : "Total Units", value: `${kpis.totalUnits} (${kpis.availableUnits} ${lang === "ar" ? "متاح" : "avail"})`, color: "text-blue-600" },
     { icon: Users, label: lang === "ar" ? "الوحدات المشغولة" : "Occupied Units", value: kpis.occupiedUnits, color: "text-emerald-600" },
-    { icon: Percent, label: lang === "ar" ? "نسبة الإشغال" : "Occupancy Rate", value: `${kpis.occupancyRate}%`, color: "text-primary" },
+    { icon: Percent, label: lang === "ar" ? "نسبة الإشغال" : "Occupancy Rate", value: `${kpis.occupancyRate}%${kpis.unknownUnits > 0 ? ` (${kpis.unknownUnits} ${lang === "ar" ? "غير معروف" : "unknown"})` : ""}`, color: "text-primary" },
+    { icon: DollarSign, label: lang === "ar" ? "الإيجار السنوي المحتمل" : "PAR", value: `${kpis.potentialAnnualRent.toLocaleString()} SAR`, color: "text-blue-600" },
+    { icon: DollarSign, label: lang === "ar" ? "المحصل هذا العام" : "Collected YTD", value: `${kpis.collectedYTD.toLocaleString()} SAR`, color: "text-emerald-600" },
     { icon: DollarSign, label: lang === "ar" ? "المحصل هذا الشهر" : "Collected MTD", value: `${kpis.collectedMTD.toLocaleString()} SAR`, color: "text-emerald-600" },
+    { icon: TrendingUp, label: lang === "ar" ? "الإيجار السنوي الفعلي" : "EAR", value: `${kpis.effectiveAnnualRent.toLocaleString()} SAR`, color: "text-purple-600" },
+    { icon: BarChart3, label: lang === "ar" ? "معدل سنوي" : "Run-Rate", value: `${kpis.annualizedRunRate.toLocaleString()} SAR`, color: "text-blue-600" },
     { icon: CreditCard, label: lang === "ar" ? "الرصيد المعلق" : "Outstanding", value: `${kpis.outstandingBalance.toLocaleString()} SAR`, color: "text-amber-600" },
     { icon: AlertTriangle, label: lang === "ar" ? "متأخرات" : "Overdue", value: kpis.overdueCount, color: "text-red-600" },
-    { icon: BarChart3, label: lang === "ar" ? "متوسط يومي" : "Avg Daily Rate", value: `${kpis.avgDailyRate.toLocaleString()} SAR`, color: "text-blue-600" },
     { icon: TrendingUp, label: lang === "ar" ? "العائد لكل وحدة" : "RevPAU", value: `${kpis.revPAU.toLocaleString()} SAR`, color: "text-purple-600" },
   ] : [];
 
@@ -166,9 +169,9 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
                       <td className="px-4 py-3 font-mono font-medium">{u.unitNumber}</td>
                       <td className="px-4 py-3 text-muted-foreground">{u.floor || "—"}</td>
                       <td className="px-4 py-3 text-center">
-                        <Badge variant={u.unitStatus === "OCCUPIED" ? "default" : u.unitStatus === "AVAILABLE" ? "secondary" : "outline"} className="text-xs">
-                          {u.unitStatus === "OCCUPIED" ? (lang === "ar" ? "مشغول" : "Occupied")
-                            : u.unitStatus === "AVAILABLE" ? (lang === "ar" ? "متاح" : "Available")
+                        <Badge variant={u.unitStatus === "AVAILABLE" ? "secondary" : u.unitStatus === "BLOCKED" ? "outline" : "destructive"} className="text-xs">
+                          {u.unitStatus === "AVAILABLE" ? (lang === "ar" ? "متاح" : "Available")
+                            : u.unitStatus === "BLOCKED" ? (lang === "ar" ? "محجوب" : "Blocked")
                             : u.unitStatus === "MAINTENANCE" ? (lang === "ar" ? "صيانة" : "Maintenance")
                             : u.unitStatus}
                         </Badge>

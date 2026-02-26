@@ -7,7 +7,7 @@
  * Keys can be empty now — webhooks will only process if keys are configured.
  */
 import { getPool } from "./db";
-import { updateLedgerStatus } from "./finance-registry";
+import { updateLedgerStatusSafe } from "./finance-registry";
 import { activateExtension } from "./renewal";
 import type { RowDataPacket } from "mysql2";
 import type { Request, Response } from "express";
@@ -59,11 +59,12 @@ export async function handleMoyasarWebhook(req: Request, res: Response) {
     if (source?.type === "applepay") paymentMethod = "APPLE_PAY";
     else if (source?.type === "googlepay") paymentMethod = "GOOGLE_PAY";
 
-    await updateLedgerStatus(ledgerEntry.id, newStatus, {
+    await updateLedgerStatusSafe(ledgerEntry.id, newStatus, {
       paymentMethod,
       provider: "moyasar",
       providerRef: id,
       paidAt: newStatus === "PAID" ? new Date() : undefined,
+      webhookVerified: true,
     });
 
     // If this was a renewal payment, activate the extension
@@ -125,11 +126,12 @@ export async function handleTabbyWebhook(req: Request, res: Response) {
         newStatus = "PENDING";
     }
 
-    await updateLedgerStatus(ledgerEntry.id, newStatus, {
+    await updateLedgerStatusSafe(ledgerEntry.id, newStatus, {
       paymentMethod: "TABBY",
       provider: "tabby",
       providerRef: id,
       paidAt: newStatus === "PAID" ? new Date() : undefined,
+      webhookVerified: true,
     });
 
     // Activate extension if renewal payment
@@ -189,11 +191,12 @@ export async function handleTamaraWebhook(req: Request, res: Response) {
         newStatus = "PENDING";
     }
 
-    await updateLedgerStatus(ledgerEntry.id, newStatus, {
+    await updateLedgerStatusSafe(ledgerEntry.id, newStatus, {
       paymentMethod: "TAMARA",
       provider: "tamara",
       providerRef: order_id,
       paidAt: newStatus === "PAID" ? new Date() : undefined,
+      webhookVerified: true,
     });
 
     // Activate extension if renewal payment

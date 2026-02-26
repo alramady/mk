@@ -50,8 +50,8 @@ export async function checkRenewalEligibility(bookingId: number): Promise<Renewa
   // Check Beds24 control
   let beds24Controlled = false;
   if (booking.unitId) {
-    const source = await getOccupancySource(booking.unitId);
-    beds24Controlled = source === "BEDS24";
+    const { isBeds24Controlled } = await getOccupancySource(booking.unitId);
+    beds24Controlled = isBeds24Controlled;
   }
 
   const base: Omit<RenewalEligibility, "eligible" | "reason"> = {
@@ -125,9 +125,9 @@ export async function requestRenewal(bookingId: number, requestedBy: number): Pr
     // ─── BEDS24 CONTROLLED: Create extension request requiring admin approval ───
     // Do NOT create or modify Beds24 bookings automatically
     const [extResult] = await pool.execute<ResultSetHeader>(
-      `INSERT INTO booking_extensions (bookingId, originalEndDate, newEndDate, extensionMonths, status, beds24Controlled, requestedBy)
-       VALUES (?, ?, ?, 1, 'PENDING_APPROVAL', true, ?)`,
-      [bookingId, eligibility.currentEndDate, newEndDate, requestedBy]
+      `INSERT INTO booking_extensions (bookingId, unitId, originalEndDate, newEndDate, extensionMonths, status, beds24Controlled, requiresBeds24Update, requestedBy)
+       VALUES (?, ?, ?, ?, 1, 'PENDING_APPROVAL', true, true, ?)`,
+      [bookingId, booking.unitId || null, eligibility.currentEndDate, newEndDate, requestedBy]
     );
 
     return {
@@ -158,9 +158,9 @@ export async function requestRenewal(bookingId: number, requestedBy: number): Pr
 
   // Create extension record
   const [extResult] = await pool.execute<ResultSetHeader>(
-    `INSERT INTO booking_extensions (bookingId, originalEndDate, newEndDate, extensionMonths, status, beds24Controlled, ledgerEntryId, requestedBy)
-     VALUES (?, ?, ?, 1, 'PAYMENT_PENDING', false, ?, ?)`,
-    [bookingId, eligibility.currentEndDate, newEndDate, ledgerResult.id, requestedBy]
+    `INSERT INTO booking_extensions (bookingId, unitId, originalEndDate, newEndDate, extensionMonths, status, beds24Controlled, requiresBeds24Update, ledgerEntryId, requestedBy)
+     VALUES (?, ?, ?, ?, 1, 'PAYMENT_PENDING', false, false, ?, ?)`,
+    [bookingId, booking.unitId || null, eligibility.currentEndDate, newEndDate, ledgerResult.id, requestedBy]
   );
 
   return {
@@ -171,8 +171,10 @@ export async function requestRenewal(bookingId: number, requestedBy: number): Pr
   };
 }
 
-// ─── Admin Approve Extension (for Beds24 units) ────────────────────
-export async function approveExtension(extensionId: number, adminId: number): Promise<{
+//// ─── Admin Approve Extension (for Beds24 units) ────────────────
+// SAFETY: For Beds24-controlled extensions, beds24ChangeNote is REQUIRED.
+// This note documents what manual changes the admin made in Beds24.
+export async function approveExtension(extensionId: number, adminId: number, beds24ChangeNote?: string): Promise<{
   success: boolean;
   invoiceNumber?: string;
   error?: string;
@@ -188,6 +190,11 @@ export async function approveExtension(extensionId: number, adminId: number): Pr
 
   if (ext.status !== "PENDING_APPROVAL") {
     return { success: false, error: `Extension is in ${ext.status} status, cannot approve` };
+  }
+
+  // SAFETY: Beds24-controlled extensions REQUIRE a change note
+  if (ext.requiresBeds24Update && !beds24ChangeNote) {
+    return { success: false, error: "Beds24 change note is required for Beds24-controlled extensions. Document what was changed in Beds24." };
   }
 
   // Get booking details
@@ -227,10 +234,10 @@ export async function approveExtension(extensionId: number, adminId: number): Pr
     createdBy: adminId,
   });
 
-  // Update extension status
+  // Update extension status + store Beds24 change note
   await pool.execute(
-    `UPDATE booking_extensions SET status = 'PAYMENT_PENDING', ledgerEntryId = ?, approvedBy = ?, approvedAt = NOW() WHERE id = ?`,
-    [ledgerResult.id, adminId, extensionId]
+    `UPDATE booking_extensions SET status = 'PAYMENT_PENDING', ledgerEntryId = ?, approvedBy = ?, approvedAt = NOW(), beds24ChangeNote = ? WHERE id = ?`,
+    [ledgerResult.id, adminId, beds24ChangeNote || null, extensionId]
   );
 
   return { success: true, invoiceNumber: ledgerResult.invoiceNumber };
@@ -271,7 +278,8 @@ export async function activateExtension(extensionId: number): Promise<boolean> {
   // Update extension status
   await pool.execute("UPDATE booking_extensions SET status = 'ACTIVE' WHERE id = ?", [extensionId]);
 
-  // Update booking: extend moveOutDate, increment renewalsUsed
+  // For Beds24-controlled units, only update local booking record
+  // The actual Beds24 booking must have been updated manually by admin (documented in beds24ChangeNote)
   await pool.execute(
     `UPDATE bookings SET moveOutDate = ?, renewalsUsed = COALESCE(renewalsUsed, 0) + 1 WHERE id = ?`,
     [ext.newEndDate, ext.bookingId]

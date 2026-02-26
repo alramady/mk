@@ -10,10 +10,10 @@ import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 // ─── Invoice Number Generator ───────────────────────────────────────
 export function generateInvoiceNumber(type: string): string {
-  const prefix = type === "RENT" ? "INV" : type === "RENEWAL_RENT" ? "RNW" : type === "REFUND" ? "REF" : "INV";
-  const ts = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${ts}-${rand}`;
+  const prefix = type === "RENT" ? "INV" : type === "RENEWAL_RENT" ? "RNW" : type === "REFUND" ? "REF" : type === "ADJUSTMENT" ? "ADJ" : "INV";
+  const year = new Date().getFullYear();
+  const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `${prefix}-${year}-${rand}`;
 }
 
 // ─── Buildings ──────────────────────────────────────────────────────
@@ -172,20 +172,11 @@ export async function createLedgerEntry(data: {
   return { id: result.insertId, invoiceNumber };
 }
 
+// Legacy alias — kept for backward compatibility but routes should use updateLedgerStatusSafe
 export async function updateLedgerStatus(id: number, status: string, extras?: {
   paymentMethod?: string; provider?: string; providerRef?: string; paidAt?: Date;
 }) {
-  const pool = getPool();
-  if (!pool) return;
-  const fields = ["`status` = ?"];
-  const values: any[] = [status];
-  if (extras?.paymentMethod) { fields.push("`paymentMethod` = ?"); values.push(extras.paymentMethod); }
-  if (extras?.provider) { fields.push("`provider` = ?"); values.push(extras.provider); }
-  if (extras?.providerRef) { fields.push("`providerRef` = ?"); values.push(extras.providerRef); }
-  if (extras?.paidAt) { fields.push("`paidAt` = ?"); values.push(extras.paidAt); }
-  if (status === "PAID" && !extras?.paidAt) { fields.push("`paidAt` = NOW()"); }
-  values.push(id);
-  await pool.execute(`UPDATE payment_ledger SET ${fields.join(", ")} WHERE id = ?`, values);
+  return updateLedgerStatusSafe(id, status, { ...extras, webhookVerified: status === "PAID" });
 }
 
 export async function searchLedger(filters: {
@@ -246,17 +237,104 @@ export async function getLedgerEntry(id: number) {
   return rows[0] || null;
 }
 
-// ─── KPI Calculations ───────────────────────────────────────────────
+// ─── Ledger Immutability: Create Adjustment/Refund (never edit PAID rows) ──
+export async function createAdjustmentOrRefund(parentLedgerId: number, data: {
+  type: "REFUND" | "ADJUSTMENT";
+  direction: "IN" | "OUT";
+  amount: string;
+  notes?: string;
+  notesAr?: string;
+  createdBy?: number;
+}): Promise<{ id: number; invoiceNumber: string }> {
+  const pool = getPool();
+  if (!pool) throw new Error("Database not available");
+
+  // Verify parent exists and is PAID
+  const [parentRows] = await pool.query<RowDataPacket[]>(
+    "SELECT * FROM payment_ledger WHERE id = ?", [parentLedgerId]
+  );
+  if (!parentRows[0]) throw new Error("Parent ledger entry not found");
+  if (parentRows[0].status !== "PAID") throw new Error("Can only create adjustments/refunds for PAID entries");
+
+  const parent = parentRows[0];
+  const invoiceNumber = generateInvoiceNumber(data.type);
+  const [result] = await pool.execute<ResultSetHeader>(
+    `INSERT INTO payment_ledger (invoiceNumber, bookingId, beds24BookingId, customerId, guestName, guestEmail, guestPhone,
+     buildingId, unitId, unitNumber, propertyDisplayName, type, direction, amount, currency, status,
+     parentLedgerId, notes, notesAr, createdBy)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PAID', ?, ?, ?, ?)`,
+    [invoiceNumber, parent.bookingId, parent.beds24BookingId,
+     parent.customerId, parent.guestName, parent.guestEmail, parent.guestPhone,
+     parent.buildingId, parent.unitId, parent.unitNumber, parent.propertyDisplayName,
+     data.type, data.direction, data.amount, parent.currency,
+     parentLedgerId, data.notes || null, data.notesAr || null, data.createdBy || null]
+  );
+
+  // If refund, mark original as REFUNDED
+  if (data.type === "REFUND") {
+    await pool.execute("UPDATE payment_ledger SET status = 'REFUNDED' WHERE id = ?", [parentLedgerId]);
+  }
+
+  return { id: result.insertId, invoiceNumber };
+}
+
+// ─── Ledger Status Update (with immutability guard) ─────────────────
+// PAID rows cannot have amount edited. Only status transitions are allowed.
+export async function updateLedgerStatusSafe(id: number, newStatus: string, extras?: {
+  paymentMethod?: string; provider?: string; providerRef?: string; paidAt?: Date;
+  /** If true, this is a webhook-verified finalization */
+  webhookVerified?: boolean;
+}) {
+  const pool = getPool();
+  if (!pool) return;
+
+  // Check current status
+  const [currentRows] = await pool.query<RowDataPacket[]>(
+    "SELECT status, amount FROM payment_ledger WHERE id = ?", [id]
+  );
+  if (!currentRows[0]) throw new Error("Ledger entry not found");
+  const currentStatus = currentRows[0].status;
+
+  // PAID rows: only allow REFUNDED transition (via createAdjustmentOrRefund)
+  if (currentStatus === "PAID" && newStatus !== "REFUNDED") {
+    throw new Error("Cannot modify a PAID ledger entry. Use adjustment/refund instead.");
+  }
+  if (currentStatus === "REFUNDED" || currentStatus === "VOID") {
+    throw new Error(`Cannot modify a ${currentStatus} ledger entry.`);
+  }
+
+  // PAID finalization requires webhook verification
+  if (newStatus === "PAID" && !extras?.webhookVerified) {
+    throw new Error("Ledger can only be marked PAID via verified webhook. Set webhookVerified=true.");
+  }
+
+  const fields = ["`status` = ?"];
+  const values: any[] = [newStatus];
+  if (extras?.paymentMethod) { fields.push("`paymentMethod` = ?"); values.push(extras.paymentMethod); }
+  if (extras?.provider) { fields.push("`provider` = ?"); values.push(extras.provider); }
+  if (extras?.providerRef) { fields.push("`providerRef` = ?"); values.push(extras.providerRef); }
+  if (extras?.paidAt) { fields.push("`paidAt` = ?"); values.push(extras.paidAt); }
+  if (newStatus === "PAID" && !extras?.paidAt) { fields.push("`paidAt` = NOW()"); }
+  values.push(id);
+  await pool.execute(`UPDATE payment_ledger SET ${fields.join(", ")} WHERE id = ?`, values);
+}
+
+// ─── KPI Calculations (Revised per Safety Report) ───────────────────
 export interface BuildingKPIs {
   buildingId: number;
   buildingName: string;
   totalUnits: number;
+  availableUnits: number;
   occupiedUnits: number;
+  unknownUnits: number;
   occupancyRate: number;
+  potentialAnnualRent: number;
+  collectedYTD: number;
   collectedMTD: number;
+  effectiveAnnualRent: number;
+  annualizedRunRate: number;
   outstandingBalance: number;
   overdueCount: number;
-  avgDailyRate: number;
   revPAU: number;
 }
 
@@ -269,26 +347,68 @@ export async function getBuildingKPIs(buildingId: number): Promise<BuildingKPIs 
   if (!buildingRows[0]) return null;
   const building = buildingRows[0];
 
-  // Total units
-  const [unitCountRows] = await pool.query<RowDataPacket[]>(
-    "SELECT COUNT(*) as total FROM units WHERE buildingId = ?", [buildingId]
+  // Unit counts (exclude BLOCKED/MAINTENANCE from available)
+  const [unitRows] = await pool.query<RowDataPacket[]>(
+    `SELECT 
+       COUNT(*) as total,
+       SUM(CASE WHEN unitStatus = 'AVAILABLE' THEN 1 ELSE 0 END) as available,
+       SUM(CASE WHEN unitStatus = 'AVAILABLE' THEN COALESCE(monthlyBaseRentSAR, 0) ELSE 0 END) as totalMonthlyRent
+     FROM units WHERE buildingId = ?`,
+    [buildingId]
   );
-  const totalUnits = (unitCountRows[0] as any)?.total || 0;
+  const totalUnits = Number(unitRows[0]?.total || 0);
+  const availableUnits = Number(unitRows[0]?.available || 0);
+  const totalMonthlyRent = parseFloat(unitRows[0]?.totalMonthlyRent || "0");
 
-  // Occupied units (status = OCCUPIED)
-  const [occupiedRows] = await pool.query<RowDataPacket[]>(
-    "SELECT COUNT(*) as total FROM units WHERE buildingId = ? AND unitStatus = 'OCCUPIED'", [buildingId]
+  // PAR: Potential Annual Rent = Σ(monthly_base_rent * 12) for available units
+  const potentialAnnualRent = totalMonthlyRent * 12;
+
+  // Occupancy from today's snapshot (unknown units excluded from denominator)
+  const [snapRows] = await pool.query<RowDataPacket[]>(
+    `SELECT 
+       SUM(CASE WHEN occupied = true AND source != 'UNKNOWN' THEN 1 ELSE 0 END) as occupiedCount,
+       SUM(CASE WHEN source = 'UNKNOWN' THEN 1 ELSE 0 END) as unknownCount
+     FROM unit_daily_status
+     WHERE buildingId = ? AND DATE(date) = CURRENT_DATE()`,
+    [buildingId]
   );
-  const occupiedUnits = (occupiedRows[0] as any)?.total || 0;
+  const occupiedUnits = Number(snapRows[0]?.occupiedCount || 0);
+  const unknownUnits = Number(snapRows[0]?.unknownCount || 0);
+  const denominator = availableUnits - unknownUnits;
+  const occupancyRate = denominator > 0 ? (occupiedUnits / denominator) * 100 : 0;
 
-  // Collected MTD (current month, PAID entries)
-  const [collectedRows] = await pool.query<RowDataPacket[]>(
+  // Collected YTD (current year, PAID RENT/RENEWAL_RENT entries)
+  const [ytdRows] = await pool.query<RowDataPacket[]>(
+    `SELECT COALESCE(SUM(amount), 0) as total FROM payment_ledger
+     WHERE buildingId = ? AND status = 'PAID' AND direction = 'IN'
+     AND type IN ('RENT', 'RENEWAL_RENT')
+     AND YEAR(paidAt) = YEAR(CURRENT_DATE())`,
+    [buildingId]
+  );
+  const collectedYTD = parseFloat((ytdRows[0] as any)?.total || "0");
+
+  // Collected MTD (current month)
+  const [mtdRows] = await pool.query<RowDataPacket[]>(
     `SELECT COALESCE(SUM(amount), 0) as total FROM payment_ledger
      WHERE buildingId = ? AND status = 'PAID' AND direction = 'IN'
      AND MONTH(paidAt) = MONTH(CURRENT_DATE()) AND YEAR(paidAt) = YEAR(CURRENT_DATE())`,
     [buildingId]
   );
-  const collectedMTD = parseFloat((collectedRows[0] as any)?.total || "0");
+  const collectedMTD = parseFloat((mtdRows[0] as any)?.total || "0");
+
+  // EAR: Effective Annual Rent = PAR * occupancy_rate
+  const effectiveAnnualRent = potentialAnnualRent * (occupancyRate / 100);
+
+  // Annualized Run-Rate = (last 30 days rent collected) * 12
+  const [last30Rows] = await pool.query<RowDataPacket[]>(
+    `SELECT COALESCE(SUM(amount), 0) as total FROM payment_ledger
+     WHERE buildingId = ? AND status = 'PAID' AND direction = 'IN'
+     AND type IN ('RENT', 'RENEWAL_RENT')
+     AND paidAt >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)`,
+    [buildingId]
+  );
+  const last30Revenue = parseFloat((last30Rows[0] as any)?.total || "0");
+  const annualizedRunRate = last30Revenue * 12;
 
   // Outstanding balance (DUE + PENDING)
   const [outstandingRows] = await pool.query<RowDataPacket[]>(
@@ -298,7 +418,7 @@ export async function getBuildingKPIs(buildingId: number): Promise<BuildingKPIs 
   );
   const outstandingBalance = parseFloat((outstandingRows[0] as any)?.total || "0");
 
-  // Overdue count (DUE and past dueAt)
+  // Overdue count
   const [overdueRows] = await pool.query<RowDataPacket[]>(
     `SELECT COUNT(*) as total FROM payment_ledger
      WHERE buildingId = ? AND status = 'DUE' AND dueAt < NOW()`,
@@ -306,31 +426,24 @@ export async function getBuildingKPIs(buildingId: number): Promise<BuildingKPIs 
   );
   const overdueCount = (overdueRows[0] as any)?.total || 0;
 
-  // Avg daily rate: total collected in last 30 days / 30
-  const [adrRows] = await pool.query<RowDataPacket[]>(
-    `SELECT COALESCE(SUM(amount), 0) as total FROM payment_ledger
-     WHERE buildingId = ? AND status = 'PAID' AND direction = 'IN'
-     AND paidAt >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)`,
-    [buildingId]
-  );
-  const last30Revenue = parseFloat((adrRows[0] as any)?.total || "0");
-  const avgDailyRate = totalUnits > 0 ? last30Revenue / 30 : 0;
-
   // RevPAU: Revenue Per Available Unit (monthly)
-  const revPAU = totalUnits > 0 ? collectedMTD / totalUnits : 0;
-
-  const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+  const revPAU = availableUnits > 0 ? collectedMTD / availableUnits : 0;
 
   return {
     buildingId,
     buildingName: building.buildingName,
     totalUnits,
+    availableUnits,
     occupiedUnits,
+    unknownUnits,
     occupancyRate: Math.round(occupancyRate * 100) / 100,
+    potentialAnnualRent: Math.round(potentialAnnualRent * 100) / 100,
+    collectedYTD: Math.round(collectedYTD * 100) / 100,
     collectedMTD: Math.round(collectedMTD * 100) / 100,
+    effectiveAnnualRent: Math.round(effectiveAnnualRent * 100) / 100,
+    annualizedRunRate: Math.round(annualizedRunRate * 100) / 100,
     outstandingBalance: Math.round(outstandingBalance * 100) / 100,
     overdueCount,
-    avgDailyRate: Math.round(avgDailyRate * 100) / 100,
     revPAU: Math.round(revPAU * 100) / 100,
   };
 }
@@ -339,20 +452,57 @@ export async function getGlobalKPIs() {
   const pool = getPool();
   if (!pool) return null;
 
-  const [totalUnitsRows] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) as total FROM units");
-  const totalUnits = (totalUnitsRows[0] as any)?.total || 0;
-
-  const [occupiedRows] = await pool.query<RowDataPacket[]>(
-    "SELECT COUNT(*) as total FROM units WHERE unitStatus = 'OCCUPIED'"
+  // Unit counts
+  const [unitRows] = await pool.query<RowDataPacket[]>(
+    `SELECT 
+       COUNT(*) as total,
+       SUM(CASE WHEN unitStatus = 'AVAILABLE' THEN 1 ELSE 0 END) as available,
+       SUM(CASE WHEN unitStatus = 'AVAILABLE' THEN COALESCE(monthlyBaseRentSAR, 0) ELSE 0 END) as totalMonthlyRent
+     FROM units`
   );
-  const occupiedUnits = (occupiedRows[0] as any)?.total || 0;
+  const totalUnits = Number(unitRows[0]?.total || 0);
+  const availableUnits = Number(unitRows[0]?.available || 0);
+  const totalMonthlyRent = parseFloat(unitRows[0]?.totalMonthlyRent || "0");
+  const potentialAnnualRent = totalMonthlyRent * 12;
 
-  const [collectedRows] = await pool.query<RowDataPacket[]>(
+  // Today's occupancy from snapshots
+  const [snapRows] = await pool.query<RowDataPacket[]>(
+    `SELECT 
+       SUM(CASE WHEN occupied = true AND source != 'UNKNOWN' THEN 1 ELSE 0 END) as occupiedCount,
+       SUM(CASE WHEN source = 'UNKNOWN' THEN 1 ELSE 0 END) as unknownCount
+     FROM unit_daily_status
+     WHERE DATE(date) = CURRENT_DATE()`
+  );
+  const occupiedUnits = Number(snapRows[0]?.occupiedCount || 0);
+  const unknownUnits = Number(snapRows[0]?.unknownCount || 0);
+  const denominator = availableUnits - unknownUnits;
+  const occupancyRate = denominator > 0 ? (occupiedUnits / denominator) * 100 : 0;
+
+  // Collected YTD
+  const [ytdRows] = await pool.query<RowDataPacket[]>(
+    `SELECT COALESCE(SUM(amount), 0) as total FROM payment_ledger
+     WHERE status = 'PAID' AND direction = 'IN' AND type IN ('RENT', 'RENEWAL_RENT')
+     AND YEAR(paidAt) = YEAR(CURRENT_DATE())`
+  );
+  const collectedYTD = parseFloat((ytdRows[0] as any)?.total || "0");
+
+  // Collected MTD
+  const [mtdRows] = await pool.query<RowDataPacket[]>(
     `SELECT COALESCE(SUM(amount), 0) as total FROM payment_ledger
      WHERE status = 'PAID' AND direction = 'IN'
      AND MONTH(paidAt) = MONTH(CURRENT_DATE()) AND YEAR(paidAt) = YEAR(CURRENT_DATE())`
   );
-  const collectedMTD = parseFloat((collectedRows[0] as any)?.total || "0");
+  const collectedMTD = parseFloat((mtdRows[0] as any)?.total || "0");
+
+  const effectiveAnnualRent = potentialAnnualRent * (occupancyRate / 100);
+
+  // Annualized Run-Rate
+  const [last30Rows] = await pool.query<RowDataPacket[]>(
+    `SELECT COALESCE(SUM(amount), 0) as total FROM payment_ledger
+     WHERE status = 'PAID' AND direction = 'IN' AND type IN ('RENT', 'RENEWAL_RENT')
+     AND paidAt >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)`
+  );
+  const annualizedRunRate = parseFloat((last30Rows[0] as any)?.total || "0") * 12;
 
   const [outstandingRows] = await pool.query<RowDataPacket[]>(
     `SELECT COALESCE(SUM(amount), 0) as total FROM payment_ledger
@@ -370,12 +520,18 @@ export async function getGlobalKPIs() {
   return {
     totalBuildings: (buildingCount[0] as any)?.total || 0,
     totalUnits,
+    availableUnits,
     occupiedUnits,
-    occupancyRate: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 10000) / 100 : 0,
+    unknownUnits,
+    occupancyRate: Math.round(occupancyRate * 100) / 100,
+    potentialAnnualRent: Math.round(potentialAnnualRent * 100) / 100,
+    collectedYTD: Math.round(collectedYTD * 100) / 100,
     collectedMTD: Math.round(collectedMTD * 100) / 100,
+    effectiveAnnualRent: Math.round(effectiveAnnualRent * 100) / 100,
+    annualizedRunRate: Math.round(annualizedRunRate * 100) / 100,
     outstandingBalance: Math.round(outstandingBalance * 100) / 100,
     overdueCount,
-    revPAU: totalUnits > 0 ? Math.round((collectedMTD / totalUnits) * 100) / 100 : 0,
+    revPAU: availableUnits > 0 ? Math.round((collectedMTD / availableUnits) * 100) / 100 : 0,
   };
 }
 

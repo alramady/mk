@@ -1,10 +1,11 @@
 -- Migration 0017: Finance Registry, Buildings, Units, Beds24 Mapping, Payment Ledger
--- This migration is ADDITIVE ONLY — no existing tables are modified.
--- All new tables are safe to add alongside existing schema.
+-- This migration is ADDITIVE ONLY — no existing tables are modified (except safe ADD COLUMN).
+-- All new tables use IF NOT EXISTS for idempotency.
 
 -- ─── Buildings ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `buildings` (
   `id` int AUTO_INCREMENT PRIMARY KEY,
+  `buildingId` varchar(20) COMMENT 'Human-friendly ID e.g. BLD-00027',
   `buildingName` varchar(255) NOT NULL,
   `buildingNameAr` varchar(255),
   `address` text,
@@ -24,42 +25,49 @@ CREATE TABLE IF NOT EXISTS `buildings` (
 );
 
 -- ─── Units ──────────────────────────────────────────────────────────
+-- unitStatus does NOT include OCCUPIED — occupancy is derived from bookings/Beds24
 CREATE TABLE IF NOT EXISTS `units` (
   `id` int AUTO_INCREMENT PRIMARY KEY,
+  `unitId` varchar(20) COMMENT 'Human-friendly ID e.g. UNT-01234',
   `buildingId` int NOT NULL,
   `unitNumber` varchar(50) NOT NULL,
   `floor` int,
   `bedrooms` int DEFAULT 1,
   `bathrooms` int DEFAULT 1,
   `sizeSqm` int,
-  `unitStatus` enum('AVAILABLE','OCCUPIED','BLOCKED','MAINTENANCE') NOT NULL DEFAULT 'AVAILABLE',
+  `unitStatus` enum('AVAILABLE','BLOCKED','MAINTENANCE') NOT NULL DEFAULT 'AVAILABLE',
   `monthlyBaseRentSAR` decimal(10,2),
   `propertyId` int,
   `notes` text,
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX `idx_units_buildingId` (`buildingId`),
+  INDEX `idx_units_buildingId_status` (`buildingId`, `unitStatus`),
   INDEX `idx_units_propertyId` (`propertyId`),
-  INDEX `idx_units_status` (`unitStatus`)
+  INDEX `idx_units_unitNumber` (`unitNumber`)
 );
 
--- ─── Beds24 Mapping ─────────────────────────────────────────────────
+-- ─── Beds24 Mapping (critical safety table) ─────────────────────────
+-- UNIQUE constraints prevent double-mapping:
+--   UNIQUE(unitId) = one unit → one Beds24 room
+--   UNIQUE(beds24RoomId) = one Beds24 room → one unit
 CREATE TABLE IF NOT EXISTS `beds24_map` (
   `id` int AUTO_INCREMENT PRIMARY KEY,
   `unitId` int NOT NULL,
   `beds24PropertyId` varchar(100),
   `beds24RoomId` varchar(100),
-  `beds24BookingId` varchar(100),
   `lastSyncedAt` timestamp NULL,
   `sourceOfTruth` enum('BEDS24','LOCAL') NOT NULL DEFAULT 'BEDS24',
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX `idx_beds24_unitId` (`unitId`),
-  INDEX `idx_beds24_propertyId` (`beds24PropertyId`),
-  INDEX `idx_beds24_bookingId` (`beds24BookingId`)
+  UNIQUE KEY `uq_beds24_unitId` (`unitId`),
+  UNIQUE KEY `uq_beds24_roomId` (`beds24RoomId`),
+  INDEX `idx_beds24_propertyId` (`beds24PropertyId`)
 );
 
--- ─── Payment Ledger ─────────────────────────────────────────────────
+-- ─── Payment Ledger (immutable, audit-grade) ────────────────────────
+-- Ledger rows are append-only. PAID amounts MUST NOT be edited.
+-- Corrections use ADJUSTMENT/REFUND rows linked via parentLedgerId.
 CREATE TABLE IF NOT EXISTS `payment_ledger` (
   `id` int AUTO_INCREMENT PRIMARY KEY,
   `invoiceNumber` varchar(50) NOT NULL UNIQUE,
@@ -73,7 +81,7 @@ CREATE TABLE IF NOT EXISTS `payment_ledger` (
   `unitId` int,
   `unitNumber` varchar(50),
   `propertyDisplayName` varchar(255),
-  `type` enum('RENT','RENEWAL_RENT','PROTECTION_FEE','DEPOSIT','CLEANING','PENALTY','REFUND') NOT NULL,
+  `type` enum('RENT','RENEWAL_RENT','PROTECTION_FEE','DEPOSIT','CLEANING','PENALTY','REFUND','ADJUSTMENT') NOT NULL,
   `direction` enum('IN','OUT') NOT NULL DEFAULT 'IN',
   `amount` decimal(10,2) NOT NULL,
   `currency` varchar(3) NOT NULL DEFAULT 'SAR',
@@ -84,29 +92,34 @@ CREATE TABLE IF NOT EXISTS `payment_ledger` (
   `dueAt` timestamp NULL,
   `paidAt` timestamp NULL,
   `createdBy` int,
+  `parentLedgerId` int COMMENT 'Links refunds/adjustments to original ledger row',
   `notes` text,
   `notesAr` text,
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX `idx_ledger_buildingId` (`buildingId`),
-  INDEX `idx_ledger_unitId` (`unitId`),
+  INDEX `idx_ledger_buildingId_status_paidAt` (`buildingId`, `status`, `paidAt`),
+  INDEX `idx_ledger_unitId_status_paidAt` (`unitId`, `status`, `paidAt`),
   INDEX `idx_ledger_status_dueAt` (`status`, `dueAt`),
-  INDEX `idx_ledger_status_paidAt` (`status`, `paidAt`),
   INDEX `idx_ledger_invoiceNumber` (`invoiceNumber`),
   INDEX `idx_ledger_beds24BookingId` (`beds24BookingId`),
   INDEX `idx_ledger_customerId` (`customerId`),
-  INDEX `idx_ledger_bookingId` (`bookingId`)
+  INDEX `idx_ledger_bookingId` (`bookingId`),
+  INDEX `idx_ledger_parentLedgerId` (`parentLedgerId`)
 );
 
--- ─── Booking Extensions (Renewals) ─────────────────────────────────
+-- ─── Booking Extensions (safe renewal workflow) ─────────────────────
+-- Extensions for Beds24-controlled units require admin approval + beds24ChangeNote.
 CREATE TABLE IF NOT EXISTS `booking_extensions` (
   `id` int AUTO_INCREMENT PRIMARY KEY,
   `bookingId` int NOT NULL,
+  `unitId` int,
   `originalEndDate` timestamp NOT NULL,
   `newEndDate` timestamp NOT NULL,
   `extensionMonths` int NOT NULL DEFAULT 1,
   `status` enum('PENDING_APPROVAL','APPROVED','REJECTED','PAYMENT_PENDING','ACTIVE','CANCELLED') NOT NULL DEFAULT 'PENDING_APPROVAL',
   `beds24Controlled` boolean NOT NULL DEFAULT false,
+  `requiresBeds24Update` boolean NOT NULL DEFAULT false,
+  `beds24ChangeNote` text COMMENT 'REQUIRED for approval when requiresBeds24Update=true',
   `adminNotes` text,
   `ledgerEntryId` int,
   `requestedBy` int,
@@ -115,10 +128,12 @@ CREATE TABLE IF NOT EXISTS `booking_extensions` (
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX `idx_ext_bookingId` (`bookingId`),
+  INDEX `idx_ext_unitId` (`unitId`),
   INDEX `idx_ext_status` (`status`)
 );
 
--- ─── Unit Daily Status (Occupancy Snapshots) ────────────────────────
+-- ─── Unit Daily Status (occupancy snapshots) ────────────────────────
+-- source includes UNKNOWN for Beds24-controlled units without data
 CREATE TABLE IF NOT EXISTS `unit_daily_status` (
   `id` int AUTO_INCREMENT PRIMARY KEY,
   `date` timestamp NOT NULL,
@@ -126,7 +141,7 @@ CREATE TABLE IF NOT EXISTS `unit_daily_status` (
   `unitId` int NOT NULL,
   `occupied` boolean NOT NULL DEFAULT false,
   `available` boolean NOT NULL DEFAULT true,
-  `source` enum('BEDS24','LOCAL') NOT NULL DEFAULT 'LOCAL',
+  `source` enum('BEDS24','LOCAL','UNKNOWN') NOT NULL DEFAULT 'LOCAL',
   `bookingRef` varchar(100),
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX `idx_daily_date_building` (`date`, `buildingId`),
@@ -159,14 +174,11 @@ INSERT IGNORE INTO `payment_method_settings` (`methodKey`, `displayName`, `displ
   ('bank_transfer', 'Bank Transfer', 'تحويل بنكي', 'manual', false, 6),
   ('cash', 'Cash', 'نقداً', 'manual', false, 7);
 
--- ─── Add source and beds24_booking_id to existing bookings table ────
--- These are safe additive columns, no existing data is modified.
+-- ─── Add columns to existing bookings table (safe, additive) ────────
 ALTER TABLE `bookings` ADD COLUMN IF NOT EXISTS `beds24BookingId` varchar(100) DEFAULT NULL;
 ALTER TABLE `bookings` ADD COLUMN IF NOT EXISTS `source` enum('BEDS24','LOCAL') DEFAULT 'LOCAL';
 ALTER TABLE `bookings` ADD COLUMN IF NOT EXISTS `renewalsUsed` int DEFAULT 0;
 ALTER TABLE `bookings` ADD COLUMN IF NOT EXISTS `maxRenewals` int DEFAULT 1;
 ALTER TABLE `bookings` ADD COLUMN IF NOT EXISTS `renewalWindowDays` int DEFAULT 14;
-
--- ─── Add building_id and unit_id to existing bookings table ─────────
 ALTER TABLE `bookings` ADD COLUMN IF NOT EXISTS `buildingId` int DEFAULT NULL;
 ALTER TABLE `bookings` ADD COLUMN IF NOT EXISTS `unitId` int DEFAULT NULL;

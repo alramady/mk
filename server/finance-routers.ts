@@ -184,7 +184,7 @@ export const financeRouter = router({
         unitId: z.number().optional(),
         unitNumber: z.string().optional(),
         propertyDisplayName: z.string().optional(),
-        type: z.enum(["RENT", "RENEWAL_RENT", "PROTECTION_FEE", "DEPOSIT", "CLEANING", "PENALTY", "REFUND"]),
+        type: z.enum(["RENT", "RENEWAL_RENT", "PROTECTION_FEE", "DEPOSIT", "CLEANING", "PENALTY", "REFUND", "ADJUSTMENT"]),
         direction: z.enum(["IN", "OUT"]).optional(),
         amount: z.string(),
         currency: z.string().optional(),
@@ -206,19 +206,34 @@ export const financeRouter = router({
     updateStatus: adminWithPermission(PERMISSIONS.MANAGE_PAYMENTS)
       .input(z.object({
         id: z.number(),
-        status: z.enum(["DUE", "PENDING", "PAID", "FAILED", "REFUNDED", "VOID"]),
+        status: z.enum(["DUE", "PENDING", "FAILED", "VOID"]),
         paymentMethod: z.string().optional(),
         provider: z.string().optional(),
         providerRef: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        await finance.updateLedgerStatus(input.id, input.status, {
+        // Note: PAID status can only be set via webhook. REFUNDED via createAdjustment.
+        await finance.updateLedgerStatusSafe(input.id, input.status, {
           paymentMethod: input.paymentMethod,
           provider: input.provider,
           providerRef: input.providerRef,
-          paidAt: input.status === "PAID" ? new Date() : undefined,
         });
         return { success: true };
+      }),
+    createAdjustment: adminWithPermission(PERMISSIONS.MANAGE_PAYMENTS)
+      .input(z.object({
+        parentLedgerId: z.number(),
+        type: z.enum(["REFUND", "ADJUSTMENT"]),
+        direction: z.enum(["IN", "OUT"]),
+        amount: z.string(),
+        notes: z.string().optional(),
+        notesAr: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return finance.createAdjustmentOrRefund(input.parentLedgerId, {
+          ...input,
+          createdBy: ctx.user!.id,
+        });
       }),
   }),
 
@@ -253,9 +268,12 @@ export const financeRouter = router({
         return renewal.requestRenewal(input.bookingId, ctx.user!.id);
       }),
     approve: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
-      .input(z.object({ extensionId: z.number() }))
+      .input(z.object({
+        extensionId: z.number(),
+        beds24ChangeNote: z.string().optional(),
+      }))
       .mutation(async ({ ctx, input }) => {
-        return renewal.approveExtension(input.extensionId, ctx.user!.id);
+        return renewal.approveExtension(input.extensionId, ctx.user!.id, input.beds24ChangeNote);
       }),
     reject: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
       .input(z.object({ extensionId: z.number(), reason: z.string().optional() }))

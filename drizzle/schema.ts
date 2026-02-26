@@ -638,6 +638,7 @@ export type InsertWhatsAppMessage = typeof whatsappMessages.$inferInsert;
 // ─── Buildings ──────────────────────────────────────────────────────
 export const buildings = mysqlTable("buildings", {
   id: int("id").autoincrement().primaryKey(),
+  buildingId: varchar("buildingId", { length: 20 }),
   buildingName: varchar("buildingName", { length: 255 }).notNull(),
   buildingNameAr: varchar("buildingNameAr", { length: 255 }),
   address: text("address"),
@@ -661,13 +662,14 @@ export type InsertBuilding = typeof buildings.$inferInsert;
 // ─── Units ──────────────────────────────────────────────────────────
 export const units = mysqlTable("units", {
   id: int("id").autoincrement().primaryKey(),
+  unitId: varchar("unitId", { length: 20 }),
   buildingId: int("buildingId").notNull(),
   unitNumber: varchar("unitNumber", { length: 50 }).notNull(),
   floor: int("floor"),
   bedrooms: int("bedrooms").default(1),
   bathrooms: int("bathrooms").default(1),
   sizeSqm: int("sizeSqm"),
-  unitStatus: mysqlEnum("unitStatus", ["AVAILABLE", "OCCUPIED", "BLOCKED", "MAINTENANCE"]).default("AVAILABLE").notNull(),
+  unitStatus: mysqlEnum("unitStatus", ["AVAILABLE", "BLOCKED", "MAINTENANCE"]).default("AVAILABLE").notNull(),
   monthlyBaseRentSAR: decimal("monthlyBaseRentSAR", { precision: 10, scale: 2 }),
   propertyId: int("propertyId"),
   notes: text("notes"),
@@ -680,10 +682,9 @@ export type InsertUnit = typeof units.$inferInsert;
 // ─── Beds24 Mapping (immutable references) ──────────────────────────
 export const beds24Map = mysqlTable("beds24_map", {
   id: int("id").autoincrement().primaryKey(),
-  unitId: int("unitId").notNull(),
+  unitId: int("unitId").notNull().unique(),
   beds24PropertyId: varchar("beds24PropertyId", { length: 100 }),
-  beds24RoomId: varchar("beds24RoomId", { length: 100 }),
-  beds24BookingId: varchar("beds24BookingId", { length: 100 }),
+  beds24RoomId: varchar("beds24RoomId", { length: 100 }).unique(),
   lastSyncedAt: timestamp("lastSyncedAt"),
   sourceOfTruth: mysqlEnum("sourceOfTruth", ["BEDS24", "LOCAL"]).default("BEDS24").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -707,7 +708,7 @@ export const paymentLedger = mysqlTable("payment_ledger", {
   unitNumber: varchar("unitNumber", { length: 50 }),
   propertyDisplayName: varchar("propertyDisplayName", { length: 255 }),
   type: mysqlEnum("type", [
-    "RENT", "RENEWAL_RENT", "PROTECTION_FEE", "DEPOSIT", "CLEANING", "PENALTY", "REFUND"
+    "RENT", "RENEWAL_RENT", "PROTECTION_FEE", "DEPOSIT", "CLEANING", "PENALTY", "REFUND", "ADJUSTMENT"
   ]).notNull(),
   direction: mysqlEnum("direction", ["IN", "OUT"]).default("IN").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -723,6 +724,7 @@ export const paymentLedger = mysqlTable("payment_ledger", {
   dueAt: timestamp("dueAt"),
   paidAt: timestamp("paidAt"),
   createdBy: int("createdBy"),
+  parentLedgerId: int("parentLedgerId"),
   notes: text("notes"),
   notesAr: text("notesAr"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -742,6 +744,8 @@ export const bookingExtensions = mysqlTable("booking_extensions", {
     "PENDING_APPROVAL", "APPROVED", "REJECTED", "PAYMENT_PENDING", "ACTIVE", "CANCELLED"
   ]).default("PENDING_APPROVAL").notNull(),
   beds24Controlled: boolean("beds24Controlled").default(false).notNull(),
+  requiresBeds24Update: boolean("requiresBeds24Update").default(false).notNull(),
+  beds24ChangeNote: text("beds24ChangeNote"),
   adminNotes: text("adminNotes"),
   ledgerEntryId: int("ledgerEntryId"),
   requestedBy: int("requestedBy"),
@@ -761,7 +765,7 @@ export const unitDailyStatus = mysqlTable("unit_daily_status", {
   unitId: int("unitId").notNull(),
   occupied: boolean("occupied").default(false).notNull(),
   available: boolean("available").default(true).notNull(),
-  source: mysqlEnum("source", ["BEDS24", "LOCAL"]).default("LOCAL").notNull(),
+  source: mysqlEnum("source", ["BEDS24", "LOCAL", "UNKNOWN"]).default("LOCAL").notNull(),
   bookingRef: varchar("bookingRef", { length: 100 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
