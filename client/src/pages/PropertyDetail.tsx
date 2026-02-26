@@ -298,21 +298,21 @@ export default function PropertyDetail() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; } toggleFav.mutate({ propertyId: id }); }}
                   onTouchStart={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}
                   onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; } toggleFav.mutate({ propertyId: id }); }}
-                  className="h-8 w-8 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
-                  aria-label={lang === "ar" ? "المفضلة" : "Favorite"}
+                  className="h-11 w-11 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--background, #fff) 85%, transparent)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
+                  aria-label={lang === "ar" ? "إضافة للمفضلة" : "Add to favorites"}
                 >
-                  <Heart className={`h-[15px] w-[15px] ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
+                  <Heart className={`h-4 w-4 ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-foreground/70"}`} />
                 </button>
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (navigator.share) { navigator.share({ title: document.title, url: window.location.href }).catch(() => {}); } else { navigator.clipboard.writeText(window.location.href); toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied"); } }}
                   onTouchStart={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}
                   onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (navigator.share) { navigator.share({ title: document.title, url: window.location.href }).catch(() => {}); } else { navigator.clipboard.writeText(window.location.href); toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied"); } }}
-                  className="h-8 w-8 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
-                  aria-label={lang === "ar" ? "مشاركة" : "Share"}
+                  className="h-11 w-11 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--background, #fff) 85%, transparent)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
+                  aria-label={lang === "ar" ? "مشاركة العقار" : "Share property"}
                 >
-                  <Share2 className="h-[15px] w-[15px] text-gray-600" />
+                  <Share2 className="h-4 w-4 text-foreground/70" />
                 </button>
               </div>
               {/* Badges */}
