@@ -188,8 +188,8 @@ export default function AiAssistant() {
   // Don't render if not authenticated or AI is disabled
   if (!isAuthenticated || !aiEnabled) return null;
 
-  // Hide on auth pages (login, register, OTP)
-  if (location === "/login" || location === "/register" || location.startsWith("/verify")) return null;
+  // Hide on auth pages (login, register, OTP, auth)
+  if (location === "/login" || location === "/register" || location.startsWith("/verify") || location.startsWith("/otp") || location.startsWith("/auth")) return null;
 
   const BackIcon = dir === "rtl" ? ChevronRight : ChevronLeft;
 

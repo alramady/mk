@@ -492,7 +492,7 @@ export default function Register() {
                       type={showPassword ? "text" : "password"}
                       value={form.password}
                       onChange={(e) => update("password", e.target.value)}
-                      placeholder={lang === "ar" ? "6 أحرف على الأقل" : "At least 6 characters"}
+                      placeholder={lang === "ar" ? "12 حرف على الأقل" : "At least 12 characters"}
                       required
                       className="h-10 pe-10"
                       dir="ltr"
