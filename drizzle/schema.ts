@@ -603,3 +603,27 @@ export const otpCodes = mysqlTable("otp_codes", {
 });
 export type OtpCode = typeof otpCodes.$inferSelect;
 export type InsertOtpCode = typeof otpCodes.$inferInsert;
+
+// ─── WhatsApp Message Logs ──────────────────────────────────────────
+export const whatsappMessages = mysqlTable("whatsapp_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  recipientPhone: varchar("recipientPhone", { length: 20 }).notNull(),
+  recipientName: varchar("recipientName", { length: 255 }),
+  userId: int("userId"),
+  messageType: mysqlEnum("messageType", ["property_share", "booking_reminder", "follow_up", "custom", "welcome", "payment_reminder"]).notNull(),
+  templateName: varchar("templateName", { length: 100 }),
+  messageBody: text("messageBody"),
+  propertyId: int("propertyId"),
+  bookingId: int("bookingId"),
+  status: mysqlEnum("status", ["pending", "sent", "delivered", "read", "failed"]).default("pending").notNull(),
+  providerMsgId: varchar("providerMsgId", { length: 255 }),
+  channel: mysqlEnum("channel", ["click_to_chat", "cloud_api"]).default("click_to_chat").notNull(),
+  sentBy: int("sentBy"),
+  errorMessage: text("errorMessage"),
+  sentAt: timestamp("sentAt"),
+  deliveredAt: timestamp("deliveredAt"),
+  readAt: timestamp("readAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type WhatsAppMessage = typeof whatsappMessages.$inferSelect;
+export type InsertWhatsAppMessage = typeof whatsappMessages.$inferInsert;

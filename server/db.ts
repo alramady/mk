@@ -1818,3 +1818,90 @@ export async function getActiveAiDocumentTexts() {
   }).from(aiDocuments)
     .where(and(eq(aiDocuments.isActive, true), sql`${aiDocuments.extractedText} IS NOT NULL`));
 }
+
+
+// ─── WhatsApp Messages ──────────────────────────────────────────────
+export async function createWhatsAppMessage(data: {
+  recipientPhone: string;
+  recipientName: string | null;
+  userId: number | null;
+  messageType: string;
+  templateName: string | null;
+  messageBody: string;
+  propertyId: number | null;
+  bookingId: number | null;
+  channel: string;
+  sentBy: number;
+  status: string;
+  sentAt: Date;
+}) {
+  const pool = getPool();
+  if (!pool) throw new Error("Database not available");
+  // Auto-create table if not exists
+  await pool.execute(`CREATE TABLE IF NOT EXISTS whatsapp_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipientPhone VARCHAR(20) NOT NULL,
+    recipientName VARCHAR(255),
+    userId INT,
+    messageType ENUM('property_share','booking_reminder','follow_up','custom','welcome','payment_reminder') NOT NULL,
+    templateName VARCHAR(100),
+    messageBody TEXT,
+    propertyId INT,
+    bookingId INT,
+    status ENUM('pending','sent','delivered','read','failed') DEFAULT 'pending' NOT NULL,
+    providerMsgId VARCHAR(255),
+    channel ENUM('click_to_chat','cloud_api') DEFAULT 'click_to_chat' NOT NULL,
+    sentBy INT,
+    errorMessage TEXT,
+    sentAt TIMESTAMP NULL,
+    deliveredAt TIMESTAMP NULL,
+    readAt TIMESTAMP NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+  )`);
+  const [result] = await pool.query(
+    `INSERT INTO whatsapp_messages (recipientPhone, recipientName, userId, messageType, templateName, messageBody, propertyId, bookingId, channel, sentBy, status, sentAt, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [data.recipientPhone, data.recipientName, data.userId, data.messageType, data.templateName, data.messageBody, data.propertyId, data.bookingId, data.channel, data.sentBy, data.status, data.sentAt]
+  );
+  return (result as any).insertId as number;
+}
+
+export async function listWhatsAppMessages(filters: { limit?: number; offset?: number; messageType?: string; status?: string }) {
+  const pool = getPool();
+  if (!pool) return { messages: [], total: 0 };
+  let where = "1=1";
+  const params: any[] = [];
+  if (filters.messageType) { where += " AND messageType = ?"; params.push(filters.messageType); }
+  if (filters.status) { where += " AND status = ?"; params.push(filters.status); }
+  const limit = filters.limit || 50;
+  const offset = filters.offset || 0;
+  try {
+    const [rows] = await pool.query(`SELECT * FROM whatsapp_messages WHERE ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
+    const [countResult] = await pool.query(`SELECT COUNT(*) as total FROM whatsapp_messages WHERE ${where}`, params);
+    return { messages: rows as any[], total: (countResult as any[])[0]?.total || 0 };
+  } catch {
+    return { messages: [], total: 0 };
+  }
+}
+
+export async function getWhatsAppStats() {
+  const pool = getPool();
+  if (!pool) return { totalMessages: 0, sent: 0, delivered: 0, read: 0, failed: 0, pending: 0, last24h: 0, last7d: 0 };
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        COUNT(*) as totalMessages,
+        SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+        SUM(CASE WHEN status = 'read' THEN 1 ELSE 0 END) as \`read\`,
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN createdAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) as last24h,
+        SUM(CASE WHEN createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as last7d
+      FROM whatsapp_messages
+    `);
+    return (rows as any[])[0] || { totalMessages: 0, sent: 0, delivered: 0, read: 0, failed: 0, pending: 0, last24h: 0, last7d: 0 };
+  } catch {
+    return { totalMessages: 0, sent: 0, delivered: 0, read: 0, failed: 0, pending: 0, last24h: 0, last7d: 0 };
+  }
+}

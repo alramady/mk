@@ -24,7 +24,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard, LogOut, PanelLeft, Wrench,
   AlertTriangle, BarChart3, Settings, MapPin, KeyRound,
-  BookOpen, UserCog, Shield
+  BookOpen, UserCog, Shield, MessageCircle
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -40,6 +40,7 @@ const menuItems = [
   { icon: MapPin, label: "المدن والأحياء", path: "/admin/cities" },
   { icon: BookOpen, label: "قاعدة المعرفة", path: "/admin/knowledge-base" },
   { icon: Shield, label: "تقوية الإنتاج", path: "/admin/hardening" },
+  { icon: MessageCircle, label: "رسائل واتساب", path: "/admin/whatsapp" },
   { icon: Settings, label: "الإعدادات", path: "/admin/settings" },
 ];
 

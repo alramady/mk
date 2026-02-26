@@ -20,7 +20,7 @@ import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./payp
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, sendNewMaintenanceAlert, verifySmtpConnection, isSmtpConfigured } from "./email";
 import { savePushSubscription, removePushSubscription, sendPushToUser, sendPushBroadcast, isPushConfigured, getUserSubscriptionCount } from "./push";
-import { roles as rolesTable, aiMessages as aiMessagesTable } from "../drizzle/schema";
+import { roles as rolesTable, aiMessages as aiMessagesTable, whatsappMessages } from "../drizzle/schema";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { eq as eqDrizzle } from "drizzle-orm";
@@ -2540,6 +2540,77 @@ export const appRouter = router({
           },
         };
       }),
+  }),
+
+  // ─── WhatsApp Messages ──────────────────────────────────────────────
+  whatsapp: router({
+    // Log a message (admin sends via click-to-chat or cloud API)
+    send: adminProcedure
+      .input(z.object({
+        recipientPhone: z.string().min(10),
+        recipientName: z.string().optional(),
+        userId: z.number().optional(),
+        messageType: z.enum(["property_share", "booking_reminder", "follow_up", "custom", "welcome", "payment_reminder"]),
+        templateName: z.string().optional(),
+        messageBody: z.string().min(1),
+        propertyId: z.number().optional(),
+        bookingId: z.number().optional(),
+        channel: z.enum(["click_to_chat", "cloud_api"]).default("click_to_chat"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const msgId = await db.createWhatsAppMessage({
+          ...input,
+          recipientName: input.recipientName || null,
+          userId: input.userId || null,
+          templateName: input.templateName || null,
+          propertyId: input.propertyId || null,
+          bookingId: input.bookingId || null,
+          sentBy: ctx.user.id,
+          status: input.channel === "click_to_chat" ? "sent" : "pending",
+          sentAt: new Date(),
+        });
+        return { id: msgId, status: "sent" };
+      }),
+
+    // List messages with filters
+    list: adminProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+        messageType: z.string().optional(),
+        status: z.string().optional(),
+      }))
+      .query(async ({ input }) => {
+        return db.listWhatsAppMessages(input);
+      }),
+
+    // Get stats
+    stats: adminProcedure.query(async () => {
+      return db.getWhatsAppStats();
+    }),
+
+    // Get message templates
+    templates: adminProcedure.query(async () => {
+      return [
+        { id: "welcome", nameAr: "ترحيب بمستأجر جديد", nameEn: "Welcome New Tenant", type: "welcome" as const,
+          bodyAr: "مرحباً {name}! 🏠\nأهلاً بك في Monthly Key. نحن سعداء بانضمامك.\nإذا احتجت أي مساعدة، لا تتردد في التواصل معنا.",
+          bodyEn: "Welcome {name}! 🏠\nWelcome to Monthly Key. We're happy to have you.\nIf you need any help, don't hesitate to reach out." },
+        { id: "booking_confirm", nameAr: "تأكيد حجز", nameEn: "Booking Confirmation", type: "booking_reminder" as const,
+          bodyAr: "مرحباً {name}! ✅\nتم تأكيد حجزك للعقار: {property}\nتاريخ الدخول: {date}\nالإيجار الشهري: {rent} ر.س",
+          bodyEn: "Hi {name}! ✅\nYour booking is confirmed for: {property}\nMove-in: {date}\nMonthly rent: {rent} SAR" },
+        { id: "payment_reminder", nameAr: "تذكير بالدفع", nameEn: "Payment Reminder", type: "payment_reminder" as const,
+          bodyAr: "مرحباً {name} 💰\nنذكرك بموعد دفع الإيجار الشهري للعقار: {property}\nالمبلغ: {rent} ر.س\nيرجى الدفع في أقرب وقت.",
+          bodyEn: "Hi {name} 💰\nThis is a reminder for your monthly rent payment for: {property}\nAmount: {rent} SAR\nPlease pay at your earliest convenience." },
+        { id: "follow_up", nameAr: "متابعة", nameEn: "Follow Up", type: "follow_up" as const,
+          bodyAr: "مرحباً {name}! 👋\nنتمنى أنك مستمتع بإقامتك. هل تحتاج أي مساعدة؟\nلا تتردد في التواصل معنا في أي وقت.",
+          bodyEn: "Hi {name}! 👋\nWe hope you're enjoying your stay. Do you need any help?\nFeel free to reach out anytime." },
+        { id: "property_share", nameAr: "مشاركة عقار", nameEn: "Share Property", type: "property_share" as const,
+          bodyAr: "مرحباً {name}! 🏠\nنقترح عليك هذا العقار:\n{property}\n📍 {location}\n💰 {rent} ر.س/شهر\n🔗 {link}",
+          bodyEn: "Hi {name}! 🏠\nWe suggest this property for you:\n{property}\n📍 {location}\n💰 {rent} SAR/mo\n🔗 {link}" },
+        { id: "custom", nameAr: "رسالة مخصصة", nameEn: "Custom Message", type: "custom" as const,
+          bodyAr: "", bodyEn: "" },
+      ];
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;
