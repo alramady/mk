@@ -153,6 +153,12 @@ async function startServer() {
     }
   });
 
+  // ─── Payment Webhook Routes (PSP callbacks) ─────────────────────
+  const { handleMoyasarWebhook, handleTabbyWebhook, handleTamaraWebhook } = await import("../payment-webhooks");
+  app.post("/api/webhooks/moyasar", handleMoyasarWebhook);
+  app.post("/api/webhooks/tabby", handleTabbyWebhook);
+  app.post("/api/webhooks/tamara", handleTamaraWebhook);
+
   // Local authentication routes (login, register, change-password)
   registerAuthRoutes(app);
   // tRPC API

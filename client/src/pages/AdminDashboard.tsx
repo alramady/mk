@@ -294,6 +294,18 @@ export default function AdminDashboard() {
               {lang === "ar" ? "حسابي" : "My Account"}
             </Button>
           </Link>
+          <Link href="/admin/payments">
+            <Button variant="outline" className="gap-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600/10">
+              <CreditCard className="h-4 w-4" />
+              {lang === "ar" ? "سجل المدفوعات" : "Payments Registry"}
+            </Button>
+          </Link>
+          <Link href="/admin/buildings">
+            <Button variant="outline" className="gap-2 border-sky-600 text-sky-600 hover:bg-sky-600/10">
+              <Building2 className="h-4 w-4" />
+              {lang === "ar" ? "نظرة عامة على المباني" : "Building Overview"}
+            </Button>
+          </Link>
         </div>
 
         {/* Stats */}

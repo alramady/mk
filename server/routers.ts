@@ -25,6 +25,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { eq as eqDrizzle } from "drizzle-orm";
 import { sanitizeText, sanitizeObject, validateContentType, validateFileExtension, MAX_BASE64_SIZE, MAX_AVATAR_BASE64_SIZE, ALLOWED_IMAGE_TYPES, ALLOWED_UPLOAD_TYPES, capLimit, capOffset, isOwnerOrAdmin, isBookingParticipant } from "./security";
+import { financeRouter } from "./finance-routers";
 
 // Shared drizzle instance for roles/aiStats (avoid creating new connections per request)
 const sharedPool = mysql.createPool(process.env.DATABASE_URL!);
@@ -2612,5 +2613,7 @@ export const appRouter = router({
       ];
     }),
   }),
+  // ─── Finance Registry (Buildings, Units, Ledger, KPIs, Renewals) ──
+  finance: financeRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -57,6 +57,9 @@ const AdminAICopilot = lazy(() => import("./pages/AdminAICopilot"));
 const AdminMyAccount = lazy(() => import("./pages/AdminMyAccount"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const AdminWhatsApp = lazy(() => import("./pages/AdminWhatsApp"));
+const AdminPayments = lazy(() => import("./pages/AdminPayments"));
+const AdminBuildings = lazy(() => import("./pages/AdminBuildings"));
+const AdminUnitFinance = lazy(() => import("./pages/AdminUnitFinance"));
 
 function PageLoader() {
   return (
@@ -112,6 +115,10 @@ function Router() {
         <Route path="/admin/ai-copilot" component={AdminAICopilot} />
         <Route path="/admin/my-account" component={AdminMyAccount} />
         <Route path="/admin/whatsapp" component={AdminWhatsApp} />
+        <Route path="/admin/payments" component={AdminPayments} />
+        <Route path="/admin/buildings" component={AdminBuildings} />
+        <Route path="/admin/buildings/:id" component={AdminBuildings} />
+        <Route path="/admin/units/:id" component={AdminUnitFinance} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

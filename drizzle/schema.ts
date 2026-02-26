@@ -148,10 +148,17 @@ export const bookings = mysqlTable("bookings", {
   tenantNotes: text("tenantNotes"),
   landlordNotes: text("landlordNotes"),
   rejectionReason: text("rejectionReason"),
+   // Finance registry extensions (additive, backward-compatible)
+  beds24BookingId: varchar("beds24BookingId", { length: 100 }),
+  source: mysqlEnum("source", ["BEDS24", "LOCAL"]).default("LOCAL"),
+  renewalsUsed: int("renewalsUsed").default(0),
+  maxRenewals: int("maxRenewals").default(1),
+  renewalWindowDays: int("renewalWindowDays").default(14),
+  buildingId: int("buildingId"),
+  unitId: int("unitId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type Booking = typeof bookings.$inferSelect;
 export type InsertBooking = typeof bookings.$inferInsert;
 
@@ -627,3 +634,153 @@ export const whatsappMessages = mysqlTable("whatsapp_messages", {
 });
 export type WhatsAppMessage = typeof whatsappMessages.$inferSelect;
 export type InsertWhatsAppMessage = typeof whatsappMessages.$inferInsert;
+
+// ─── Buildings ──────────────────────────────────────────────────────
+export const buildings = mysqlTable("buildings", {
+  id: int("id").autoincrement().primaryKey(),
+  buildingName: varchar("buildingName", { length: 255 }).notNull(),
+  buildingNameAr: varchar("buildingNameAr", { length: 255 }),
+  address: text("address"),
+  addressAr: text("addressAr"),
+  city: varchar("city", { length: 100 }),
+  cityAr: varchar("cityAr", { length: 100 }),
+  district: varchar("district", { length: 100 }),
+  districtAr: varchar("districtAr", { length: 100 }),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  totalUnits: int("totalUnits").default(0),
+  managerId: int("managerId"),
+  notes: text("notes"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Building = typeof buildings.$inferSelect;
+export type InsertBuilding = typeof buildings.$inferInsert;
+
+// ─── Units ──────────────────────────────────────────────────────────
+export const units = mysqlTable("units", {
+  id: int("id").autoincrement().primaryKey(),
+  buildingId: int("buildingId").notNull(),
+  unitNumber: varchar("unitNumber", { length: 50 }).notNull(),
+  floor: int("floor"),
+  bedrooms: int("bedrooms").default(1),
+  bathrooms: int("bathrooms").default(1),
+  sizeSqm: int("sizeSqm"),
+  unitStatus: mysqlEnum("unitStatus", ["AVAILABLE", "OCCUPIED", "BLOCKED", "MAINTENANCE"]).default("AVAILABLE").notNull(),
+  monthlyBaseRentSAR: decimal("monthlyBaseRentSAR", { precision: 10, scale: 2 }),
+  propertyId: int("propertyId"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Unit = typeof units.$inferSelect;
+export type InsertUnit = typeof units.$inferInsert;
+
+// ─── Beds24 Mapping (immutable references) ──────────────────────────
+export const beds24Map = mysqlTable("beds24_map", {
+  id: int("id").autoincrement().primaryKey(),
+  unitId: int("unitId").notNull(),
+  beds24PropertyId: varchar("beds24PropertyId", { length: 100 }),
+  beds24RoomId: varchar("beds24RoomId", { length: 100 }),
+  beds24BookingId: varchar("beds24BookingId", { length: 100 }),
+  lastSyncedAt: timestamp("lastSyncedAt"),
+  sourceOfTruth: mysqlEnum("sourceOfTruth", ["BEDS24", "LOCAL"]).default("BEDS24").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Beds24Map = typeof beds24Map.$inferSelect;
+export type InsertBeds24Map = typeof beds24Map.$inferInsert;
+
+// ─── Payment Ledger (immutable, audit-friendly) ─────────────────────
+export const paymentLedger = mysqlTable("payment_ledger", {
+  id: int("id").autoincrement().primaryKey(),
+  invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
+  bookingId: int("bookingId"),
+  beds24BookingId: varchar("beds24BookingId", { length: 100 }),
+  customerId: int("customerId"),
+  guestName: varchar("guestName", { length: 255 }),
+  guestEmail: varchar("guestEmail", { length: 320 }),
+  guestPhone: varchar("guestPhone", { length: 20 }),
+  buildingId: int("buildingId"),
+  unitId: int("unitId"),
+  unitNumber: varchar("unitNumber", { length: 50 }),
+  propertyDisplayName: varchar("propertyDisplayName", { length: 255 }),
+  type: mysqlEnum("type", [
+    "RENT", "RENEWAL_RENT", "PROTECTION_FEE", "DEPOSIT", "CLEANING", "PENALTY", "REFUND"
+  ]).notNull(),
+  direction: mysqlEnum("direction", ["IN", "OUT"]).default("IN").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("SAR").notNull(),
+  status: mysqlEnum("status", [
+    "DUE", "PENDING", "PAID", "FAILED", "REFUNDED", "VOID"
+  ]).default("DUE").notNull(),
+  paymentMethod: mysqlEnum("paymentMethod", [
+    "MADA_CARD", "APPLE_PAY", "GOOGLE_PAY", "TABBY", "TAMARA", "BANK_TRANSFER", "CASH"
+  ]),
+  provider: mysqlEnum("provider", ["moyasar", "tabby", "tamara", "manual"]),
+  providerRef: varchar("providerRef", { length: 255 }),
+  dueAt: timestamp("dueAt"),
+  paidAt: timestamp("paidAt"),
+  createdBy: int("createdBy"),
+  notes: text("notes"),
+  notesAr: text("notesAr"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PaymentLedger = typeof paymentLedger.$inferSelect;
+export type InsertPaymentLedger = typeof paymentLedger.$inferInsert;
+
+// ─── Booking Extensions (renewals) ──────────────────────────────────
+export const bookingExtensions = mysqlTable("booking_extensions", {
+  id: int("id").autoincrement().primaryKey(),
+  bookingId: int("bookingId").notNull(),
+  originalEndDate: timestamp("originalEndDate").notNull(),
+  newEndDate: timestamp("newEndDate").notNull(),
+  extensionMonths: int("extensionMonths").default(1).notNull(),
+  status: mysqlEnum("status", [
+    "PENDING_APPROVAL", "APPROVED", "REJECTED", "PAYMENT_PENDING", "ACTIVE", "CANCELLED"
+  ]).default("PENDING_APPROVAL").notNull(),
+  beds24Controlled: boolean("beds24Controlled").default(false).notNull(),
+  adminNotes: text("adminNotes"),
+  ledgerEntryId: int("ledgerEntryId"),
+  requestedBy: int("requestedBy"),
+  approvedBy: int("approvedBy"),
+  approvedAt: timestamp("approvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BookingExtension = typeof bookingExtensions.$inferSelect;
+export type InsertBookingExtension = typeof bookingExtensions.$inferInsert;
+
+// ─── Unit Daily Status (occupancy snapshots) ────────────────────────
+export const unitDailyStatus = mysqlTable("unit_daily_status", {
+  id: int("id").autoincrement().primaryKey(),
+  date: timestamp("date").notNull(),
+  buildingId: int("buildingId").notNull(),
+  unitId: int("unitId").notNull(),
+  occupied: boolean("occupied").default(false).notNull(),
+  available: boolean("available").default(true).notNull(),
+  source: mysqlEnum("source", ["BEDS24", "LOCAL"]).default("LOCAL").notNull(),
+  bookingRef: varchar("bookingRef", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type UnitDailyStatus = typeof unitDailyStatus.$inferSelect;
+export type InsertUnitDailyStatus = typeof unitDailyStatus.$inferInsert;
+
+// ─── Payment Method Settings ────────────────────────────────────────
+export const paymentMethodSettings = mysqlTable("payment_method_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  methodKey: varchar("methodKey", { length: 50 }).notNull().unique(),
+  displayName: varchar("displayName", { length: 100 }).notNull(),
+  displayNameAr: varchar("displayNameAr", { length: 100 }),
+  provider: varchar("provider", { length: 50 }).notNull(),
+  isEnabled: boolean("isEnabled").default(false).notNull(),
+  apiKeyConfigured: boolean("apiKeyConfigured").default(false).notNull(),
+  configJson: json("configJson").$type<Record<string, unknown>>(),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PaymentMethodSetting = typeof paymentMethodSettings.$inferSelect;
+export type InsertPaymentMethodSetting = typeof paymentMethodSettings.$inferInsert;
