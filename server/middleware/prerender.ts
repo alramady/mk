@@ -562,6 +562,9 @@ export function prerenderMiddleware(htmlTemplate: string) {
         html = html.replace(/<meta\s+name="twitter:[^"]*"\s+content="[^"]*"\s*\/?>\s*\n?/g, '');
         // Remove the static title tag (dynamic one will be injected)
         html = html.replace(/<title>[^<]*<\/title>\s*\n?/, '');
+        // Remove static canonical and description to prevent duplicates
+        html = html.replace(/<link\s+rel="canonical"[^>]*>\s*\n?/g, '');
+        html = html.replace(/<meta\s+name="description"\s+content="[^"]*"\s*\/?>\s*\n?/g, '');
         // Inject dynamic meta tags before </head>
         html = html.replace('</head>', `${metaTags}\n</head>`);
       }
