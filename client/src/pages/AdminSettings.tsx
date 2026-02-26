@@ -867,6 +867,35 @@ export default function AdminSettings() {
                 <p className="text-sm text-muted-foreground">
                   {lang === "ar" ? "تحكم في زر واتساب العائم والرسالة الافتراضية" : "Control the floating WhatsApp button and default message"}
                 </p>
+                {/* Enable/Disable Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-xl border-2 border-dashed" style={{ borderColor: settings["whatsapp.enabled"] === "true" ? "#25D366" : "#94a3b8" }}>
+                  <div>
+                    <h3 className="font-bold text-lg">{lang === "ar" ? "تفعيل زر واتساب" : "Enable WhatsApp Button"}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {lang === "ar"
+                        ? settings["whatsapp.enabled"] === "true" ? "✅ زر واتساب مفعّل ويظهر للزوار" : "❌ زر واتساب معطّل ولا يظهر للزوار"
+                        : settings["whatsapp.enabled"] === "true" ? "✅ WhatsApp button is active and visible to visitors" : "❌ WhatsApp button is disabled and hidden"
+                      }
+                    </p>
+                  </div>
+                  <Button
+                    variant={settings["whatsapp.enabled"] === "true" ? "default" : "outline"}
+                    size="lg"
+                    disabled={updateMutation.isPending}
+                    onClick={() => {
+                      const newVal = settings["whatsapp.enabled"] === "true" ? "false" : "true";
+                      setSettings(prev => ({ ...prev, "whatsapp.enabled": newVal }));
+                      updateMutation.mutate({ settings: { ...settings, "whatsapp.enabled": newVal } });
+                    }}
+                    className="min-w-[140px]"
+                    style={settings["whatsapp.enabled"] === "true" ? { backgroundColor: "#25D366", color: "white" } : {}}
+                  >
+                    {settings["whatsapp.enabled"] === "true"
+                      ? (lang === "ar" ? "تعطيل" : "Disable")
+                      : (lang === "ar" ? "تفعيل" : "Enable")
+                    }
+                  </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <SettingField label={lang === "ar" ? "رقم واتساب (مع رمز الدولة)" : "WhatsApp Number (with country code)"} settingKey="whatsapp.number" placeholder="966504466528" />
                   <SettingField label={lang === "ar" ? "رسالة ترحيبية افتراضية" : "Default Welcome Message"} settingKey="whatsapp.message" placeholder={lang === "ar" ? "مرحباً، أحتاج مساعدة من المفتاح الشهري" : "Hello, I need help with monthly rental"} />
