@@ -58,6 +58,7 @@ export const appRouter = router({
         avatarUrl: z.string().optional(),
         bio: z.string().optional(),
         bioAr: z.string().optional(),
+        recoveryEmail: z.string().email().optional(),
         preferredLang: z.enum(["ar", "en"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -807,6 +808,11 @@ export const appRouter = router({
     updateUserRole: adminWithPermission(PERMISSIONS.MANAGE_USERS)
       .input(z.object({ userId: z.number(), role: z.enum(["user", "admin", "landlord", "tenant"]) }))
       .mutation(async ({ input }) => {
+        // Protect root admin from being demoted
+        const targetPerms = await db.getAdminPermissions(input.userId);
+        if (targetPerms?.isRootAdmin && input.role !== "admin") {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot change root admin role' });
+        }
         await db.updateUserRole(input.userId, input.role);
         return { success: true };
       }),

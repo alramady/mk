@@ -54,6 +54,7 @@ const MapViewPage = lazy(() => import("./pages/MapView"));
 const AdminHardeningKB = lazy(() => import("./pages/AdminHardeningKB"));
 const AdminHelpCenter = lazy(() => import("./pages/AdminHelpCenter"));
 const AdminAICopilot = lazy(() => import("./pages/AdminAICopilot"));
+const AdminMyAccount = lazy(() => import("./pages/AdminMyAccount"));
 
 function PageLoader() {
   return (
@@ -106,6 +107,7 @@ function Router() {
         <Route path="/admin/hardening" component={AdminHardeningKB} />
         <Route path="/admin/help-center" component={AdminHelpCenter} />
         <Route path="/admin/ai-copilot" component={AdminAICopilot} />
+        <Route path="/admin/my-account" component={AdminMyAccount} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

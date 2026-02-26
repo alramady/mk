@@ -37,6 +37,7 @@ export const users = mysqlTable("users", {
   avatarUrl: text("avatarUrl"),
   bio: text("bio"),
   bioAr: text("bioAr"),
+  recoveryEmail: varchar("recoveryEmail", { length: 320 }),
   preferredLang: mysqlEnum("preferredLang", ["ar", "en"]).default("ar"),
   isVerified: boolean("isVerified").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

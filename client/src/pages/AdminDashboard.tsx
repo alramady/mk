@@ -288,6 +288,12 @@ export default function AdminDashboard() {
               {lang === "ar" ? "مساعد الإدارة الذكي" : "Admin AI Copilot"}
             </Button>
           </Link>
+          <Link href="/admin/my-account">
+            <Button variant="outline" className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10">
+              <UserCog className="h-4 w-4" />
+              {lang === "ar" ? "حسابي" : "My Account"}
+            </Button>
+          </Link>
         </div>
 
         {/* Stats */}
@@ -576,6 +582,7 @@ export default function AdminDashboard() {
                                 <Badge className={`text-xs ${roleColors[u.role] || roleColors.user}`}>
                                   {roleLabels[u.role]?.[lang === "ar" ? "ar" : "en"] || u.role}
                                 </Badge>
+                                {u.isRootAdmin && <Badge className="text-xs bg-red-600 text-white border-0">{lang === "ar" ? "مدير أساسي" : "Root Admin"}</Badge>}
                                 {u.isVerified && <Badge variant="outline" className="text-xs text-green-600 border-green-300">{lang === "ar" ? "موثق" : "Verified"}</Badge>}
                               </div>
                               <div className="text-sm text-muted-foreground truncate">{u.email || "—"}</div>
@@ -587,15 +594,21 @@ export default function AdminDashboard() {
                               <div>{lang === "ar" ? "انضم" : "Joined"}</div>
                               <div>{new Date(u.createdAt).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US")}</div>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => { setRoleChangeUser({ id: u.id, name: u.nameAr || u.name || u.displayName || u.email || "—", currentRole: u.role }); setNewRole(u.role); }}
-                              className="gap-1.5"
-                            >
-                              <UserCog className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">{lang === "ar" ? "تغيير الدور" : "Change Role"}</span>
-                            </Button>
+                            {u.isRootAdmin ? (
+                              <Badge variant="outline" className="text-xs text-red-500 border-red-300">
+                                {lang === "ar" ? "محمي" : "Protected"}
+                              </Badge>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setRoleChangeUser({ id: u.id, name: u.nameAr || u.name || u.displayName || u.email || "—", currentRole: u.role }); setNewRole(u.role); }}
+                                className="gap-1.5"
+                              >
+                                <UserCog className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">{lang === "ar" ? "تغيير الدور" : "Change Role"}</span>
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardContent>

@@ -123,10 +123,21 @@ export async function getAllUsers(limit = 50, offset = 0, search?: string, role?
   if (role && role !== 'all') {
     conditions.push(eq(users.role, role as any));
   }
+  // Left join adminPermissions to include isRootAdmin flag
+  const baseQuery = db.select({
+    id: users.id, openId: users.openId, userId: users.userId,
+    displayName: users.displayName, name: users.name, nameAr: users.nameAr,
+    email: users.email, phone: users.phone, whatsapp: users.whatsapp,
+    role: users.role, avatarUrl: users.avatarUrl, isVerified: users.isVerified,
+    createdAt: users.createdAt, lastSignedIn: users.lastSignedIn,
+    recoveryEmail: users.recoveryEmail,
+    isRootAdmin: adminPermissions.isRootAdmin,
+  }).from(users)
+    .leftJoin(adminPermissions, eq(users.id, adminPermissions.userId));
   if (conditions.length > 0) {
-    return db.select().from(users).where(and(...conditions)).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
+    return baseQuery.where(and(...conditions)).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
   }
-  return db.select().from(users).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
+  return baseQuery.orderBy(desc(users.createdAt)).limit(limit).offset(offset);
 }
 
 export async function getUserCount() {
