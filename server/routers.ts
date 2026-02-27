@@ -26,6 +26,7 @@ import mysql from "mysql2/promise";
 import { eq as eqDrizzle } from "drizzle-orm";
 import { sanitizeText, sanitizeObject, validateContentType, validateFileExtension, MAX_BASE64_SIZE, MAX_AVATAR_BASE64_SIZE, ALLOWED_IMAGE_TYPES, ALLOWED_UPLOAD_TYPES, capLimit, capOffset, isOwnerOrAdmin, isBookingParticipant } from "./security";
 import { financeRouter } from "./finance-routers";
+import { submissionRouter } from "./submission-routers";
 import { dbIdentity } from "./_core/env";
 
 // Shared drizzle instance for roles/aiStats (avoid creating new connections per request)
@@ -896,9 +897,11 @@ export const appRouter = router({
       }),
 
     properties: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
-      .input(z.object({ limit: z.number().optional(), offset: z.number().optional(), status: z.string().optional() }))
+      .input(z.object({ limit: z.number().optional(), offset: z.number().optional(), status: z.string().optional(), search: z.string().optional() }))
       .query(async ({ input }) => {
-        return db.getAllProperties(input.limit, input.offset, input.status);
+        const items = await db.getAllProperties(input.limit, input.offset, input.status, input.search);
+        const total = await db.getPropertyCount(input.status);
+        return { items, total };
       }),
 
     approveProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
@@ -2690,6 +2693,8 @@ export const appRouter = router({
       ];
     }),
   }),
+  // ─── Property Submissions (Lead Intake + Admin Review) ──
+  submission: submissionRouter,
   // ─── Finance Registry (Buildings, Units, Ledger, KPIs, Renewals) ──
   finance: financeRouter,
 });

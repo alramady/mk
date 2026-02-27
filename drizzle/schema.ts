@@ -817,3 +817,59 @@ export const auditLog = mysqlTable("audit_log", {
 });
 export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = typeof auditLog.$inferInsert;
+
+
+// ─── Property Submissions (Public Lead Intake) ────────────────────────
+export const propertySubmissions = mysqlTable("property_submissions", {
+  id: int("id").autoincrement().primaryKey(),
+  // Owner contact info
+  ownerName: varchar("ownerName", { length: 255 }).notNull(),
+  ownerNameAr: varchar("ownerNameAr", { length: 255 }),
+  phone: varchar("phone", { length: 30 }).notNull(),
+  email: varchar("email", { length: 255 }),
+  // Location
+  city: varchar("city", { length: 100 }),
+  cityAr: varchar("cityAr", { length: 100 }),
+  district: varchar("district", { length: 100 }),
+  districtAr: varchar("districtAr", { length: 100 }),
+  address: text("address"),
+  addressAr: text("addressAr"),
+  // Property details
+  propertyType: mysqlEnum("propertyType", [
+    "apartment", "villa", "studio", "duplex", "furnished_room", "compound", "hotel_apartment"
+  ]),
+  bedrooms: int("bedrooms"),
+  bathrooms: int("bathrooms"),
+  sizeSqm: int("sizeSqm"),
+  furnishedLevel: mysqlEnum("furnishedLevel", ["unfurnished", "semi_furnished", "fully_furnished"]),
+  desiredMonthlyRent: decimal("desiredMonthlyRent", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  notesAr: text("notesAr"),
+  // Workflow
+  status: mysqlEnum("submissionStatus", ["new", "contacted", "approved", "rejected"]).default("new").notNull(),
+  source: mysqlEnum("submissionSource", ["web", "phone", "referral", "walk_in"]).default("web").notNull(),
+  internalNotes: text("internalNotes"),
+  // Conversion tracking
+  convertedPropertyId: int("convertedPropertyId"),
+  convertedBy: int("convertedBy"),
+  convertedAt: timestamp("convertedAt"),
+  // Timestamps
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PropertySubmission = typeof propertySubmissions.$inferSelect;
+export type InsertPropertySubmission = typeof propertySubmissions.$inferInsert;
+
+// ─── Submission Photos ────────────────────────────────────────────────
+export const submissionPhotos = mysqlTable("submission_photos", {
+  id: int("id").autoincrement().primaryKey(),
+  submissionId: int("submissionId").notNull(),
+  url: text("url").notNull(),
+  thumbnailUrl: text("thumbnailUrl"),
+  mediumUrl: text("mediumUrl"),
+  originalFilename: varchar("originalFilename", { length: 255 }),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SubmissionPhoto = typeof submissionPhotos.$inferSelect;
+export type InsertSubmissionPhoto = typeof submissionPhotos.$inferInsert;

@@ -1,0 +1,42 @@
+CREATE TABLE IF NOT EXISTS `property_submissions` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`ownerName` varchar(255) NOT NULL,
+	`ownerNameAr` varchar(255),
+	`phone` varchar(30) NOT NULL,
+	`email` varchar(255),
+	`city` varchar(100),
+	`cityAr` varchar(100),
+	`district` varchar(100),
+	`districtAr` varchar(100),
+	`address` text,
+	`addressAr` text,
+	`propertyType` enum('apartment','villa','studio','duplex','furnished_room','compound','hotel_apartment'),
+	`bedrooms` int,
+	`bathrooms` int,
+	`sizeSqm` int,
+	`furnishedLevel` enum('unfurnished','semi_furnished','fully_furnished'),
+	`desiredMonthlyRent` decimal(10,2),
+	`notes` text,
+	`notesAr` text,
+	`submissionStatus` enum('new','contacted','approved','rejected') NOT NULL DEFAULT 'new',
+	`submissionSource` enum('web','phone','referral','walk_in') NOT NULL DEFAULT 'web',
+	`internalNotes` text,
+	`convertedPropertyId` int,
+	`convertedBy` int,
+	`convertedAt` timestamp,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `property_submissions_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `submission_photos` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`submissionId` int NOT NULL,
+	`url` text NOT NULL,
+	`thumbnailUrl` text,
+	`mediumUrl` text,
+	`originalFilename` varchar(255),
+	`sortOrder` int DEFAULT 0,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `submission_photos_id` PRIMARY KEY(`id`)
+);

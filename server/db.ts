@@ -22,6 +22,7 @@ import {
   emergencyMaintenance, InsertEmergencyMaintenance,
   maintenanceUpdates, InsertMaintenanceUpdate,
   aiDocuments, InsertAiDocument,
+  propertySubmissions, InsertPropertySubmission, submissionPhotos, InsertSubmissionPhoto,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -283,10 +284,20 @@ export async function getMapProperties(filters?: {
   }).from(properties).where(where!).limit(500);
 }
 
-export async function getAllProperties(limit = 50, offset = 0, status?: string) {
+export async function getAllProperties(limit = 50, offset = 0, status?: string, search?: string) {
   const db = await getDb();
   if (!db) return [];
-  const conditions = status ? [eq(properties.status, status as any)] : [];
+  const conditions: any[] = [];
+  if (status) conditions.push(eq(properties.status, status as any));
+  if (search && search.trim()) {
+    const term = `%${search.trim()}%`;
+    conditions.push(or(
+      like(properties.titleEn, term),
+      like(properties.titleAr, term),
+      like(properties.city, term),
+      like(properties.cityAr, term),
+    ));
+  }
   return db.select().from(properties)
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(properties.createdAt)).limit(limit).offset(offset);
@@ -1905,4 +1916,86 @@ export async function getWhatsAppStats() {
   } catch {
     return { totalMessages: 0, sent: 0, delivered: 0, read: 0, failed: 0, pending: 0, last24h: 0, last7d: 0 };
   }
+}
+
+
+// ─── Property Submissions (Lead Intake) ──────────────────────────────
+export async function createPropertySubmission(data: InsertPropertySubmission) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(propertySubmissions).values(data);
+  return result[0].insertId;
+}
+
+export async function getPropertySubmissionById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(propertySubmissions).where(eq(propertySubmissions.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllPropertySubmissions(limit = 50, offset = 0, status?: string, search?: string) {
+  const db = await getDb();
+  if (!db) return { items: [], total: 0 };
+  const conditions: any[] = [];
+  if (status && status !== "all") {
+    conditions.push(eq(propertySubmissions.status, status as any));
+  }
+  if (search && search.trim()) {
+    const term = `%${search.trim()}%`;
+    conditions.push(or(
+      like(propertySubmissions.ownerName, term),
+      like(propertySubmissions.ownerNameAr, term),
+      like(propertySubmissions.phone, term),
+      like(propertySubmissions.email, term),
+      like(propertySubmissions.city, term),
+      like(propertySubmissions.cityAr, term),
+    ));
+  }
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const items = await db.select().from(propertySubmissions)
+    .where(where!)
+    .orderBy(desc(propertySubmissions.createdAt))
+    .limit(limit).offset(offset);
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(propertySubmissions).where(where!);
+  return { items, total: countResult[0]?.count ?? 0 };
+}
+
+export async function updatePropertySubmission(id: number, data: Partial<InsertPropertySubmission>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(propertySubmissions).set(data as any).where(eq(propertySubmissions.id, id));
+}
+
+export async function getSubmissionPhotosBySubmissionId(submissionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(submissionPhotos)
+    .where(eq(submissionPhotos.submissionId, submissionId))
+    .orderBy(asc(submissionPhotos.sortOrder));
+}
+
+export async function addSubmissionPhoto(data: InsertSubmissionPhoto) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(submissionPhotos).values(data);
+  return result[0].insertId;
+}
+
+export async function deleteSubmissionPhoto(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(submissionPhotos).where(eq(submissionPhotos.id, id));
+}
+
+export async function getPropertySubmissionCount(status?: string) {
+  const db = await getDb();
+  if (!db) return 0;
+  if (status && status !== "all") {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(propertySubmissions)
+      .where(eq(propertySubmissions.status, status as any));
+    return result[0]?.count ?? 0;
+  }
+  const result = await db.select({ count: sql<number>`count(*)` }).from(propertySubmissions);
+  return result[0]?.count ?? 0;
 }

@@ -24,7 +24,8 @@ import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard, LogOut, PanelLeft, Wrench,
   AlertTriangle, BarChart3, Settings, MapPin, KeyRound,
-  BookOpen, UserCog, Shield, MessageCircle, Database
+  BookOpen, UserCog, Shield, MessageCircle, Database,
+  Building2, Inbox
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -33,6 +34,8 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "لوحة التحكم", path: "/admin" },
+  { icon: Building2, label: "إدارة العقارات", path: "/admin/properties" },
+  { icon: Inbox, label: "طلبات إضافة عقار", path: "/admin/submissions" },
   { icon: UserCog, label: "مديرو العقارات", path: "/admin/managers" },
   { icon: Wrench, label: "إدارة الخدمات", path: "/admin/services" },
   { icon: AlertTriangle, label: "طوارئ الصيانة", path: "/admin/emergency-maintenance" },

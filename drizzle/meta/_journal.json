@@ -134,6 +134,13 @@
       "when": 1771700000000,
       "tag": "0018_admin_crud_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1772220116603,
+      "tag": "0019_property_submissions",
+      "breakpoints": true
     }
   ]
 }
