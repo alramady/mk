@@ -81,6 +81,7 @@ export default function AdminDashboard() {
   };
 
   const stats = trpc.admin.stats.useQuery(undefined, { enabled: isAuthenticated && user?.role === "admin" });
+  const finKpis = trpc.finance.kpis.global.useQuery(undefined, { enabled: isAuthenticated && user?.role === "admin" });
   const users = trpc.admin.users.useQuery(
     { limit: 100, search: userSearchDebounced || undefined, role: userRoleFilter !== "all" ? userRoleFilter : undefined },
     { enabled: isAuthenticated && user?.role === "admin" }
@@ -282,8 +283,8 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Operational Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-5 relative">
               <div className="absolute top-0 end-0 w-20 h-20 bg-[#3ECFC0]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -293,7 +294,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="text-2xl font-heading font-bold">{stats.data?.userCount ?? 0}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{t("dashboard.totalUsers")}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "إجمالي المستخدمين" : "Total Users"}</div>
             </CardContent>
           </Card>
           <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
@@ -305,7 +306,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="text-2xl font-heading font-bold">{stats.data?.activeProperties ?? 0}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{t("dashboard.activeListings")}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "عقارات نشطة" : "Active Listings"}</div>
             </CardContent>
           </Card>
           <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
@@ -317,9 +318,25 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="text-2xl font-heading font-bold">{stats.data?.pendingProperties ?? 0}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{t("dashboard.pendingApproval")}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "بانتظار المراجعة" : "Pending Approval"}</div>
             </CardContent>
           </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-5 relative">
+              <div className="absolute top-0 end-0 w-20 h-20 bg-purple-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-purple-500" />
+                </div>
+              </div>
+              <div className="text-2xl font-heading font-bold">{stats.data?.activeBookings ?? 0}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "حجوزات نشطة" : "Active Bookings"}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Financial KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-[#0B1E2D] to-[#132d42]">
             <CardContent className="p-5 relative">
               <div className="absolute top-0 end-0 w-20 h-20 bg-[#3ECFC0]/10 rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -328,8 +345,55 @@ export default function AdminDashboard() {
                   <TrendingUp className="h-5 w-5 text-[#3ECFC0]" />
                 </div>
               </div>
-              <div className="text-2xl font-heading font-bold text-white">{Number(stats.data?.totalRevenue ?? 0).toLocaleString()}</div>
-              <div className="text-xs text-white/60 mt-0.5">{t("payment.sar")} {t("dashboard.revenue")}</div>
+              <div className="text-2xl font-heading font-bold text-white">{Number(finKpis.data?.collectedYTD ?? 0).toLocaleString()}</div>
+              <div className="text-xs text-white/60 mt-0.5">{lang === "ar" ? "ر.س — المحصّل هذا العام" : "SAR — Collected YTD"}</div>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-amber-900/80 to-amber-800/60">
+            <CardContent className="p-5 relative">
+              <div className="absolute top-0 end-0 w-20 h-20 bg-amber-400/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-400/20 flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-amber-300" />
+                </div>
+              </div>
+              <div className="text-2xl font-heading font-bold text-white">{Number(finKpis.data?.outstandingBalance ?? 0).toLocaleString()}</div>
+              <div className="text-xs text-white/60 mt-0.5">{lang === "ar" ? "ر.س — مستحقات معلقة" : "SAR — Outstanding Due"}</div>
+              {Number(finKpis.data?.overdueCount ?? 0) > 0 && (
+                <Badge className="mt-1.5 bg-red-500/80 text-white text-[10px] border-0">
+                  {finKpis.data?.overdueCount} {lang === "ar" ? "متأخر" : "overdue"}
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-5 relative">
+              <div className="absolute top-0 end-0 w-20 h-20 bg-emerald-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-emerald-500" />
+                </div>
+              </div>
+              <div className="text-2xl font-heading font-bold">{finKpis.data?.occupancyRate ?? 0}%</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "نسبة الإشغال" : "Occupancy Rate"}</div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {finKpis.data?.occupiedUnits ?? 0}/{finKpis.data?.availableUnits ?? 0} {lang === "ar" ? "وحدة" : "units"}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-5 relative">
+              <div className="absolute top-0 end-0 w-20 h-20 bg-indigo-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                  <BanknoteIcon className="h-5 w-5 text-indigo-500" />
+                </div>
+              </div>
+              <div className="text-2xl font-heading font-bold">{Number(finKpis.data?.revPAU ?? 0).toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{lang === "ar" ? "ر.س — PAR (إيراد لكل وحدة)" : "SAR — RevPAU"}</div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {lang === "ar" ? "المحصّل الشهري ÷ الوحدات المتاحة" : "MTD collected ÷ available units"}
+              </p>
             </CardContent>
           </Card>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -12,8 +12,18 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   ArrowRight, Save, Eye, EyeOff, Upload, X, Star, GripVertical,
-  CheckCircle2, XCircle, AlertTriangle, Loader2, Globe, Archive, MapPin
+  CheckCircle2, XCircle, AlertTriangle, Loader2, Globe, Archive, MapPin,
+  ExternalLink, Link2, Unlink
 } from "lucide-react";
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -35,6 +45,53 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "مرفوض",
 };
 
+// ─── Sortable Photo Item ─────────────────────────────────────────────
+function SortablePhoto({ id, url, index, onRemove, onSetCover }: {
+  id: string; url: string; index: number;
+  onRemove: () => void; onSetCover: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group rounded-lg overflow-hidden border aspect-square">
+      <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+      {/* Drag handle */}
+      <div
+        {...attributes} {...listeners}
+        className="absolute top-1 left-1 p-1 bg-black/50 rounded cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="h-4 w-4 text-white" />
+      </div>
+      {/* Cover badge */}
+      {index === 0 && (
+        <div className="absolute top-1 right-1">
+          <Badge className="bg-amber-500 text-white text-xs gap-1">
+            <Star className="h-3 w-3" /> غلاف
+          </Badge>
+        </div>
+      )}
+      {/* Hover actions */}
+      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+        {index !== 0 && (
+          <Button size="sm" variant="secondary" onClick={onSetCover} title="تعيين كغلاف">
+            <Star className="h-3 w-3" />
+          </Button>
+        )}
+        <Button size="sm" variant="destructive" onClick={onRemove} title="حذف">
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────
 export default function AdminPropertyEdit() {
   const [, params] = useRoute("/admin/properties/:id/edit");
   const [, navigate] = useLocation();
@@ -61,7 +118,17 @@ export default function AdminPropertyEdit() {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [linkedUnitId, setLinkedUnitId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Stable photo IDs for dnd-kit (keyed by URL)
+  const photoIds = useMemo(() => form.photos.map((url, i) => `photo-${i}-${url.slice(-20)}`), [form.photos]);
+
+  // Sensors for drag
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   // Fetch property data if editing
   const { data: property, isLoading } = trpc.property.getById.useQuery(
@@ -73,6 +140,12 @@ export default function AdminPropertyEdit() {
   const { data: readiness, refetch: refetchReadiness } = trpc.admin.publishReadiness.useQuery(
     { id: propertyId! },
     { enabled: !!propertyId }
+  );
+
+  // Available units for linking
+  const { data: availableUnits } = trpc.finance.units.availableForLinking.useQuery(
+    { propertyId: propertyId ?? undefined },
+    { enabled: form.pricingSource === "UNIT" }
   );
 
   const utils = trpc.useUtils();
@@ -122,6 +195,15 @@ export default function AdminPropertyEdit() {
     onError: (e) => toast.error(e.message),
   });
 
+  const linkUnitMutation = trpc.finance.units.linkToProperty.useMutation({
+    onSuccess: () => {
+      toast.success("تم ربط الوحدة بالعقار");
+      utils.finance.units.availableForLinking.invalidate();
+      refetchReadiness();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   // Photo upload
   const uploadPhoto = trpc.upload.propertyPhoto.useMutation();
 
@@ -155,6 +237,14 @@ export default function AdminPropertyEdit() {
       });
     }
   }, [property]);
+
+  // Find linked unit from available units
+  useEffect(() => {
+    if (availableUnits && propertyId) {
+      const linked = (availableUnits as any[]).find((u: any) => u.propertyId === propertyId);
+      setLinkedUnitId(linked?.id ?? null);
+    }
+  }, [availableUnits, propertyId]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -215,7 +305,7 @@ export default function AdminPropertyEdit() {
     }
     setForm(prev => ({ ...prev, photos: newPhotos }));
     setUploading(false);
-  }, [form.photos, propertyId, toast, uploadPhoto]);
+  }, [form.photos, propertyId, uploadPhoto]);
 
   const removePhoto = (index: number) => {
     setForm(prev => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
@@ -230,6 +320,26 @@ export default function AdminPropertyEdit() {
     });
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = photoIds.indexOf(active.id as string);
+    const newIndex = photoIds.indexOf(over.id as string);
+    setForm(prev => ({ ...prev, photos: arrayMove(prev.photos, oldIndex, newIndex) }));
+  };
+
+  const handleLinkUnit = (unitId: number) => {
+    if (!propertyId) return;
+    linkUnitMutation.mutate({ unitId, propertyId });
+    setLinkedUnitId(unitId);
+  };
+
+  const handleUnlinkUnit = () => {
+    if (!linkedUnitId) return;
+    linkUnitMutation.mutate({ unitId: linkedUnitId, propertyId: null as any });
+    setLinkedUnitId(null);
+  };
+
   if (isLoading && !isNew) {
     return (
       <DashboardLayout>
@@ -241,12 +351,13 @@ export default function AdminPropertyEdit() {
   }
 
   const currentStatus = property?.status || "draft";
+  const linkedUnit = linkedUnitId ? (availableUnits as any[])?.find((u: any) => u.id === linkedUnitId) : null;
 
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-5xl mx-auto" dir="rtl">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold">{isNew ? "إنشاء عقار جديد" : "تعديل العقار"}</h1>
             {!isNew && (
@@ -258,7 +369,15 @@ export default function AdminPropertyEdit() {
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* Public Preview */}
+            {!isNew && currentStatus === "published" && (
+              <Button variant="outline" asChild>
+                <a href={`/property/${propertyId}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 ml-1" /> معاينة عامة
+                </a>
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate("/admin/properties")}>
               <ArrowRight className="h-4 w-4 ml-1" /> العودة
             </Button>
@@ -328,6 +447,61 @@ export default function AdminPropertyEdit() {
               </CardContent>
             </Card>
 
+            {/* Unit Linking (only when UNIT pricing) */}
+            {form.pricingSource === "UNIT" && !isNew && (
+              <Card className="border-blue-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Link2 className="h-5 w-5 text-blue-500" />
+                    ربط الوحدة
+                  </CardTitle>
+                  <CardDescription>
+                    عند تسعير الوحدة، يجب ربط العقار بوحدة من المباني. السعر يأتي من الوحدة المرتبطة.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {linkedUnit ? (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <div>
+                        <p className="font-medium text-sm">
+                          {linkedUnit.buildingNameAr || linkedUnit.buildingName} — وحدة {linkedUnit.unitNumber}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          الإيجار: {linkedUnit.monthlyBaseRentSAR || "—"} ر.س/شهر
+                          {linkedUnit.floor != null && ` • الطابق ${linkedUnit.floor}`}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={handleUnlinkUnit} className="text-red-600">
+                        <Unlink className="h-3.5 w-3.5 ml-1" /> فك الربط
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-amber-600 flex items-center gap-1.5">
+                        <AlertTriangle className="h-4 w-4" />
+                        لا توجد وحدة مرتبطة — يجب ربط وحدة قبل النشر
+                      </p>
+                      {availableUnits && (availableUnits as any[]).length > 0 ? (
+                        <Select onValueChange={v => handleLinkUnit(Number(v))}>
+                          <SelectTrigger><SelectValue placeholder="اختر وحدة للربط..." /></SelectTrigger>
+                          <SelectContent>
+                            {(availableUnits as any[]).map((u: any) => (
+                              <SelectItem key={u.id} value={String(u.id)}>
+                                {u.buildingNameAr || u.buildingName} — وحدة {u.unitNumber}
+                                {u.monthlyBaseRentSAR ? ` (${u.monthlyBaseRentSAR} ر.س)` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">لا توجد وحدات متاحة للربط. أنشئ وحدات من صفحة المباني أولاً.</p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Location */}
             <Card>
               <CardHeader>
@@ -372,7 +546,7 @@ export default function AdminPropertyEdit() {
               </CardContent>
             </Card>
 
-            {/* Details */}
+            {/* Details & Pricing */}
             <Card>
               <CardHeader>
                 <CardTitle>التفاصيل والتسعير</CardTitle>
@@ -395,9 +569,19 @@ export default function AdminPropertyEdit() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>الإيجار الشهري (ر.س)</Label>
-                    <Input value={form.monthlyRent} onChange={e => setForm(p => ({ ...p, monthlyRent: e.target.value }))} placeholder="0.00" />
-                    {form.pricingSource === "UNIT" && (
-                      <p className="text-xs text-muted-foreground mt-1">عند تسعير الوحدة، السعر يأتي من الوحدة المرتبطة</p>
+                    <Input
+                      value={form.monthlyRent}
+                      onChange={e => setForm(p => ({ ...p, monthlyRent: e.target.value }))}
+                      placeholder="0.00"
+                      disabled={form.pricingSource === "UNIT"}
+                    />
+                    {form.pricingSource === "UNIT" && linkedUnit && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        السعر من الوحدة: {linkedUnit.monthlyBaseRentSAR || "—"} ر.س/شهر
+                      </p>
+                    )}
+                    {form.pricingSource === "UNIT" && !linkedUnit && (
+                      <p className="text-xs text-amber-600 mt-1">اربط وحدة أولاً لتحديد السعر</p>
                     )}
                   </div>
                   <div>
@@ -418,50 +602,44 @@ export default function AdminPropertyEdit() {
               </CardContent>
             </Card>
 
-            {/* Photos */}
+            {/* Photos with Drag & Drop */}
             <Card>
               <CardHeader>
                 <CardTitle>الصور</CardTitle>
                 <CardDescription>الصورة الأولى هي صورة الغلاف. اسحب لإعادة الترتيب.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
-                  {form.photos.map((photo, i) => (
-                    <div key={i} className="relative group rounded-lg overflow-hidden border aspect-square">
-                      <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                      {i === 0 && (
-                        <div className="absolute top-1 right-1">
-                          <Badge className="bg-amber-500 text-white text-xs">غلاف</Badge>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        {i !== 0 && (
-                          <Button size="sm" variant="secondary" onClick={() => setCoverPhoto(i)}>
-                            <Star className="h-3 w-3" />
-                          </Button>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={photoIds} strategy={rectSortingStrategy}>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+                      {form.photos.map((photo, i) => (
+                        <SortablePhoto
+                          key={photoIds[i]}
+                          id={photoIds[i]}
+                          url={photo}
+                          index={i}
+                          onRemove={() => removePhoto(i)}
+                          onSetCover={() => setCoverPhoto(i)}
+                        />
+                      ))}
+                      {/* Upload button */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                      >
+                        {uploading ? (
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6 mb-1" />
+                            <span className="text-xs">رفع صور</span>
+                          </>
                         )}
-                        <Button size="sm" variant="destructive" onClick={() => removePhoto(i)}>
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      </button>
                     </div>
-                  ))}
-                  {/* Upload button */}
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <>
-                        <Upload className="h-6 w-6 mb-1" />
-                        <span className="text-xs">رفع صور</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                  </SortableContext>
+                </DndContext>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -501,13 +679,20 @@ export default function AdminPropertyEdit() {
                       </Button>
                     )}
                     {currentStatus === "published" && (
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => unpublishMutation.mutate({ id: propertyId! })}
-                      >
-                        <EyeOff className="h-4 w-4 ml-1" /> إلغاء النشر
-                      </Button>
+                      <>
+                        <Button variant="outline" className="w-full" asChild>
+                          <a href={`/property/${propertyId}`} target="_blank" rel="noopener noreferrer">
+                            <Eye className="h-4 w-4 ml-1" /> معاينة عامة
+                          </a>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => unpublishMutation.mutate({ id: propertyId! })}
+                        >
+                          <EyeOff className="h-4 w-4 ml-1" /> إلغاء النشر
+                        </Button>
+                      </>
                     )}
                     {currentStatus !== "archived" && (
                       <Button
@@ -525,7 +710,7 @@ export default function AdminPropertyEdit() {
 
             {/* Publish Readiness Card */}
             {!isNew && readiness && (
-              <Card className={readiness.ready ? "border-green-200" : "border-amber-200"}>
+              <Card className={readiness.ready ? "border-green-200 bg-green-50/30" : "border-amber-200 bg-amber-50/30"}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     {readiness.ready ? (
@@ -541,7 +726,7 @@ export default function AdminPropertyEdit() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {readiness.checks.map((check, i) => (
+                    {readiness.checks.map((check: any, i: number) => (
                       <div key={i} className="flex items-center gap-2 text-sm">
                         {check.passed ? (
                           <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />

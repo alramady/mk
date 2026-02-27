@@ -804,3 +804,21 @@ export async function deleteBeds24Mapping(id: number): Promise<boolean> {
   );
   return result.affectedRows > 0;
 }
+
+// ─── Available units for property linking ───────────────────────────
+export async function getAvailableUnitsForLinking(currentPropertyId?: number) {
+  const pool = getPool();
+  if (!pool) return [];
+  // Return units that are either unlinked (propertyId IS NULL) or linked to the current property
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT u.id, u.unitNumber, u.floor, u.monthlyBaseRentSAR, u.unitStatus, u.propertyId,
+            b.buildingName, b.buildingNameAr
+     FROM units u
+     LEFT JOIN buildings b ON u.buildingId = b.id
+     WHERE u.isArchived = false
+       AND (u.propertyId IS NULL OR u.propertyId = ?)
+     ORDER BY b.buildingName ASC, u.unitNumber ASC`,
+    [currentPropertyId || 0]
+  );
+  return rows;
+}

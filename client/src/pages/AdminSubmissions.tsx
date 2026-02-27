@@ -59,24 +59,55 @@ export default function AdminSubmissions() {
           <p className="text-muted-foreground text-sm mt-1">مراجعة وإدارة طلبات تسجيل العقارات من الملاك</p>
         </div>
 
-        {/* Stats */}
+        {/* Pipeline Stepper */}
         {counts && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {[
-              { label: "الكل", value: counts.total, color: "text-foreground" },
-              { label: "جديد", value: counts.new, color: "text-blue-600" },
-              { label: "تم التواصل", value: counts.contacted, color: "text-amber-600" },
-              { label: "مقبول", value: counts.approved, color: "text-emerald-600" },
-              { label: "مرفوض", value: counts.rejected, color: "text-red-600" },
-            ].map(s => (
-              <Card key={s.label}>
-                <CardContent className="p-3 text-center">
-                  <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                {[
+                  { key: "new", label: "جديد", labelEn: "NEW", value: counts.new, icon: Clock, bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", accent: "bg-blue-500" },
+                  { key: "contacted", label: "تم التواصل", labelEn: "CONTACTED", value: counts.contacted, icon: MessageSquare, bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", accent: "bg-amber-500" },
+                  { key: "approved", label: "مقبول", labelEn: "APPROVED", value: counts.approved, icon: CheckCircle, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", accent: "bg-emerald-500" },
+                  { key: "rejected", label: "مرفوض", labelEn: "REJECTED", value: counts.rejected, icon: XCircle, bg: "bg-red-50", border: "border-red-200", text: "text-red-700", accent: "bg-red-500" },
+                ].map((step, i, arr) => {
+                  const Icon = step.icon;
+                  const isActive = statusFilter === step.key;
+                  return (
+                    <button
+                      key={step.key}
+                      onClick={() => { setStatusFilter(isActive ? "all" : step.key); setPage(0); }}
+                      className={`flex-1 relative px-4 py-4 flex flex-col items-center gap-1.5 transition-all
+                        ${isActive ? step.bg + " ring-2 ring-inset ring-current " + step.text : "hover:bg-muted/50"}
+                        ${i < arr.length - 1 ? "border-e" : ""}`}
+                    >
+                      {/* Top accent bar */}
+                      <div className={`absolute top-0 inset-x-0 h-1 ${isActive ? step.accent : "bg-transparent"} transition-colors`} />
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isActive ? step.accent + " text-white" : "bg-muted"}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className={`text-2xl font-bold ${isActive ? step.text : "text-foreground"}`}>{step.value}</span>
+                      <span className="text-xs text-muted-foreground">{step.label}</span>
+                      {/* Arrow connector */}
+                      {i < arr.length - 1 && i < 2 && (
+                        <div className="absolute end-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10">
+                          <ChevronLeft className="h-5 w-5 text-muted-foreground/40" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Total bar */}
+              <div className="border-t px-4 py-2 flex items-center justify-between bg-muted/30">
+                <span className="text-xs text-muted-foreground">إجمالي الطلبات: <strong className="text-foreground">{counts.total}</strong></span>
+                {statusFilter !== "all" && (
+                  <button onClick={() => { setStatusFilter("all"); setPage(0); }} className="text-xs text-blue-600 hover:underline">
+                    عرض الكل
+                  </button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Filters */}

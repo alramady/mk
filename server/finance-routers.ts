@@ -139,6 +139,11 @@ export const financeRouter = router({
 
   // ─── Units ──────────────────────────────────────────────────────────
   units: router({
+    availableForLinking: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ propertyId: z.number().optional() }))
+      .query(async ({ input }) => {
+        return finance.getAvailableUnitsForLinking(input.propertyId);
+      }),
     byBuilding: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
       .input(z.object({ buildingId: z.number() }))
       .query(async ({ input }) => {
@@ -258,6 +263,20 @@ export const financeRouter = router({
       .input(z.object({ unitId: z.number() }))
       .query(async ({ input }) => {
         return occupancy.isUnitOccupied(input.unitId);
+      }),
+    linkToProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ unitId: z.number(), propertyId: z.number().nullable() }))
+      .mutation(async ({ ctx, input }) => {
+        const unit = await finance.getUnitById(input.unitId);
+        if (!unit) throw new TRPCError({ code: 'NOT_FOUND', message: 'Unit not found' });
+        await finance.updateUnit(input.unitId, { propertyId: input.propertyId as any });
+        await logAudit({
+          userId: ctx.user?.id, userName: auditUserName(ctx),
+          action: 'LINK', entityType: 'UNIT', entityId: input.unitId,
+          entityLabel: `Unit ${unit.unitNumber} → Property ${input.propertyId}`,
+          metadata: { propertyId: input.propertyId },
+        });
+        return { success: true };
       }),
   }),
 
