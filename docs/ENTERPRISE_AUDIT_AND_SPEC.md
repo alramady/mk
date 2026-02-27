@@ -360,7 +360,7 @@ jobs:
         run: |
           for i in 1 2 3 4 5; do
             sleep 15
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://mk-production-7730.up.railway.app/)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://monthly-key-app-production.up.railway.app/)
             if [ "$STATUS" = "200" ]; then
               echo "Health check passed (attempt $i)"
               exit 0

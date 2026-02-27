@@ -24,7 +24,7 @@ const BOT_USER_AGENTS = [
   'lighthouse', 'chrome-lighthouse', 'pagespeed',
 ];
 
-const BASE_URL = process.env.PUBLIC_URL || "https://mk-production-7730.up.railway.app";
+const BASE_URL = process.env.PUBLIC_URL || "https://monthly-key-app-production.up.railway.app";
 
 function isBot(userAgent: string): boolean {
   const ua = userAgent.toLowerCase();

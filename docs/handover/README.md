@@ -158,7 +158,7 @@ pnpm drizzle-kit status
 
 The application auto-deploys from the `main` branch on GitHub to Railway.
 
-**Production URL:** `https://mk-production-7730.up.railway.app/`
+**Production URL:** `https://monthly-key-app-production.up.railway.app/`
 
 **Rollback plan:**
 1. Identify the last working commit via `git log --oneline`
@@ -349,7 +349,7 @@ For each unit:
 
 | # | Check | How |
 |---|-------|-----|
-| 1 | Health endpoint | `curl https://mk-production-7730.up.railway.app/api/health` |
+| 1 | Health endpoint | `curl https://monthly-key-app-production.up.railway.app/api/health` |
 | 2 | Homepage loads | Browser check |
 | 3 | Payment flow works | Test payment with Moyasar test mode |
 | 4 | Webhook delivery | Check Moyasar dashboard for webhook delivery status |

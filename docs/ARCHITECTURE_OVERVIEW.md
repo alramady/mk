@@ -229,7 +229,7 @@ Railway Project: Monthly Key App
          ├── Health: / (should be /health)
          ├── Restart: ON_FAILURE (max 10)
          └── Domain: monthlykey.com (custom)
-                     mk-production-7730.up.railway.app (auto)
+                     monthly-key-app-production.up.railway.app (auto)
 ```
 
 ### 4.2 Recommended (Multi-Service)

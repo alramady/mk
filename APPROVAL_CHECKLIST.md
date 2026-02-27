@@ -212,7 +212,7 @@ These rules are absolute prerequisites. **Any single failure blocks the entire r
 | D3a.4 | PayPal SVG (optional if enabled) | [x] | `client/public/payment-logos/paypal.svg` exists |
 | D3a.5 | Tabby SVG (Phase 2 ready) | [x] | `client/public/payment-logos/tabby.svg` exists |
 | D3a.6 | Tamara SVG (Phase 2 ready) | [x] | `client/public/payment-logos/tamara.svg` exists |
-| D3a.7 | Logos served from `/payment-logos/` path | [x] | Production verified: `HTTP 200` on `https://mk-production-7730.up.railway.app/payment-logos/mada.svg` |
+| D3a.7 | Logos served from `/payment-logos/` path | [x] | Production verified: `HTTP 200` on `https://monthly-key-app-production.up.railway.app/payment-logos/mada.svg` |
 
 ### D4. Tests
 
@@ -277,7 +277,7 @@ These rules are absolute prerequisites. **Any single failure blocks the entire r
 | G2 | Homepage loads | [x] | `HTTP 200` at `/` |
 | G3 | Payment logos accessible | [x] | `HTTP 200` at `/payment-logos/mada.svg` |
 | G4 | Railway auto-deploy active | [x] | Deploys from GitHub `main` branch |
-| G5 | Production URL functional | [x] | `https://mk-production-7730.up.railway.app/` |
+| G5 | Production URL functional | [x] | `https://monthly-key-app-production.up.railway.app/` |
 
 ---
 

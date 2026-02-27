@@ -29,7 +29,7 @@ Go to **Settings → Secrets and variables → Actions → Variables** and add:
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `STAGING_URL` | `https://mk-staging.up.railway.app` | Health check URL |
-| `PRODUCTION_URL` | `https://mk-production-7730.up.railway.app` | Health check URL |
+| `PRODUCTION_URL` | `https://monthly-key-app-production.up.railway.app` | Health check URL |
 
 ## Step 3: Add Workflow Files
 
@@ -164,7 +164,7 @@ jobs:
         run: |
           sleep 45
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
-            "${{ vars.PRODUCTION_URL || 'https://mk-production-7730.up.railway.app' }}/api/health" || echo "000")
+            "${{ vars.PRODUCTION_URL || 'https://monthly-key-app-production.up.railway.app' }}/api/health" || echo "000")
           [ "$STATUS" = "200" ] && echo "✅ Production healthy" || (echo "::error::HTTP $STATUS" && exit 1)
 ```
 

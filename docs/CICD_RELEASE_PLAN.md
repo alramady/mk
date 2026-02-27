@@ -297,7 +297,7 @@ jobs:
       - name: Health check
         run: |
           for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://mk-production-7730.up.railway.app/api/health)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://monthly-key-app-production.up.railway.app/api/health)
             if [ "$STATUS" = "200" ]; then
               echo "Production health check passed (attempt $i)"
               exit 0
@@ -701,7 +701,7 @@ jobs:
       - name: Health check
         run: |
           sleep 45
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${{ vars.PRODUCTION_URL || 'https://mk-production-7730.up.railway.app' }}/api/health" || echo "000")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${{ vars.PRODUCTION_URL || 'https://monthly-key-app-production.up.railway.app' }}/api/health" || echo "000")
           [ "$STATUS" = "200" ] && echo "OK" || (echo "::error::HTTP $STATUS" && exit 1)
 ```
 
@@ -720,4 +720,4 @@ jobs:
 |----------|---------|-------------|
 | `RAILWAY_SERVICE_ID` | `mk-staging` / `mk-production` | Railway service name |
 | `STAGING_URL` | `https://mk-staging.up.railway.app` | Staging health check URL |
-| `PRODUCTION_URL` | `https://mk-production-7730.up.railway.app` | Production health check URL |
+| `PRODUCTION_URL` | `https://monthly-key-app-production.up.railway.app` | Production health check URL |

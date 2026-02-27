@@ -8,7 +8,7 @@
 
 ## 1. تسجيل الدخول كمسؤول
 
-1. افتح المتصفح واذهب إلى: `https://mk-production-7730.up.railway.app/login`
+1. افتح المتصفح واذهب إلى: `https://monthly-key-app-production.up.railway.app/login`
 2. أدخل بيانات الدخول:
    - **اسم المستخدم**: `admin`
    - **كلمة المرور**: `15001500`
@@ -148,7 +148,7 @@
 
 ```bash
 # 1. تسجيل الدخول
-curl -s -c cookies.txt -X POST "https://mk-production-7730.up.railway.app/api/trpc/auth.login" \
+curl -s -c cookies.txt -X POST "https://monthly-key-app-production.up.railway.app/api/trpc/auth.login" \
   -H "Content-Type: application/json" \
   -d '{"json":{"userId":"admin","password":"15001500"}}'
 
@@ -156,12 +156,12 @@ curl -s -c cookies.txt -X POST "https://mk-production-7730.up.railway.app/api/tr
 BASE64=$(base64 -w0 photo.jpg)
 
 # 3. رفع صورة لعقار (استبدل PROPERTY_ID)
-curl -s -b cookies.txt -X POST "https://mk-production-7730.up.railway.app/api/trpc/property.uploadPhoto" \
+curl -s -b cookies.txt -X POST "https://monthly-key-app-production.up.railway.app/api/trpc/property.uploadPhoto" \
   -H "Content-Type: application/json" \
   -d "{\"json\":{\"propertyId\":PROPERTY_ID,\"photo\":\"data:image/jpeg;base64,$BASE64\"}}"
 
 # 4. إنشاء عقار جديد
-curl -s -b cookies.txt -X POST "https://mk-production-7730.up.railway.app/api/trpc/property.create" \
+curl -s -b cookies.txt -X POST "https://monthly-key-app-production.up.railway.app/api/trpc/property.create" \
   -H "Content-Type: application/json" \
   -d '{"json":{
     "titleAr":"شقة جديدة",

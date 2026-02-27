@@ -106,7 +106,7 @@ grep -rn "15001500" server/seed-admin.ts
 
 ```bash
 # Test via API
-curl -X POST https://mk-production-7730.up.railway.app/api/auth/register \
+curl -X POST https://monthly-key-app-production.up.railway.app/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"userId":"testuser","password":"short","phone":"+966500000000"}'
 # Should return 400 with password policy error

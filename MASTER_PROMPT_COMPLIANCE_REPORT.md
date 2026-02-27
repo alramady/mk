@@ -246,7 +246,7 @@ The 54 Vitest failures occur in 6 test files (`integration.test.ts`, `rental-dur
 | Homepage | `HTTP 200` ✅ |
 | Payment logo (mada.svg) | `HTTP 200` ✅ |
 | Railway auto-deploy | Active from GitHub `main` branch |
-| Production URL | `https://mk-production-7730.up.railway.app/` |
+| Production URL | `https://monthly-key-app-production.up.railway.app/` |
 
 ---
 

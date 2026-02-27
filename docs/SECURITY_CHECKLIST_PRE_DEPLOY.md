@@ -62,12 +62,12 @@ This checklist must be completed before every production deployment. Each item i
 
 | # | Check | Priority | Verification | Status |
 |---|-------|----------|--------------|--------|
-| D-1 | HSTS header is present with `max-age ≥ 31536000` | **P0** | `curl -sI https://mk-production-7730.up.railway.app \| grep -i strict-transport` | ☐ |
-| D-2 | X-Content-Type-Options is `nosniff` | **P0** | `curl -sI https://mk-production-7730.up.railway.app \| grep -i x-content-type` | ☐ |
-| D-3 | X-Frame-Options is `DENY` or `SAMEORIGIN` | **P0** | `curl -sI https://mk-production-7730.up.railway.app \| grep -i x-frame` | ☐ |
-| D-4 | CSP header is present | **P1** | `curl -sI https://mk-production-7730.up.railway.app \| grep -i content-security-policy` | ☐ |
+| D-1 | HSTS header is present with `max-age ≥ 31536000` | **P0** | `curl -sI https://monthly-key-app-production.up.railway.app \| grep -i strict-transport` | ☐ |
+| D-2 | X-Content-Type-Options is `nosniff` | **P0** | `curl -sI https://monthly-key-app-production.up.railway.app \| grep -i x-content-type` | ☐ |
+| D-3 | X-Frame-Options is `DENY` or `SAMEORIGIN` | **P0** | `curl -sI https://monthly-key-app-production.up.railway.app \| grep -i x-frame` | ☐ |
+| D-4 | CSP header is present | **P1** | `curl -sI https://monthly-key-app-production.up.railway.app \| grep -i content-security-policy` | ☐ |
 | D-5 | CORS is restricted to known origins (not `*`) | **P1** | `grep -n "cors\|origin" server/_core/index.ts` — must not show `origin: '*'` in production | ☐ |
-| D-6 | Rate limiter is active on auth endpoints | **P0** | `curl -X POST https://mk-production-7730.up.railway.app/api/auth/login -d '{}' -H 'Content-Type: application/json'` — repeat 11 times, 11th should return 429 | ☐ |
+| D-6 | Rate limiter is active on auth endpoints | **P0** | `curl -X POST https://monthly-key-app-production.up.railway.app/api/auth/login -d '{}' -H 'Content-Type: application/json'` — repeat 11 times, 11th should return 429 | ☐ |
 
 ---
 
@@ -89,8 +89,8 @@ This checklist must be completed before every production deployment. Each item i
 |---|-------|----------|--------------|--------|
 | F-1 | Dockerfile uses multi-stage build with non-root user | **P2** | `grep -n "USER\|adduser\|useradd" Dockerfile` — should show non-root user | ☐ |
 | F-2 | `start.sh` runs migrations before starting the server | **P0** | `cat start.sh` — must show `drizzle-kit migrate` or equivalent before `node` | ☐ |
-| F-3 | Health check endpoint exists and is monitored | **P1** | `curl https://mk-production-7730.up.railway.app/api/health` — must return 200 | ☐ |
-| F-4 | Error responses do not leak stack traces to clients | **P1** | `curl -X POST https://mk-production-7730.up.railway.app/api/trpc/nonexistent` — response must not contain file paths or stack traces | ☐ |
+| F-3 | Health check endpoint exists and is monitored | **P1** | `curl https://monthly-key-app-production.up.railway.app/api/health` — must return 200 | ☐ |
+| F-4 | Error responses do not leak stack traces to clients | **P1** | `curl -X POST https://monthly-key-app-production.up.railway.app/api/trpc/nonexistent` — response must not contain file paths or stack traces | ☐ |
 | F-5 | Node.js version is LTS (≥ 20) | **P1** | `grep "node" Dockerfile \| head -3` — must show node:20 or node:22 | ☐ |
 | F-6 | `npm audit` shows no critical vulnerabilities | **P1** | `cd /path/to/repo && npm audit --production` — 0 critical | ☐ |
 

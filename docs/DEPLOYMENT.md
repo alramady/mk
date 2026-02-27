@@ -1,7 +1,7 @@
 # Deployment Guide — Monthly Key App
 
 > **Last updated:** 2026-02-26
-> **Production URL:** `https://mk-production-7730.up.railway.app/`
+> **Production URL:** `https://monthly-key-app-production.up.railway.app/`
 > **Future domain:** `https://monthlykey.com` (DNS pending)
 
 ---
@@ -132,17 +132,17 @@ All environment variables are managed in Railway Dashboard → Monthly Key App �
 git log origin/main --oneline -1
 
 # Check the production site is responding
-curl -sI https://mk-production-7730.up.railway.app/ | head -5
+curl -sI https://monthly-key-app-production.up.railway.app/ | head -5
 ```
 
 ### Check service health
 
 ```bash
 # Basic health check (should return HTML or 200)
-curl -sL -o /dev/null -w "%{http_code}" https://mk-production-7730.up.railway.app/
+curl -sL -o /dev/null -w "%{http_code}" https://monthly-key-app-production.up.railway.app/
 
 # Check the API is responding
-curl -sL -o /dev/null -w "%{http_code}" https://mk-production-7730.up.railway.app/api/trpc
+curl -sL -o /dev/null -w "%{http_code}" https://monthly-key-app-production.up.railway.app/api/trpc
 ```
 
 ### Check Railway logs
