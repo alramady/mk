@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   ArrowRight, Save, Eye, EyeOff, Upload, X, Star, GripVertical,
   CheckCircle2, XCircle, AlertTriangle, Loader2, Globe, Archive
@@ -38,7 +38,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function AdminPropertyEdit() {
   const [, params] = useRoute("/admin/properties/:id/edit");
   const [, navigate] = useLocation();
-  const { toast } = useToast();
+
   const isNew = params?.id === "new";
   const propertyId = isNew ? null : Number(params?.id);
 
@@ -79,46 +79,46 @@ export default function AdminPropertyEdit() {
   // Mutations
   const adminCreate = trpc.admin.adminCreate.useMutation({
     onSuccess: (data) => {
-      toast({ title: "تم الإنشاء", description: "تم إنشاء العقار كمسودة" });
+      toast.success("تم إنشاء العقار كمسودة");
       navigate(`/admin/properties/${data.id}/edit`);
     },
-    onError: (e) => toast({ title: "خطأ", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   const adminUpdate = trpc.admin.adminUpdate.useMutation({
     onSuccess: () => {
-      toast({ title: "تم الحفظ", description: "تم حفظ التغييرات" });
+      toast.success("تم حفظ التغييرات");
       utils.property.getById.invalidate({ id: propertyId! });
       refetchReadiness();
     },
-    onError: (e) => toast({ title: "خطأ", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   const publishMutation = trpc.admin.publishProperty.useMutation({
     onSuccess: () => {
-      toast({ title: "تم النشر ✅", description: "العقار الآن مرئي على الموقع" });
+      toast.success("العقار الآن مرئي على الموقع ✅");
       utils.property.getById.invalidate({ id: propertyId! });
       refetchReadiness();
     },
-    onError: (e) => toast({ title: "فشل النشر", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   const unpublishMutation = trpc.admin.unpublishProperty.useMutation({
     onSuccess: () => {
-      toast({ title: "تم إلغاء النشر", description: "العقار الآن مسودة" });
+      toast.success("العقار الآن مسودة");
       utils.property.getById.invalidate({ id: propertyId! });
       refetchReadiness();
     },
-    onError: (e) => toast({ title: "خطأ", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   const archiveMutation = trpc.admin.archiveProperty.useMutation({
     onSuccess: () => {
-      toast({ title: "تم الأرشفة", description: "العقار مؤرشف الآن" });
+      toast.success("العقار مؤرشف الآن");
       utils.property.getById.invalidate({ id: propertyId! });
       refetchReadiness();
     },
-    onError: (e) => toast({ title: "خطأ", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   // Photo upload
@@ -188,11 +188,11 @@ export default function AdminPropertyEdit() {
     const newPhotos = [...form.photos];
     for (const file of Array.from(files)) {
       if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "خطأ", description: `${file.name} أكبر من 5MB`, variant: "destructive" });
+        toast.error(`${file.name} أكبر من 5MB`);
         continue;
       }
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-        toast({ title: "خطأ", description: `${file.name} نوع غير مدعوم`, variant: "destructive" });
+        toast.error(`${file.name} نوع غير مدعوم`);
         continue;
       }
       try {
@@ -208,7 +208,7 @@ export default function AdminPropertyEdit() {
         });
         if (result.url) newPhotos.push(result.url);
       } catch (e: any) {
-        toast({ title: "فشل الرفع", description: e.message, variant: "destructive" });
+        toast.error(e.message);
       }
     }
     setForm(prev => ({ ...prev, photos: newPhotos }));

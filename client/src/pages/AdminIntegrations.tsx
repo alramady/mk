@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   Settings2, TestTube, CheckCircle2, XCircle, AlertTriangle,
   Loader2, Eye, EyeOff, Save, RefreshCw, Plug, Shield
@@ -28,7 +28,7 @@ const INTEGRATION_ICONS: Record<string, string> = {
 };
 
 export default function AdminIntegrations() {
-  const { toast } = useToast();
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editConfig, setEditConfig] = useState<Record<string, string>>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
@@ -38,25 +38,25 @@ export default function AdminIntegrations() {
 
   const updateMutation = trpc.integration.update.useMutation({
     onSuccess: () => {
-      toast({ title: "تم الحفظ", description: "تم تحديث إعدادات التكامل" });
+      toast.success("تم تحديث إعدادات التكامل");
       refetch();
       setEditingId(null);
     },
-    onError: (e) => toast({ title: "خطأ", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   const testMutation = trpc.integration.test.useMutation({
     onSuccess: (result) => {
       if (result.success) {
-        toast({ title: "اختبار ناجح ✅", description: result.message });
+        toast.success(result.message);
       } else {
-        toast({ title: "فشل الاختبار ❌", description: result.message, variant: "destructive" });
+        toast.error(result.message);
       }
       refetch();
       setTestingId(null);
     },
     onError: (e) => {
-      toast({ title: "خطأ", description: e.message, variant: "destructive" });
+      toast.error(e.message);
       setTestingId(null);
     },
   });
