@@ -121,6 +121,15 @@ const defaultSettings: Record<string, string> = {
   "payment.paypalClientId": "",
   "payment.paypalSecret": "",
   "payment.paypalMode": "sandbox",
+  // Moyasar payment gateway defaults (Saudi Arabia)
+  "moyasar.publishableKey": "",
+  "moyasar.secretKey": "",
+  "moyasar.webhookSecret": "",
+  "moyasar.mode": "test",
+  "moyasar.enabled": "false",
+  "moyasar.enableMadaCards": "true",
+  "moyasar.enableApplePay": "true",
+  "moyasar.enableGooglePay": "true",
 };
 
 /**

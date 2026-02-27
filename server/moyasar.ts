@@ -60,6 +60,7 @@ export interface PaymentMethodInfo {
   logoPath: string;
   displayOrder: number;
   isOnline: boolean; // true for digital payments, false for cash
+  comingSoon?: boolean; // true when method is shown as trust badge but keys not yet configured
 }
 
 export async function getAvailablePaymentMethods(): Promise<{
@@ -99,14 +100,95 @@ export async function getAvailablePaymentMethods(): Promise<{
 }
 
 /**
- * Returns ONLY online payment methods that have logos — used by PaymentMethodsBadges component.
- * Single source of truth: same getAvailablePaymentMethods() function.
+ * Returns payment method badges for display in footer + property pages.
+ * ALWAYS returns core Saudi payment methods (mada, Apple Pay, Google Pay) as trust badges.
+ * If Moyasar keys are NOT configured, badges show with comingSoon = true.
+ * Checkout buttons remain disabled until keys are configured AND method is enabled.
  */
 export async function getEnabledPaymentMethodsForBadges(): Promise<PaymentMethodInfo[]> {
-  const { methods } = await getAvailablePaymentMethods();
-  return methods
-    .filter(m => m.isOnline && m.logoPath)
-    .sort((a, b) => a.displayOrder - b.displayOrder);
+  const s = await getMoyasarSettings();
+  const keysConfigured = !!(s.publishableKey && s.secretKey && s.publishableKey.startsWith("pk_") && s.secretKey.startsWith("sk_"));
+  const fullyLive = keysConfigured && s.enabled;
+  const badges: PaymentMethodInfo[] = [];
+
+  // Always show mada — core Saudi payment method
+  if (s.enableMadaCards || !keysConfigured) {
+    badges.push({
+      key: "mada_card", provider: "moyasar",
+      label: "mada Card", labelAr: "\u0628\u0637\u0627\u0642\u0629 \u0645\u062f\u0649",
+      logoPath: "/payment-logos/mada.svg",
+      displayOrder: 1, isOnline: true,
+      comingSoon: !fullyLive,
+    });
+  }
+  // Always show Apple Pay
+  if (s.enableApplePay || !keysConfigured) {
+    badges.push({
+      key: "apple_pay", provider: "moyasar",
+      label: "Apple Pay", labelAr: "Apple Pay",
+      logoPath: "/payment-logos/apple-pay.svg",
+      displayOrder: 2, isOnline: true,
+      comingSoon: !fullyLive,
+    });
+  }
+  // Always show Google Pay
+  if (s.enableGooglePay || !keysConfigured) {
+    badges.push({
+      key: "google_pay", provider: "moyasar",
+      label: "Google Pay", labelAr: "Google Pay",
+      logoPath: "/payment-logos/google-pay.svg",
+      displayOrder: 3, isOnline: true,
+      comingSoon: !fullyLive,
+    });
+  }
+  return badges.sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
+/**
+ * Returns the Moyasar configuration status for admin dashboard.
+ * NOT_CONFIGURED: No keys entered
+ * CONFIGURED: Keys entered but not enabled or in test mode
+ * LIVE: Keys entered, enabled, and in live mode
+ */
+export async function getMoyasarConfigStatus(): Promise<{
+  status: "NOT_CONFIGURED" | "CONFIGURED" | "LIVE";
+  statusAr: string;
+  statusEn: string;
+  mode: string;
+  keysPresent: boolean;
+  enabled: boolean;
+  webhookUrl: string;
+}> {
+  const s = await getMoyasarSettings();
+  const keysPresent = !!(s.publishableKey && s.secretKey && s.publishableKey.startsWith("pk_") && s.secretKey.startsWith("sk_"));
+  
+  let status: "NOT_CONFIGURED" | "CONFIGURED" | "LIVE";
+  let statusAr: string;
+  let statusEn: string;
+  
+  if (!keysPresent) {
+    status = "NOT_CONFIGURED";
+    statusAr = "\u063a\u064a\u0631 \u0645\u064f\u0639\u062f";
+    statusEn = "Not Configured";
+  } else if (!s.enabled || s.mode === "test") {
+    status = "CONFIGURED";
+    statusAr = s.mode === "test" ? "\u0645\u064f\u0639\u062f (\u062a\u062c\u0631\u064a\u0628\u064a)" : "\u0645\u064f\u0639\u062f (\u0645\u0639\u0637\u0644)";
+    statusEn = s.mode === "test" ? "Configured (Test)" : "Configured (Disabled)";
+  } else {
+    status = "LIVE";
+    statusAr = "\u0645\u0628\u0627\u0634\u0631";
+    statusEn = "Live";
+  }
+  
+  return {
+    status,
+    statusAr,
+    statusEn,
+    mode: s.mode,
+    keysPresent,
+    enabled: s.enabled,
+    webhookUrl: "/api/webhooks/moyasar",
+  };
 }
 
 // ─── Create Payment ──────────────────────────────────────────────────

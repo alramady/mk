@@ -60,7 +60,7 @@ assert(moyasarCode.includes('logoPath: ""'), "Cash method has empty logoPath (no
 console.log("\n🏷️ Backend: getEnabledPaymentMethodsForBadges function");
 
 assert(moyasarCode.includes("export async function getEnabledPaymentMethodsForBadges"), "getEnabledPaymentMethodsForBadges function exists");
-assert(moyasarCode.includes("m.isOnline && m.logoPath"), "Filters to online methods with logos only");
+assert(moyasarCode.includes("isOnline: true") && moyasarCode.includes("logoPath: \"/payment-logos/"), "Badges include online methods with logo paths");
 assert(moyasarCode.includes("a.displayOrder - b.displayOrder"), "Sorts by displayOrder");
 
 // ─── 4. tRPC Route: getEnabledBadges ─────────────────────────────────
@@ -110,11 +110,11 @@ assert(propDetailCode.includes('variant="property"'), "PropertyDetail uses prope
 
 console.log("\n🎯 Single Source of Truth");
 
-// Both getAvailableMethods and getEnabledBadges use the same underlying function
+// Both badge and checkout functions use getMoyasarSettings as single source
 assert(
   moyasarCode.includes("getEnabledPaymentMethodsForBadges") && 
-  moyasarCode.includes("getAvailablePaymentMethods()"),
-  "getEnabledPaymentMethodsForBadges calls getAvailablePaymentMethods (single source)"
+  moyasarCode.includes("getMoyasarSettings()"),
+  "getEnabledPaymentMethodsForBadges uses getMoyasarSettings (single source)"
 );
 
 // The component uses getEnabledBadges which calls getEnabledPaymentMethodsForBadges
@@ -132,7 +132,9 @@ assert(moyasarCode.includes("s.enableMadaCards") && moyasarCode.includes("mada_c
 assert(moyasarCode.includes("s.enableApplePay") && moyasarCode.includes("apple_pay"), "Apple Pay visibility gated by enableApplePay toggle");
 assert(moyasarCode.includes("s.enableGooglePay") && moyasarCode.includes("google_pay"), "Google Pay visibility gated by enableGooglePay toggle");
 assert(moyasarCode.includes("s.paypalEnabled") && moyasarCode.includes("paypal"), "PayPal visibility gated by paypalEnabled toggle");
-assert(moyasarCode.includes("moyasarConfigured") && moyasarCode.includes("s.publishableKey && s.secretKey"), "Moyasar methods require keys to be configured");
+assert(moyasarCode.includes("keysConfigured") && moyasarCode.includes("s.publishableKey") && moyasarCode.includes("s.secretKey"), "Moyasar badges check key configuration for comingSoon flag");
+assert(moyasarCode.includes("comingSoon"), "PaymentMethodInfo has comingSoon field for trust badges");
+assert(moyasarCode.includes("getMoyasarConfigStatus"), "getMoyasarConfigStatus function exists for admin status indicator");
 
 // ─── 10. Beds24 Safety ──────────────────────────────────────────────
 

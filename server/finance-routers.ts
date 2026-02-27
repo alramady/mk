@@ -538,6 +538,12 @@ export const financeRouter = router({
         const { getEnabledPaymentMethodsForBadges } = await import("./moyasar");
         return getEnabledPaymentMethodsForBadges();
       }),
+    // Get Moyasar configuration status (admin only)
+    getConfigStatus: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .query(async () => {
+        const { getMoyasarConfigStatus } = await import("./moyasar");
+        return getMoyasarConfigStatus();
+      }),
     // Get Moyasar settings (admin only)
     getSettings: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
       .query(async () => {
@@ -603,6 +609,49 @@ export const financeRouter = router({
       .query(async ({ input }) => {
         const { fetchMoyasarPaymentStatus } = await import("./moyasar");
         return fetchMoyasarPaymentStatus(input.paymentRef);
+      }),
+  }),
+
+  // ─── Geocode (Reverse Geocode from lat/lng) ──────────────────────
+  geocode: router({
+    reverse: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ lat: z.string(), lng: z.string() }))
+      .query(async ({ input }) => {
+        const { makeRequest } = await import("./_core/map");
+        // Fetch English result
+        const enResult = await makeRequest<any>("/maps/api/geocode/json", {
+          latlng: `${input.lat},${input.lng}`,
+          language: "en",
+          region: "SA",
+        });
+        // Fetch Arabic result
+        const arResult = await makeRequest<any>("/maps/api/geocode/json", {
+          latlng: `${input.lat},${input.lng}`,
+          language: "ar",
+          region: "SA",
+        });
+        const parseComponents = (result: any) => {
+          if (!result?.results?.[0]) return { city: "", district: "", address: "" };
+          const components = result.results[0].address_components || [];
+          let city = "", district = "", address = result.results[0].formatted_address || "";
+          for (const c of components) {
+            if (c.types.includes("locality") || c.types.includes("administrative_area_level_2")) {
+              city = city || c.long_name;
+            }
+            if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality") || c.types.includes("neighborhood")) {
+              district = district || c.long_name;
+            }
+          }
+          return { city, district, address };
+        };
+        const en = parseComponents(enResult);
+        const ar = parseComponents(arResult);
+        return {
+          city: en.city, cityAr: ar.city,
+          district: en.district, districtAr: ar.district,
+          address: en.address, addressAr: ar.address,
+          latitude: input.lat, longitude: input.lng,
+        };
       }),
   }),
 });

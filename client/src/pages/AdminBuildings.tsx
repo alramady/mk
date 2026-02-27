@@ -28,6 +28,26 @@ import { getLoginUrl } from "@/const";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
+// ─── Google Maps URL Parser ─────────────────────────────────────────
+function parseGoogleMapsUrl(url: string): { lat: string; lng: string } | null {
+  try {
+    // Pattern 1: @lat,lng in URL
+    const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (atMatch) return { lat: atMatch[1], lng: atMatch[2] };
+    // Pattern 2: ?q=lat,lng or place/lat,lng
+    const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (qMatch) return { lat: qMatch[1], lng: qMatch[2] };
+    // Pattern 3: /place/.../@lat,lng
+    const placeMatch = url.match(/\/place\/[^/]+\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (placeMatch) return { lat: placeMatch[1], lng: placeMatch[2] };
+    // Pattern 4: ll=lat,lng
+    const llMatch = url.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (llMatch) return { lat: llMatch[1], lng: llMatch[2] };
+    // Pattern 5: Plus code like MPQ8+78H → won't have coords, skip
+    return null;
+  } catch { return null; }
+}
+
 // ─── Building Form (Create/Edit) ────────────────────────────────────
 function BuildingForm({ building, onSuccess, onCancel, lang }: {
   building?: any; onSuccess: () => void; onCancel: () => void; lang: string;
@@ -48,8 +68,51 @@ function BuildingForm({ building, onSuccess, onCancel, lang }: {
     notes: building?.notes || "",
   });
   const [saving, setSaving] = useState(false);
+  const [mapsUrl, setMapsUrl] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
   const createMutation = trpc.finance.buildings.create.useMutation();
   const updateMutation = trpc.finance.buildings.update.useMutation();
+  const geocodeMutation = trpc.finance.geocode.reverse.useQuery(
+    { lat: form.latitude, lng: form.longitude },
+    { enabled: false }
+  );
+
+  // Handle Google Maps URL paste
+  const handleMapsUrlPaste = useCallback(async (url: string) => {
+    setMapsUrl(url);
+    const coords = parseGoogleMapsUrl(url);
+    if (!coords) {
+      toast.error(isRtl ? "لم يتم التعرف على الإحداثيات من الرابط" : "Could not extract coordinates from URL");
+      return;
+    }
+    setGeocoding(true);
+    setForm(prev => ({ ...prev, latitude: coords.lat, longitude: coords.lng }));
+    try {
+      const res = await fetch(`/api/trpc/finance.geocode.reverse?input=${encodeURIComponent(JSON.stringify({ lat: coords.lat, lng: coords.lng }))}`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      const result = data?.result?.data;
+      if (result) {
+        setForm(prev => ({
+          ...prev,
+          city: result.city || prev.city,
+          cityAr: result.cityAr || prev.cityAr,
+          district: result.district || prev.district,
+          districtAr: result.districtAr || prev.districtAr,
+          address: result.address || prev.address,
+          addressAr: result.addressAr || prev.addressAr,
+          latitude: result.latitude || prev.latitude,
+          longitude: result.longitude || prev.longitude,
+        }));
+        toast.success(isRtl ? "تم تعبئة العنوان تلقائياً من الخريطة" : "Address auto-filled from map");
+      }
+    } catch (err) {
+      toast.error(isRtl ? "فشل في جلب بيانات العنوان" : "Failed to fetch address data");
+    } finally {
+      setGeocoding(false);
+    }
+  }, [isRtl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,56 +141,94 @@ function BuildingForm({ building, onSuccess, onCancel, lang }: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
+      {/* Google Maps URL - Auto-fill */}
+      <div className="space-y-2 p-3 rounded-lg border border-primary/30 bg-primary/5">
+        <Label className="flex items-center gap-2 text-primary font-semibold">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          {isRtl ? "رابط خرائط قوقل (لصق تلقائي)" : "Google Maps URL (auto-fill)"}
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            value={mapsUrl}
+            onChange={e => setMapsUrl(e.target.value)}
+            onPaste={e => {
+              const pasted = e.clipboardData.getData("text");
+              if (pasted.includes("google") || pasted.includes("maps") || pasted.includes("goo.gl")) {
+                e.preventDefault();
+                handleMapsUrlPaste(pasted);
+              }
+            }}
+            placeholder={isRtl ? "الصق رابط خرائط قوقل هنا..." : "Paste Google Maps URL here..."}
+            className="flex-1"
+            dir="ltr"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={geocoding || !mapsUrl}
+            onClick={() => handleMapsUrlPaste(mapsUrl)}
+          >
+            {geocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : (isRtl ? "تعبئة" : "Fill")}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {isRtl
+            ? "الصق رابط خرائط قوقل وسيتم تعبئة المدينة والحي والعنوان والإحداثيات تلقائياً بالعربي والإنجليزي"
+            : "Paste a Google Maps link to auto-fill city, district, address & coordinates in both Arabic & English"}
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>{isRtl ? "اسم المبنى (EN)" : "Building Name (EN)"} *</Label>
-          <Input value={form.buildingName} onChange={e => set("buildingName", e.target.value)} required />
+          <Label>{isRtl ? "اسم المبنى" : "Building Name"} *</Label>
+          <Input value={form.buildingName} onChange={e => set("buildingName", e.target.value)} required placeholder={isRtl ? "مثال: برج السلام" : "e.g. Al Salam Tower"} />
         </div>
         <div className="space-y-2">
-          <Label>{isRtl ? "اسم المبنى (AR)" : "Building Name (AR)"}</Label>
-          <Input value={form.buildingNameAr} onChange={e => set("buildingNameAr", e.target.value)} dir="rtl" />
+          <Label>{isRtl ? "اسم المبنى بالعربي" : "Building Name (Arabic)"}</Label>
+          <Input value={form.buildingNameAr} onChange={e => set("buildingNameAr", e.target.value)} dir="rtl" placeholder="برج السلام" />
         </div>
         <div className="space-y-2">
-          <Label>{isRtl ? "المدينة (EN)" : "City (EN)"}</Label>
-          <Input value={form.city} onChange={e => set("city", e.target.value)} />
+          <Label>{isRtl ? "المدينة" : "City"}</Label>
+          <Input value={form.city} onChange={e => set("city", e.target.value)} placeholder="Riyadh" dir="ltr" />
         </div>
         <div className="space-y-2">
-          <Label>{isRtl ? "المدينة (AR)" : "City (AR)"}</Label>
-          <Input value={form.cityAr} onChange={e => set("cityAr", e.target.value)} dir="rtl" />
+          <Label>{isRtl ? "المدينة بالعربي" : "City (Arabic)"}</Label>
+          <Input value={form.cityAr} onChange={e => set("cityAr", e.target.value)} dir="rtl" placeholder="الرياض" />
         </div>
         <div className="space-y-2">
-          <Label>{isRtl ? "الحي (EN)" : "District (EN)"}</Label>
-          <Input value={form.district} onChange={e => set("district", e.target.value)} />
+          <Label>{isRtl ? "الحي" : "District"}</Label>
+          <Input value={form.district} onChange={e => set("district", e.target.value)} placeholder="Al Olaya" dir="ltr" />
         </div>
         <div className="space-y-2">
-          <Label>{isRtl ? "الحي (AR)" : "District (AR)"}</Label>
-          <Input value={form.districtAr} onChange={e => set("districtAr", e.target.value)} dir="rtl" />
+          <Label>{isRtl ? "الحي بالعربي" : "District (Arabic)"}</Label>
+          <Input value={form.districtAr} onChange={e => set("districtAr", e.target.value)} dir="rtl" placeholder="العليا" />
         </div>
         <div className="space-y-2">
-          <Label>{isRtl ? "العنوان (EN)" : "Address (EN)"}</Label>
-          <Input value={form.address} onChange={e => set("address", e.target.value)} />
+          <Label>{isRtl ? "العنوان" : "Address"}</Label>
+          <Input value={form.address} onChange={e => set("address", e.target.value)} dir="ltr" />
         </div>
         <div className="space-y-2">
-          <Label>{isRtl ? "العنوان (AR)" : "Address (AR)"}</Label>
+          <Label>{isRtl ? "العنوان بالعربي" : "Address (Arabic)"}</Label>
           <Input value={form.addressAr} onChange={e => set("addressAr", e.target.value)} dir="rtl" />
         </div>
         <div className="space-y-2">
           <Label>{isRtl ? "خط العرض" : "Latitude"}</Label>
-          <Input value={form.latitude} onChange={e => set("latitude", e.target.value)} placeholder="24.7136" />
+          <Input value={form.latitude} onChange={e => set("latitude", e.target.value)} placeholder="24.7136" dir="ltr" />
         </div>
         <div className="space-y-2">
           <Label>{isRtl ? "خط الطول" : "Longitude"}</Label>
-          <Input value={form.longitude} onChange={e => set("longitude", e.target.value)} placeholder="46.6753" />
+          <Input value={form.longitude} onChange={e => set("longitude", e.target.value)} placeholder="46.6753" dir="ltr" />
         </div>
       </div>
       <div className="space-y-2">
         <Label>{isRtl ? "ملاحظات" : "Notes"}</Label>
         <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} />
       </div>
-      <div className="flex gap-3 justify-end">
+      <div className={`flex gap-3 ${isRtl ? "justify-start" : "justify-end"}`}>
         <Button type="button" variant="outline" onClick={onCancel}>{isRtl ? "إلغاء" : "Cancel"}</Button>
         <Button type="submit" disabled={saving}>
-          {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+          {saving && <Loader2 className={`h-4 w-4 animate-spin ${isRtl ? "ml-2" : "mr-2"}`} />}
           {isEdit ? (isRtl ? "حفظ التعديلات" : "Save Changes") : (isRtl ? "إنشاء المبنى" : "Create Building")}
         </Button>
       </div>
