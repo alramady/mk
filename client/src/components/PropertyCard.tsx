@@ -17,16 +17,16 @@ function proxyUrl(url: string): string {
   return `/api/img-proxy?url=${encodeURIComponent(url)}`;
 }
 
-// Reliable fallback images by property type (CDN via proxy)
+// Reliable fallback images by property type (Unsplash via proxy)
 const FALLBACK_IMAGES: Record<string, string> = {
-  apartment: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
-  villa: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aQahktKcFBRaoOks.jpg"),
-  studio: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mONAuqBKEeQxVXtD.jpg"),
-  duplex: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
-  furnished_room: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/CmMNTcoDQOUOOgeL.jpg"),
-  compound: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/bzChzmxFKBEOPglq.jpg"),
-  hotel_apartment: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
-  default: proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
+  apartment: proxyUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80"),
+  villa: proxyUrl("https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80"),
+  studio: proxyUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80"),
+  duplex: proxyUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80"),
+  furnished_room: proxyUrl("https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&q=80"),
+  compound: proxyUrl("https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80"),
+  hotel_apartment: proxyUrl("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80"),
+  default: proxyUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80"),
 };
 
 interface PropertyCardProps {

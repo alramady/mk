@@ -22,22 +22,22 @@ import { useScrollAnimation, useParallax } from "@/hooks/useScrollAnimation";
 
 /* ─── City Fallback Images (CDN) ─── */
 const CITY_FALLBACK_IMAGES: Record<string, string> = {
-  riyadh: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cNWKttfpUDXIukWj.jpg",
-  jeddah: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/zNNXXZkpvfNlGAVT.jpg",
-  madinah: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HPXiVNWxeZFtabAR.jpg",
-  makkah: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/agSmQNzmeMZvCivy.jpg",
-  dammam: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg",
-  khobar: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mKrheONItCFemAyU.jpg",
-  tabuk: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg",
-  abha: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XFLVvWhZgOmlNsip.jpg",
-  "الرياض": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cNWKttfpUDXIukWj.jpg",
-  "جدة": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/zNNXXZkpvfNlGAVT.jpg",
-  "المدينة المنورة": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HPXiVNWxeZFtabAR.jpg",
-  "مكة المكرمة": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/agSmQNzmeMZvCivy.jpg",
-  "الدمام": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg",
-  "الخبر": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mKrheONItCFemAyU.jpg",
-  "تبوك": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg",
-  "أبها": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XFLVvWhZgOmlNsip.jpg",
+  riyadh: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80",
+  jeddah: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80",
+  madinah: "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80",
+  makkah: "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80",
+  dammam: "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80",
+  khobar: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
+  tabuk: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80",
+  abha: "https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80",
+  "الرياض": "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80",
+  "جدة": "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80",
+  "المدينة المنورة": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80",
+  "مكة المكرمة": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80",
+  "الدمام": "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80",
+  "الخبر": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
+  "تبوك": "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80",
+  "أبها": "https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80",
 };
 
 /** Get city image: DB imageUrl > fallback by name > gradient placeholder */

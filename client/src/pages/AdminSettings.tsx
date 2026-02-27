@@ -407,7 +407,7 @@ export default function AdminSettings() {
                       updateSetting("hero.subtitleAr", "عروض رمضان الحصرية | الرياض");
                       updateSetting("hero.subtitleEn", "Exclusive Ramadan Offers | Riyadh");
                       updateSetting("hero.bgType", "image");
-                      updateSetting("hero.bgImage", "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ylzCxVKgCIkzWJQu.jpg");
+                      updateSetting("hero.bgImage", "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=1600&q=80");
                       updateSetting("hero.bgVideo", "");
                       updateSetting("hero.overlayOpacity", "35");
                       toast.info(lang === "ar" ? "تم تطبيق قالب رمضان — اضغط حفظ" : "Ramadan preset applied — click Save");
@@ -420,7 +420,7 @@ export default function AdminSettings() {
                       updateSetting("hero.subtitleAr", "إدارة إيجارات شهرية متميزة | الرياض");
                       updateSetting("hero.subtitleEn", "Premium monthly rental management | Riyadh");
                       updateSetting("hero.bgType", "image");
-                      updateSetting("hero.bgImage", "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ylzCxVKgCIkzWJQu.jpg");
+                      updateSetting("hero.bgImage", "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=1600&q=80");
                       updateSetting("hero.bgVideo", "");
                       updateSetting("hero.overlayOpacity", "35");
                       toast.info(lang === "ar" ? "تم تطبيق القالب الافتراضي — اضغط حفظ" : "Default preset applied — click Save");
@@ -433,7 +433,7 @@ export default function AdminSettings() {
                       updateSetting("hero.subtitleAr", "عروض حصرية لموسم الرياض | شقق وفلل مفروشة");
                       updateSetting("hero.subtitleEn", "Exclusive Riyadh Season offers | Furnished apartments & villas");
                       updateSetting("hero.bgType", "image");
-                      updateSetting("hero.bgImage", "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/iqSTrQTiGFbvTtqW.jpg");
+                      updateSetting("hero.bgImage", "https://images.unsplash.com/photo-1663900108404-a05e8bf82cda?w=1600&q=80");
                       updateSetting("hero.bgVideo", "");
                       updateSetting("hero.overlayOpacity", "30");
                       toast.info(lang === "ar" ? "تم تطبيق قالب موسم الرياض — اضغط حفظ" : "Riyadh Season preset applied — click Save");
@@ -446,7 +446,7 @@ export default function AdminSettings() {
                       updateSetting("hero.subtitleAr", "احتفل بالعيد في أرقى العقارات | الرياض");
                       updateSetting("hero.subtitleEn", "Celebrate Eid in premium properties | Riyadh");
                       updateSetting("hero.bgType", "image");
-                      updateSetting("hero.bgImage", "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aeNdQNHVFRpjJtlZ.jpg");
+                      updateSetting("hero.bgImage", "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=1600&q=80");
                       updateSetting("hero.bgVideo", "");
                       updateSetting("hero.overlayOpacity", "30");
                       toast.info(lang === "ar" ? "تم تطبيق قالب عيد الفطر — اضغط حفظ" : "Eid al-Fitr preset applied — click Save");

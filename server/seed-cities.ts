@@ -22,14 +22,14 @@ export async function seedCitiesAndDistricts() {
 
     // ─── Cities ──────────────────────────────────────────────────────
     const cityData = [
-      { nameEn: "Riyadh", nameAr: "الرياض", region: "Riyadh", regionAr: "منطقة الرياض", latitude: "24.7136", longitude: "46.6753", sortOrder: 1, isActive: true, imageUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cNWKttfpUDXIukWj.jpg" },
-      { nameEn: "Jeddah", nameAr: "جدة", region: "Makkah", regionAr: "منطقة مكة المكرمة", latitude: "21.5433", longitude: "39.1728", sortOrder: 2, isActive: false, imageUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/zNNXXZkpvfNlGAVT.jpg" },
-      { nameEn: "Madinah", nameAr: "المدينة المنورة", region: "Madinah", regionAr: "منطقة المدينة المنورة", latitude: "24.4539", longitude: "39.6142", sortOrder: 3, isActive: false, imageUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HPXiVNWxeZFtabAR.jpg" },
-      { nameEn: "Makkah", nameAr: "مكة المكرمة", region: "Makkah", regionAr: "منطقة مكة المكرمة", latitude: "21.3891", longitude: "39.8579", sortOrder: 4, isActive: false, imageUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/agSmQNzmeMZvCivy.jpg" },
-      { nameEn: "Dammam", nameAr: "الدمام", region: "Eastern", regionAr: "المنطقة الشرقية", latitude: "26.4207", longitude: "50.0888", sortOrder: 5, isActive: false, imageUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg" },
-      { nameEn: "Khobar", nameAr: "الخبر", region: "Eastern", regionAr: "المنطقة الشرقية", latitude: "26.2172", longitude: "50.1971", sortOrder: 6, isActive: false, imageUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mKrheONItCFemAyU.jpg" },
-      { nameEn: "Tabuk", nameAr: "تبوك", region: "Tabuk", regionAr: "منطقة تبوك", latitude: "28.3838", longitude: "36.5550", sortOrder: 7, isActive: false, imageUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg" },
-      { nameEn: "Abha", nameAr: "أبها", region: "Asir", regionAr: "منطقة عسير", latitude: "18.2164", longitude: "42.5053", sortOrder: 8, isActive: false, imageUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XFLVvWhZgOmlNsip.jpg" },
+      { nameEn: "Riyadh", nameAr: "الرياض", region: "Riyadh", regionAr: "منطقة الرياض", latitude: "24.7136", longitude: "46.6753", sortOrder: 1, isActive: true, imageUrl: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80" },
+      { nameEn: "Jeddah", nameAr: "جدة", region: "Makkah", regionAr: "منطقة مكة المكرمة", latitude: "21.5433", longitude: "39.1728", sortOrder: 2, isActive: false, imageUrl: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80" },
+      { nameEn: "Madinah", nameAr: "المدينة المنورة", region: "Madinah", regionAr: "منطقة المدينة المنورة", latitude: "24.4539", longitude: "39.6142", sortOrder: 3, isActive: false, imageUrl: "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80" },
+      { nameEn: "Makkah", nameAr: "مكة المكرمة", region: "Makkah", regionAr: "منطقة مكة المكرمة", latitude: "21.3891", longitude: "39.8579", sortOrder: 4, isActive: false, imageUrl: "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80" },
+      { nameEn: "Dammam", nameAr: "الدمام", region: "Eastern", regionAr: "المنطقة الشرقية", latitude: "26.4207", longitude: "50.0888", sortOrder: 5, isActive: false, imageUrl: "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80" },
+      { nameEn: "Khobar", nameAr: "الخبر", region: "Eastern", regionAr: "المنطقة الشرقية", latitude: "26.2172", longitude: "50.1971", sortOrder: 6, isActive: false, imageUrl: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80" },
+      { nameEn: "Tabuk", nameAr: "تبوك", region: "Tabuk", regionAr: "منطقة تبوك", latitude: "28.3838", longitude: "36.5550", sortOrder: 7, isActive: false, imageUrl: "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80" },
+      { nameEn: "Abha", nameAr: "أبها", region: "Asir", regionAr: "منطقة عسير", latitude: "18.2164", longitude: "42.5053", sortOrder: 8, isActive: false, imageUrl: "https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80" },
     ];
 
     for (const city of cityData) {

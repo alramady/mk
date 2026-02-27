@@ -197,9 +197,9 @@ export default function PropertyDetail() {
   // Filter out broken /uploads/ URLs, proxy the rest
   const validPhotos = (prop.photos || []).filter((url: string) => url && url.startsWith("http") && !url.includes("/uploads/")).map(proxyUrl);
   const photos = validPhotos.length ? validPhotos : [
-    proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg"),
-    proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aQahktKcFBRaoOks.jpg"),
-    proxyUrl("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mONAuqBKEeQxVXtD.jpg"),
+    proxyUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80"),
+    proxyUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80"),
+    proxyUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80"),
   ];
 
   const lat = prop.latitude ? Number(prop.latitude) : 24.7136;
@@ -259,7 +259,7 @@ export default function PropertyDetail() {
                   const target = e.currentTarget;
                   if (!target.dataset.fallback) {
                     target.dataset.fallback = "1";
-                    target.src = `/api/img-proxy?url=${encodeURIComponent("https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg")}`;
+                    target.src = `/api/img-proxy?url=${encodeURIComponent("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80")}`;
                   }
                 }}
               />

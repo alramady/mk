@@ -13,7 +13,7 @@ const defaultSettings: Record<string, string> = {
   "hero.titleEn": "Monthly Rental Expert — Now in Saudi Arabia",
   "hero.subtitleAr": "إدارة إيجارات شهرية متميزة | الرياض • جدة • المدينة المنورة",
   "hero.subtitleEn": "Premium monthly rental management | Riyadh • Jeddah • Madinah",
-  "hero.bgImage": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ylzCxVKgCIkzWJQu.jpg",
+  "hero.bgImage": "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=1920&q=80",
   "hero.bgType": "image",
   "hero.bgVideo": "",
   "hero.overlayOpacity": "40",
