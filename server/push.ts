@@ -3,11 +3,12 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { pushSubscriptions } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 function getDb() {
   if (!_db) {
-    const pool = mysql.createPool(process.env.DATABASE_URL!);
+    const pool = mysql.createPool(ENV.databaseUrl);
     _db = drizzle(pool);
   }
   return _db;

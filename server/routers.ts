@@ -26,9 +26,11 @@ import mysql from "mysql2/promise";
 import { eq as eqDrizzle } from "drizzle-orm";
 import { sanitizeText, sanitizeObject, validateContentType, validateFileExtension, MAX_BASE64_SIZE, MAX_AVATAR_BASE64_SIZE, ALLOWED_IMAGE_TYPES, ALLOWED_UPLOAD_TYPES, capLimit, capOffset, isOwnerOrAdmin, isBookingParticipant } from "./security";
 import { financeRouter } from "./finance-routers";
+import { dbIdentity } from "./_core/env";
 
 // Shared drizzle instance for roles/aiStats (avoid creating new connections per request)
-const sharedPool = mysql.createPool(process.env.DATABASE_URL!);
+// Uses centralized ENV.databaseUrl to ensure correct DB per environment
+const sharedPool = mysql.createPool(ENV.databaseUrl);
 const sharedDb = drizzle(sharedPool);
 
 export const appRouter = router({
@@ -787,6 +789,81 @@ export const appRouter = router({
 
   // Admin
   admin: router({
+    // ─── DB Status (RBAC: MANAGE_SETTINGS) ────────────────────────────
+    dbStatus: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS).query(async () => {
+      const pool = db.getPool();
+      let dbConnected = false;
+      let dbVersion = "unknown";
+      let tableCount = 0;
+      let migrationVersion = "unknown";
+      let migrationEntries: Array<{ hash: string; created_at: number }> = [];
+      let uptime = 0;
+
+      if (pool) {
+        try {
+          // Test connection
+          await pool.execute("SELECT 1");
+          dbConnected = true;
+
+          // Get MySQL version
+          const [versionRows] = await pool.execute("SELECT VERSION() as v") as any;
+          dbVersion = versionRows?.[0]?.v ?? "unknown";
+
+          // Count tables in current database
+          const [tableRows] = await pool.execute(
+            "SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema = DATABASE()"
+          ) as any;
+          tableCount = tableRows?.[0]?.cnt ?? 0;
+
+          // Get migration journal from __drizzle_migrations table
+          try {
+            const [migRows] = await pool.execute(
+              "SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 5"
+            ) as any;
+            migrationEntries = migRows ?? [];
+            if (migRows?.length > 0) {
+              migrationVersion = `${migRows.length > 0 ? migRows[0].hash?.slice(0, 12) : 'none'} (${migRows.length} of total)`;
+            }
+          } catch {
+            migrationVersion = "migrations table not found";
+          }
+
+          // Get total migration count
+          try {
+            const [countRows] = await pool.execute(
+              "SELECT COUNT(*) as cnt FROM __drizzle_migrations"
+            ) as any;
+            const totalMigrations = countRows?.[0]?.cnt ?? 0;
+            migrationVersion = `${totalMigrations} migrations applied`;
+          } catch {}
+
+          // Server uptime
+          const [uptimeRows] = await pool.execute("SHOW STATUS LIKE 'Uptime'") as any;
+          uptime = parseInt(uptimeRows?.[0]?.Value ?? "0");
+        } catch (e: any) {
+          console.error("[Admin] DB status check failed:", e.message);
+        }
+      }
+
+      return {
+        connected: dbConnected,
+        environment: ENV.appEnvironment,
+        isPreviewDeploy: ENV.isPreviewDeploy,
+        host: dbIdentity.host,
+        port: dbIdentity.port,
+        database: dbIdentity.database,
+        mysqlVersion: dbVersion,
+        tableCount,
+        migrationVersion,
+        recentMigrations: migrationEntries.map(m => ({
+          hash: m.hash?.slice(0, 16) ?? "unknown",
+          appliedAt: m.created_at ? new Date(m.created_at).toISOString() : "unknown",
+        })),
+        serverUptimeSeconds: uptime,
+        checkedAt: new Date().toISOString(),
+      };
+    }),
+
     stats: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS).query(async () => {
       const [userCount, propertyCount, activeProperties, pendingProperties, bookingCount, activeBookings, totalRevenue] = await Promise.all([
         db.getUserCount(),

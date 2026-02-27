@@ -42,6 +42,103 @@ function warnProductionSecret(name: string, value: string | undefined, minLength
   return value;
 }
 
+// ─── Environment Detection ──────────────────────────────────────────────────
+// Railway sets RAILWAY_ENVIRONMENT_NAME for each environment (e.g. "production", "staging").
+// RAILWAY_IS_PREVIEW_DEPLOY is set to "true" for preview deployments (PR-based).
+const railwayEnvName = process.env.RAILWAY_ENVIRONMENT_NAME ?? "";
+const isPreviewDeploy = process.env.RAILWAY_IS_PREVIEW_DEPLOY === "true" || !!process.env.RAILWAY_PR_NUMBER;
+const appEnvironment: "production" | "staging" | "development" =
+  isProduction && !isPreviewDeploy && railwayEnvName !== "staging" ? "production"
+  : isProduction ? "staging"
+  : "development";
+
+// ─── Database URL Resolution ────────────────────────────────────────────────
+// Priority chain per environment:
+//   production → PROD_DATABASE_URL > DATABASE_URL
+//   staging    → STAGING_DATABASE_URL > DATABASE_URL
+//   development → DEV_DATABASE_URL > DATABASE_URL > local fallback
+//
+// Preview deploys are FORCED to staging DB — they NEVER touch production.
+function resolveDatabaseUrl(): string {
+  if (isPreviewDeploy) {
+    const stagingUrl = process.env.STAGING_DATABASE_URL;
+    if (stagingUrl) {
+      console.log("[DB] Preview deploy detected → using STAGING_DATABASE_URL");
+      return stagingUrl;
+    }
+    // If no staging URL, fall through to DATABASE_URL but log a warning
+    console.warn("[DB] ⚠ Preview deploy but STAGING_DATABASE_URL not set — falling back to DATABASE_URL");
+  }
+
+  if (appEnvironment === "production") {
+    const prodUrl = process.env.PROD_DATABASE_URL ?? process.env.DATABASE_URL;
+    if (!prodUrl) {
+      console.error("[FATAL] No database URL configured for production. Set PROD_DATABASE_URL or DATABASE_URL.");
+      process.exit(1);
+    }
+    if (process.env.PROD_DATABASE_URL) {
+      console.log("[DB] Production → using PROD_DATABASE_URL");
+    } else {
+      console.log("[DB] Production → using DATABASE_URL (consider setting PROD_DATABASE_URL explicitly)");
+    }
+    return prodUrl;
+  }
+
+  if (appEnvironment === "staging") {
+    const stagingUrl = process.env.STAGING_DATABASE_URL ?? process.env.DATABASE_URL;
+    if (stagingUrl) {
+      if (process.env.STAGING_DATABASE_URL) {
+        console.log("[DB] Staging → using STAGING_DATABASE_URL");
+      } else {
+        console.log("[DB] Staging → using DATABASE_URL");
+      }
+      return stagingUrl;
+    }
+  }
+
+  // Development
+  const devUrl = process.env.DEV_DATABASE_URL ?? process.env.DATABASE_URL ?? "mysql://root:password@localhost:3306/monthly_rental";
+  if (process.env.DEV_DATABASE_URL) {
+    console.log("[DB] Development → using DEV_DATABASE_URL");
+  } else if (process.env.DATABASE_URL) {
+    console.log("[DB] Development → using DATABASE_URL");
+  } else {
+    console.log("[DB] Development → using local fallback (mysql://localhost)");
+  }
+  return devUrl;
+}
+
+const resolvedDatabaseUrl = resolveDatabaseUrl();
+
+// ─── Boot-Time DB Identity Logging ──────────────────────────────────────────
+// Prints host + database name (masked) so operators can verify which DB is active.
+// NEVER prints credentials or full connection strings.
+function logDbIdentity(url: string): { host: string; database: string; port: string } {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname || "unknown";
+    const port = parsed.port || "3306";
+    const database = parsed.pathname.replace(/^\//, "") || "unknown";
+    // Mask: show first 4 chars + last 4 chars of host
+    const maskedHost = host.length > 10
+      ? `${host.slice(0, 4)}****${host.slice(-4)}`
+      : `${host.slice(0, 2)}****`;
+    console.log(`[DB] ╔══════════════════════════════════════════╗`);
+    console.log(`[DB] ║  Environment : ${appEnvironment.toUpperCase().padEnd(25)}║`);
+    console.log(`[DB] ║  DB Host     : ${maskedHost.padEnd(25)}║`);
+    console.log(`[DB] ║  DB Port     : ${port.padEnd(25)}║`);
+    console.log(`[DB] ║  DB Name     : ${database.padEnd(25)}║`);
+    console.log(`[DB] ║  Preview     : ${String(isPreviewDeploy).padEnd(25)}║`);
+    console.log(`[DB] ╚══════════════════════════════════════════╝`);
+    return { host: maskedHost, database, port };
+  } catch {
+    console.warn("[DB] Could not parse DATABASE_URL for identity logging");
+    return { host: "unknown", database: "unknown", port: "3306" };
+  }
+}
+
+export const dbIdentity = logDbIdentity(resolvedDatabaseUrl);
+
 // ─── Session Configuration ───────────────────────────────────────────────────
 // Access token TTL: 30 minutes in production, 24 hours in development.
 // This replaces the previous 365-day (ONE_YEAR_MS) session lifetime.
@@ -52,8 +149,10 @@ const SESSION_TTL_MS = isProduction
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "monthly-key-local",
   cookieSecret: requireProductionSecret("JWT_SECRET", process.env.JWT_SECRET, 32),
-  databaseUrl: process.env.DATABASE_URL ?? "mysql://root:password@localhost:3306/monthly_rental",
+  databaseUrl: resolvedDatabaseUrl,
   isProduction,
+  isPreviewDeploy,
+  appEnvironment,
   sessionTtlMs: SESSION_TTL_MS,
   // Redis URL for distributed cache/rate-limiting (optional in dev)
   redisUrl: process.env.REDIS_URL ?? "",

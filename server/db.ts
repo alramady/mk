@@ -29,10 +29,11 @@ let _db: ReturnType<typeof drizzle> | null = null;
 
 let _pool: mysql.Pool | null = null;
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_db && ENV.databaseUrl) {
     try {
-      _pool = mysql.createPool(process.env.DATABASE_URL);
+      _pool = mysql.createPool(ENV.databaseUrl);
       _db = drizzle(_pool);
+      console.log(`[Database] Pool created for environment: ${ENV.appEnvironment}`);
       // Auto-migrate: ensure recoveryEmail column exists
       try {
         await _pool.execute("ALTER TABLE users ADD COLUMN recoveryEmail VARCHAR(320) DEFAULT NULL");

@@ -2,13 +2,14 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { cities, districts, roles } from "../drizzle/schema";
 import { eq, sql } from "drizzle-orm";
+import { ENV } from "./_core/env";
 
 /**
  * Seed cities and districts for Saudi Arabia
  * Called on server startup to ensure data is available
  */
 export async function seedCitiesAndDistricts() {
-  const pool = mysql.createPool(process.env.DATABASE_URL!);
+  const pool = mysql.createPool(ENV.databaseUrl);
   const db = drizzle(pool);
 
   try {
