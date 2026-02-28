@@ -3094,7 +3094,7 @@ export const appRouter = router({
         recipientName: z.string().optional(),
         userId: z.number().optional(),
         templateId: z.number(),
-        variables: z.record(z.string()).optional(),
+        variables: z.record(z.string(), z.string()).optional(),
         propertyId: z.number().optional(),
         bookingId: z.number().optional(),
       }))

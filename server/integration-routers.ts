@@ -164,7 +164,7 @@ export const integrationRouter = router({
     .input(z.object({
       id: z.number(),
       isEnabled: z.boolean().optional(),
-      config: z.record(z.string()).optional(),
+      config: z.record(z.string(), z.string()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const [item] = await db.select().from(integrationConfigs).where(eq(integrationConfigs.id, input.id));
