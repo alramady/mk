@@ -835,3 +835,18 @@ export async function getLinkedUnitByPropertyId(propertyId: number) {
   );
   return (rows as any[])[0] || null;
 }
+
+/**
+ * Get all payment_ledger entries linked to a specific booking.
+ */
+export async function getLedgerByBookingId(bookingId: number) {
+  const pool = await getPool();
+  const [rows] = await pool.query(
+    `SELECT id, invoiceNumber, bookingId, unitId, unitNumber, propertyDisplayName,
+            type, direction, amount, currency, status, paymentMethod, provider,
+            dueAt, paidAt, notes, notesAr, createdAt
+     FROM payment_ledger WHERE bookingId = ? ORDER BY createdAt DESC`,
+    [bookingId]
+  );
+  return rows as any[];
+}

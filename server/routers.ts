@@ -389,6 +389,43 @@ export const appRouter = router({
           totalAmount: String(totalAmount),
           tenantNotes: input.tenantNotes,
         });
+        // ─── Auto-create payment_ledger entry for this booking ───
+        try {
+          const { createLedgerEntry, getLinkedUnitByPropertyId: getUnit } = await import('./finance-registry.js');
+          let unitId: number | undefined;
+          let unitNumber: string | undefined;
+          let buildingId: number | undefined;
+          try {
+            const linkedUnit = await getUnit(input.propertyId);
+            if (linkedUnit) {
+              unitId = linkedUnit.id;
+              unitNumber = linkedUnit.unitNumber;
+              buildingId = linkedUnit.buildingId;
+            }
+          } catch { /* no linked unit */ }
+          await createLedgerEntry({
+            bookingId: id!,
+            unitId,
+            unitNumber,
+            buildingId,
+            propertyDisplayName: prop.titleAr || prop.titleEn || `Property #${prop.id}`,
+            type: 'INITIAL_RENT',
+            direction: 'IN',
+            amount: String(totalAmount),
+            currency: 'SAR',
+            status: 'DUE',
+            dueAt: new Date(input.moveInDate),
+            createdBy: ctx.user.id,
+            guestName: ctx.user.displayName || ctx.user.name || undefined,
+            guestEmail: ctx.user.email || undefined,
+            notes: `Auto-created on booking #${id} for ${input.durationMonths} month(s)`,
+            notesAr: `تم الإنشاء تلقائياً عند الحجز #${id} لمدة ${input.durationMonths} شهر`,
+          });
+        } catch (e) {
+          console.error('[Ledger] Failed to auto-create ledger entry for booking', id, e);
+          // Ledger creation is best-effort — booking still succeeds
+        }
+
         // Create notification for landlord
         await db.createNotification({
           userId: prop.landlordId,
@@ -487,7 +524,13 @@ export const appRouter = router({
         const booking = await db.getBookingById(input.id);
         if (!booking) return null;
         if (!isBookingParticipant(ctx.user, booking)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
-        return booking;
+        // Attach ledger entries for this booking
+        let ledgerEntries: any[] = [];
+        try {
+          const { getLedgerByBookingId } = await import('./finance-registry.js');
+          ledgerEntries = await getLedgerByBookingId(input.id);
+        } catch { /* no ledger data */ }
+        return { ...booking, ledgerEntries };
       }),
 
     myBookings: protectedProcedure.query(async ({ ctx }) => {

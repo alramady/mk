@@ -273,6 +273,43 @@ export default function PaymentPage() {
               <span>{t("common.total")}</span>
               <span className="text-primary">{totalAmount.toLocaleString()} {t("payment.sar")}</span>
             </div>
+
+            {/* Ledger / Invoice Info */}
+            {(b as any).ledgerEntries?.length > 0 && (
+              <>
+                <Separator />
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CreditCard className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                      {lang === "ar" ? "بيانات الفاتورة" : "Invoice Details"}
+                    </span>
+                  </div>
+                  {(b as any).ledgerEntries.map((entry: any) => (
+                    <div key={entry.id} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{lang === "ar" ? "رقم الفاتورة" : "Invoice #"}</span>
+                        <span className="font-mono font-medium text-xs">{entry.invoiceNumber}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{lang === "ar" ? "المبلغ" : "Amount"}</span>
+                        <span className="font-medium">{Number(entry.amount).toLocaleString()} {entry.currency}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{lang === "ar" ? "الحالة" : "Status"}</span>
+                        <Badge variant={entry.status === 'PAID' ? 'default' : 'secondary'} className={entry.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}>
+                          {entry.status === 'PAID' ? (lang === "ar" ? "مدفوع" : "Paid") : entry.status === 'DUE' ? (lang === "ar" ? "مستحق" : "Due") : entry.status}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{lang === "ar" ? "النوع" : "Type"}</span>
+                        <span className="font-medium">{entry.type === 'INITIAL_RENT' ? (lang === "ar" ? "إيجار أولي" : "Initial Rent") : entry.type}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -88,10 +88,60 @@ async function startServer() {
     }
   });
 
+  // ─── Debug Proof Endpoint (acceptance testing) ─────────────────────
+  app.get("/api/debug-proof", async (req, res) => {
+    try {
+      const { getPool } = await import("../db");
+      const pool = getPool();
+      if (!pool) return res.json({ error: "no pool" });
 
+      // Property #2 data
+      const [props] = await pool.query(
+        `SELECT id, titleAr, titleEn, pricingSource, monthlyRent, status FROM properties WHERE id = 2`
+      );
+      // Linked unit
+      const [units] = await pool.query(
+        `SELECT id, unitNumber, monthlyBaseRentSAR, propertyId, buildingId FROM units WHERE propertyId = 2 LIMIT 1`
+      );
+      // All bookings
+      const [bookings] = await pool.query(
+        `SELECT id, propertyId, tenantId, status, monthlyRent, totalAmount, durationMonths FROM bookings ORDER BY id DESC LIMIT 10`
+      );
+      // All ledger entries
+      const [ledger] = await pool.query(
+        `SELECT id, invoiceNumber, bookingId, unitId, unitNumber, propertyDisplayName, type, direction, amount, currency, status, dueAt, paidAt, notes, notesAr, createdAt FROM payment_ledger ORDER BY id DESC LIMIT 10`
+      );
 
-  // ─── Dynamic OG Image Generation ─────────────────────────────────
-  // Homepage OG image
+      // Amount matching proof
+      const amountMatching = (bookings as any[]).map((b: any) => {
+        const linkedLedger = (ledger as any[]).filter((l: any) => l.bookingId === b.id);
+        return {
+          bookingId: b.id,
+          bookingTotalAmount: b.totalAmount,
+          ledgerEntries: linkedLedger.map((l: any) => ({
+            ledgerId: l.id,
+            invoiceNumber: l.invoiceNumber,
+            ledgerAmount: l.amount,
+            amountsMatch: String(b.totalAmount) === String(l.amount),
+            status: l.status,
+          })),
+          hasLedger: linkedLedger.length > 0,
+        };
+      });
+
+      res.json({
+        property2: (props as any[])[0] || null,
+        linkedUnit: (units as any[])[0] || null,
+        recentBookings: bookings,
+        recentLedger: ledger,
+        amountMatching,
+      });
+    } catch (e: any) {
+      res.json({ error: e.message });
+    }
+  });
+
+  // ─── Dynamic OG Image Generation ─────────────────────────────────────────mepage OG image
   app.get("/api/og/homepage.png", async (_req, res) => {
     try {
       const buffer = await generateHomepageOG();
