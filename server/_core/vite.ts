@@ -91,6 +91,12 @@ export function serveStatic(app: Express) {
       if (filePath.endsWith('.html')) {
         res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       }
+      // Service worker MUST NOT be cached — browsers need to check for updates
+      else if (filePath.endsWith('sw.js') || filePath.endsWith('service-worker.js')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
       // CSS/JS with hash in filename - cache for 1 year
       else if (filePath.match(/\.(js|css)$/)) {
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
