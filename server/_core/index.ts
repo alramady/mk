@@ -108,15 +108,16 @@ async function startServer() {
       // All ledger entries
       const [ledger] = await pool.query(`SELECT id, invoiceNumber, bookingId, unitId, type, amount, status, propertyDisplayName FROM payment_ledger ORDER BY id DESC LIMIT 5`);
       
-      // Publish readiness for property #2
-      const [photos] = await pool.query(`SELECT COUNT(*) as cnt FROM property_photos WHERE propertyId = 2`);
+      // Property #2 photos count from JSON field
+      const prop2 = (props as any[])[0];
+      const photoCount = prop2?.photos ? (typeof prop2.photos === 'string' ? JSON.parse(prop2.photos) : prop2.photos).length : 0;
       
       res.json({
-        property2: (props as any[])[0] || null,
+        property2: prop2 || null,
         linkedUnit: (units as any[])[0] || null,
         recentBookings: bookings,
         recentLedger: ledger,
-        property2PhotoCount: (photos as any[])[0]?.cnt || 0,
+        property2PhotoCount: photoCount,
       });
     } catch (e: any) {
       res.json({ error: e.message });
