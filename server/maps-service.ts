@@ -309,10 +309,17 @@ export async function geocodeAddress(
   const addrHash = hashAddress(normalized);
   const providerKey = config.provider.toLowerCase();
 
-  // Check cache first
+  // Check cache first (check both configured provider and nominatim fallback)
   const cached = await getCachedGeocode(addrHash, providerKey);
   if (cached) {
     return { success: true, result: cached };
+  }
+  // Also check nominatim cache if we'll fall back to it
+  if ((config.provider === "GOOGLE" && !config.apiKey) || (config.provider === "MAPBOX" && !config.mapboxToken)) {
+    const nominatimCached = await getCachedGeocode(addrHash, "nominatim");
+    if (nominatimCached) {
+      return { success: true, result: nominatimCached };
+    }
   }
 
   // Daily cap check (only for actual API calls)
