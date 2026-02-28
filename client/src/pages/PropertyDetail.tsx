@@ -202,8 +202,16 @@ export default function PropertyDetail() {
     proxyUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80"),
   ];
 
-  const lat = prop.latitude ? Number(prop.latitude) : 24.7136;
-  const lng = prop.longitude ? Number(prop.longitude) : 46.6753;
+  // Privacy-aware location from server
+  const locationQuery = trpc.maps.getPropertyLocation.useQuery(
+    { propertyId: prop.id },
+    { enabled: !!prop.id }
+  );
+  const locData = locationQuery.data;
+  const lat = locData?.showMap ? locData.lat : (prop.latitude ? Number(prop.latitude) : 24.7136);
+  const lng = locData?.showMap ? locData.lng : (prop.longitude ? Number(prop.longitude) : 46.6753);
+  const showMap = locData?.showMap !== false; // default to show if query hasn't loaded yet
+  const isApproximate = locData?.visibility === "APPROXIMATE";
 
   const BackArrow = dir === "rtl" ? ArrowRight : ArrowLeft;
 
@@ -465,39 +473,73 @@ export default function PropertyDetail() {
               </Card>
             )}
 
-            {/* Map with property info */}
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" />{t("property.location")}</CardTitle></CardHeader>
-              <CardContent>
-                <MapView
-                  className="h-[350px] rounded-lg"
-                  initialCenter={{ lat, lng }}
-                  initialZoom={15}
-                  onMapReady={handleMapReady}
-                />
-                <div className="mt-3 flex items-center justify-between">
+            {/* Map with property info — privacy-aware */}
+            {showMap && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    {t("property.location")}
+                    {isApproximate && (
+                      <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                        {lang === "ar" ? "موقع تقريبي" : "Approximate"}
+                      </span>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MapView
+                    className="h-[350px] rounded-lg"
+                    initialCenter={{ lat, lng }}
+                    initialZoom={isApproximate ? 13 : 15}
+                    onMapReady={handleMapReady}
+                  />
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4 text-primary shrink-0" />
+                      <span>{district && `${district}، `}{city}</span>
+                    </div>
+                    {!isApproximate && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 gap-1.5 border-[#3ECFC0]/40 text-[#3ECFC0] hover:bg-[#3ECFC0]/10"
+                        onClick={() => {
+                          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                          const url = isIOS
+                            ? `maps://maps.apple.com/?daddr=${lat},${lng}`
+                            : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+                          window.open(url, "_blank");
+                        }}
+                      >
+                        <MapPin className="h-3.5 w-3.5" />
+                        {lang === "ar" ? "الاتجاهات" : "Directions"}
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {/* Hidden location — show text only */}
+            {!showMap && locData?.reason !== "maps_disabled" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    {t("property.location")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4 text-primary shrink-0" />
                     <span>{district && `${district}، `}{city}</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0 gap-1.5 border-[#3ECFC0]/40 text-[#3ECFC0] hover:bg-[#3ECFC0]/10"
-                    onClick={() => {
-                      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                      const url = isIOS
-                        ? `maps://maps.apple.com/?daddr=${lat},${lng}`
-                        : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-                      window.open(url, "_blank");
-                    }}
-                  >
-                    <MapPin className="h-3.5 w-3.5" />
-                    {lang === "ar" ? "الاتجاهات" : "Directions"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {lang === "ar" ? "الموقع الدقيق يُشارك بعد الحجز" : "Exact location shared after booking"}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Reviews Section */}
             <Card>

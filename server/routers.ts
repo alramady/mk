@@ -1105,6 +1105,8 @@ export const appRouter = router({
         const hasPhotos = prop.photos && (prop.photos as string[]).length > 0;
         checks.push({ label: 'Has photos', labelAr: 'يوجد صور', passed: !!hasPhotos, detail: hasPhotos ? `${(prop.photos as string[]).length} photos` : 'No photos' });
         checks.push({ label: 'Has location', labelAr: 'يوجد موقع', passed: !!(prop.city || prop.cityAr) });
+        const hasCoords = !!(prop.latitude && prop.longitude && Number(prop.latitude) !== 0);
+        checks.push({ label: 'Has coordinates', labelAr: 'يوجد إحداثيات', passed: hasCoords, detail: hasCoords ? `${prop.latitude}, ${prop.longitude}` : 'استخدم الترميز الجغرافي أو الدبوس' });
         const allPassed = checks.every(c => c.passed);
         return { ready: allPassed, checks, pricingSource: (prop as any).pricingSource || 'PROPERTY', status: prop.status };
       }),
@@ -1171,6 +1173,12 @@ export const appRouter = router({
         address: z.string().optional(),
         addressAr: z.string().optional(),
         googleMapsUrl: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
+        locationSource: z.enum(["MANUAL", "GEOCODE", "PIN"]).optional(),
+        locationVisibility: z.enum(["EXACT", "APPROXIMATE", "HIDDEN"]).optional(),
+        placeId: z.string().optional(),
+        geocodeProvider: z.string().optional(),
         bedrooms: z.number().optional(),
         bathrooms: z.number().optional(),
         sizeSqm: z.number().optional(),
@@ -3264,5 +3272,92 @@ export const appRouter = router({
   finance: financeRouter,
   // ─── Integration Configs (Admin Settings Panel) ──
   integration: integrationRouter,
+
+  // ─── Maps (Geocoding, Pin Picker, Privacy Controls) ──
+  maps: router({
+    // Public: get maps config (no secrets)
+    getConfig: publicProcedure.query(async () => {
+      const { getMapsConfigPublic } = await import("./maps-service");
+      return getMapsConfigPublic();
+    }),
+
+    // Admin: geocode an address
+    geocode: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({
+        city: z.string().optional(),
+        district: z.string().optional(),
+        address: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { geocodeAddress } = await import("./maps-service");
+        return geocodeAddress(input, ctx.user.id);
+      }),
+
+    // Admin: update property location (from geocode, pin, or manual)
+    setPropertyLocation: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({
+        propertyId: z.number(),
+        latitude: z.string(),
+        longitude: z.string(),
+        locationSource: z.enum(["MANUAL", "GEOCODE", "PIN"]),
+        locationVisibility: z.enum(["EXACT", "APPROXIMATE", "HIDDEN"]).optional(),
+        placeId: z.string().optional(),
+        geocodeProvider: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { updatePropertyLocation } = await import("./maps-service");
+        const result = await updatePropertyLocation(input.propertyId, input, ctx.user.id);
+        cache.invalidatePrefix('property:');
+        return result;
+      }),
+
+    // Admin: get geocode cache stats
+    cacheStats: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .query(async () => {
+        const { getGeocodeStats } = await import("./maps-service");
+        return getGeocodeStats();
+      }),
+
+    // Public: get property location with privacy applied
+    getPropertyLocation: publicProcedure
+      .input(z.object({ propertyId: z.number() }))
+      .query(async ({ input }) => {
+        const { getMapsConfigPublic, approximateCoordinates } = await import("./maps-service");
+        const config = await getMapsConfigPublic();
+        if (!config.enabled || !config.showOnPropertyPage) {
+          return { showMap: false, reason: "maps_disabled" as const };
+        }
+        const prop = await db.getPropertyById(input.propertyId);
+        if (!prop || !prop.latitude || !prop.longitude) {
+          return { showMap: false, reason: "no_coordinates" as const };
+        }
+        const visibility = (prop as any).locationVisibility || "APPROXIMATE";
+        if (visibility === "HIDDEN") {
+          return { showMap: false, reason: "hidden" as const, city: prop.city, district: prop.district };
+        }
+        const lat = parseFloat(String(prop.latitude));
+        const lng = parseFloat(String(prop.longitude));
+        if (visibility === "APPROXIMATE") {
+          const approx = approximateCoordinates(lat, lng);
+          return {
+            showMap: true,
+            lat: approx.lat,
+            lng: approx.lng,
+            visibility: "APPROXIMATE" as const,
+            zoom: config.defaultZoom,
+            provider: config.provider,
+          };
+        }
+        // EXACT
+        return {
+          showMap: true,
+          lat,
+          lng,
+          visibility: "EXACT" as const,
+          zoom: config.defaultZoom + 2,
+          provider: config.provider,
+        };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

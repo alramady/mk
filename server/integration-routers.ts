@@ -78,8 +78,21 @@ function getConfigFields(key: string): { name: string; label: string; labelAr: s
       ];
     case 'maps':
       return [
-        { name: 'apiKey', label: 'API Key', labelAr: 'مفتاح API', isSecret: true },
-        { name: 'mapId', label: 'Map ID', labelAr: 'معرف الخريطة', isSecret: false },
+        { name: 'provider', label: 'Provider (GOOGLE/MAPBOX/DISABLED)', labelAr: 'المزود (GOOGLE/MAPBOX/DISABLED)', isSecret: false },
+        { name: 'apiKey', label: 'Google Maps API Key', labelAr: 'مفتاح Google Maps API', isSecret: true },
+        { name: 'mapboxToken', label: 'Mapbox Access Token', labelAr: 'رمز وصول Mapbox', isSecret: true },
+        { name: 'mapId', label: 'Google Map ID (optional)', labelAr: 'معرف الخريطة (اختياري)', isSecret: false },
+        { name: 'showOnPropertyPage', label: 'Show on Property Page (true/false)', labelAr: 'عرض في صفحة العقار', isSecret: false },
+        { name: 'enableGeocodingInAdmin', label: 'Enable Geocoding (true/false)', labelAr: 'تفعيل الترميز الجغرافي', isSecret: false },
+        { name: 'enablePinPickerInAdmin', label: 'Enable Pin Picker (true/false)', labelAr: 'تفعيل اختيار الموقع بالدبوس', isSecret: false },
+        { name: 'defaultCity', label: 'Default City', labelAr: 'المدينة الافتراضية', isSecret: false },
+        { name: 'defaultCenterLat', label: 'Default Center Lat', labelAr: 'خط العرض الافتراضي', isSecret: false },
+        { name: 'defaultCenterLng', label: 'Default Center Lng', labelAr: 'خط الطول الافتراضي', isSecret: false },
+        { name: 'defaultZoom', label: 'Default Zoom (1-20)', labelAr: 'مستوى التكبير الافتراضي', isSecret: false },
+        { name: 'mapTheme', label: 'Theme (light/dark)', labelAr: 'السمة (فاتح/داكن)', isSecret: false },
+        { name: 'geocodeDailyCap', label: 'Daily Geocode Cap', labelAr: 'الحد اليومي للترميز', isSecret: false },
+        { name: 'geocodeRateLimitPerAdmin', label: 'Rate Limit per Admin (/min)', labelAr: 'حد المعدل لكل مشرف (/دقيقة)', isSecret: false },
+        { name: 'geocodeCacheTTLDays', label: 'Cache TTL (days)', labelAr: 'مدة صلاحية الذاكرة المؤقتة (أيام)', isSecret: false },
       ];
     case 'whatsapp':
       return [
@@ -280,8 +293,18 @@ export const integrationRouter = router({
             break;
           }
           case 'maps': {
-            // Maps is proxied through Manus, always available
-            testResult = { success: true, message: 'Google Maps proxy is available (Manus-managed)' };
+            try {
+              const { testGeocoding } = await import('./maps-service');
+              testResult = await testGeocoding();
+            } catch (e: any) {
+              // Fallback: try direct import
+              try {
+                const mapsService = await import('./maps-service');
+                testResult = await mapsService.testGeocoding();
+              } catch (e2: any) {
+                testResult = { success: false, message: `Maps test error: ${e2.message}` };
+              }
+            }
             break;
           }
           case 'whatsapp': {

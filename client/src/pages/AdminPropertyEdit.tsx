@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   ArrowRight, Save, Eye, EyeOff, Upload, X, Star, GripVertical,
   CheckCircle2, XCircle, AlertTriangle, Loader2, Globe, Archive, MapPin,
-  ExternalLink, Link2, Unlink
+  ExternalLink, Link2, Unlink, Navigation, Crosshair, Shield, Map
 } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
@@ -24,6 +24,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import PinPickerMap from "@/components/PinPickerMap";
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -106,6 +107,11 @@ export default function AdminPropertyEdit() {
     city: "", cityAr: "", district: "", districtAr: "",
     address: "", addressAr: "",
     googleMapsUrl: "",
+    latitude: "", longitude: "",
+    locationSource: "" as string,
+    locationVisibility: "APPROXIMATE" as string,
+    placeId: "",
+    geocodeProvider: "",
     bedrooms: 1, bathrooms: 1, sizeSqm: 0,
     monthlyRent: "", securityDeposit: "",
     pricingSource: "PROPERTY" as string,
@@ -114,6 +120,9 @@ export default function AdminPropertyEdit() {
     minStayMonths: 1, maxStayMonths: 12,
     photos: [] as string[],
   });
+
+  const [geocoding, setGeocoding] = useState(false);
+  const [showPinPicker, setShowPinPicker] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -207,6 +216,9 @@ export default function AdminPropertyEdit() {
   // Photo upload
   const uploadPhoto = trpc.upload.propertyPhoto.useMutation();
 
+  // Geocode mutation
+  const geocodeMutation = trpc.maps.geocode.useMutation();
+
   // Load property data into form
   useEffect(() => {
     if (property) {
@@ -223,6 +235,12 @@ export default function AdminPropertyEdit() {
         address: property.address || "",
         addressAr: property.addressAr || "",
         googleMapsUrl: (property as any).googleMapsUrl || "",
+        latitude: property.latitude || "",
+        longitude: property.longitude || "",
+        locationSource: (property as any).locationSource || "",
+        locationVisibility: (property as any).locationVisibility || "APPROXIMATE",
+        placeId: (property as any).placeId || "",
+        geocodeProvider: (property as any).geocodeProvider || "",
         bedrooms: property.bedrooms || 1,
         bathrooms: property.bathrooms || 1,
         sizeSqm: property.sizeSqm || 0,
@@ -505,7 +523,10 @@ export default function AdminPropertyEdit() {
             {/* Location */}
             <Card>
               <CardHeader>
-                <CardTitle>الموقع</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Map className="h-5 w-5 text-[#3ECFC0]" />
+                  الموقع والإحداثيات
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -542,6 +563,137 @@ export default function AdminPropertyEdit() {
                   <p className="text-xs text-muted-foreground mt-1">
                     افتح Google Maps → اضغط مشاركة → انسخ الرابط
                   </p>
+                </div>
+
+                {/* Coordinates Section */}
+                <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                      <Crosshair className="h-4 w-4" />
+                      الإحداثيات
+                    </h4>
+                    {form.locationSource && (
+                      <Badge variant="outline" className="text-xs">
+                        {form.locationSource === "PIN" ? "📍 دبوس" : form.locationSource === "GEOCODE" ? "🔍 ترميز" : "✏️ يدوي"}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs">خط العرض (Latitude)</Label>
+                      <Input
+                        value={form.latitude}
+                        onChange={e => setForm(p => ({ ...p, latitude: e.target.value, locationSource: "MANUAL" }))}
+                        placeholder="24.7136"
+                        dir="ltr"
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">خط الطول (Longitude)</Label>
+                      <Input
+                        value={form.longitude}
+                        onChange={e => setForm(p => ({ ...p, longitude: e.target.value, locationSource: "MANUAL" }))}
+                        placeholder="46.6753"
+                        dir="ltr"
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Geocode Button */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={geocoding || (!form.city && !form.district && !form.address)}
+                      onClick={async () => {
+                        setGeocoding(true);
+                        try {
+                          const result = await geocodeMutation.mutateAsync({
+                            city: form.city || form.cityAr,
+                            district: form.district || form.districtAr,
+                            address: form.address || form.addressAr,
+                          });
+                          if (result.success && result.result) {
+                            setForm(p => ({
+                              ...p,
+                              latitude: String(result.result!.lat),
+                              longitude: String(result.result!.lng),
+                              locationSource: "GEOCODE",
+                              placeId: result.result!.placeId || "",
+                              geocodeProvider: result.result!.provider || "",
+                            }));
+                            toast.success(
+                              result.result.fromCache
+                                ? "تم استرجاع الإحداثيات من الذاكرة المؤقتة ✅"
+                                : `تم الترميز الجغرافي بنجاح (${result.result.provider}) ✅`
+                            );
+                          } else {
+                            toast.error(result.error || "فشل الترميز الجغرافي");
+                          }
+                        } catch (e: any) {
+                          toast.error(e.message);
+                        } finally {
+                          setGeocoding(false);
+                        }
+                      }}
+                    >
+                      {geocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin ml-1" /> : <Navigation className="h-3.5 w-3.5 ml-1" />}
+                      ترميز العنوان تلقائياً
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPinPicker(!showPinPicker)}
+                    >
+                      <MapPin className="h-3.5 w-3.5 ml-1" />
+                      {showPinPicker ? "إخفاء الخريطة" : "تحديد بالدبوس 📍"}
+                    </Button>
+                  </div>
+
+                  {/* Pin Picker Map */}
+                  {showPinPicker && (
+                    <div className="mt-2">
+                      <PinPickerMap
+                        lat={form.latitude ? parseFloat(form.latitude) : undefined}
+                        lng={form.longitude ? parseFloat(form.longitude) : undefined}
+                        onPinSet={(lat, lng) => {
+                          setForm(p => ({
+                            ...p,
+                            latitude: lat.toFixed(7),
+                            longitude: lng.toFixed(7),
+                            locationSource: "PIN",
+                          }));
+                          toast.success("تم تحديد الموقع بالدبوس 📍");
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">انقر على الخريطة لتحديد الموقع الدقيق</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Location Visibility */}
+                <div>
+                  <Label className="flex items-center gap-1.5 mb-2">
+                    <Shield className="h-3.5 w-3.5" />
+                    خصوصية الموقع (للزوار)
+                  </Label>
+                  <Select
+                    value={form.locationVisibility}
+                    onValueChange={v => setForm(p => ({ ...p, locationVisibility: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EXACT">📍 دقيق — يظهر الموقع الحقيقي</SelectItem>
+                      <SelectItem value="APPROXIMATE">🔵 تقريبي — إزاحة عشوائية ~300م</SelectItem>
+                      <SelectItem value="HIDDEN">🚫 مخفي — لا تظهر خريطة</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>

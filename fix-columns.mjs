@@ -15,6 +15,11 @@ if (!url) {
 const fixes = [
   { table: 'properties', column: 'googleMapsUrl', definition: 'text DEFAULT NULL' },
   { table: 'property_submissions', column: 'googleMapsUrl', definition: 'text DEFAULT NULL' },
+  { table: 'properties', column: 'locationSource', definition: "ENUM('MANUAL','GEOCODE','PIN') DEFAULT NULL" },
+  { table: 'properties', column: 'locationVisibility', definition: "ENUM('EXACT','APPROXIMATE','HIDDEN') NOT NULL DEFAULT 'APPROXIMATE'" },
+  { table: 'properties', column: 'placeId', definition: 'varchar(255) DEFAULT NULL' },
+  { table: 'properties', column: 'geocodeProvider', definition: 'varchar(20) DEFAULT NULL' },
+  { table: 'properties', column: 'geocodeLastCheckedAt', definition: 'timestamp DEFAULT NULL' },
 ];
 
 async function main() {

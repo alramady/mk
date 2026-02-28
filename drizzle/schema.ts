@@ -72,6 +72,11 @@ export const properties = mysqlTable("properties", {
   latitude: decimal("latitude", { precision: 10, scale: 7 }),
   longitude: decimal("longitude", { precision: 10, scale: 7 }),
   googleMapsUrl: text("googleMapsUrl"),
+  locationSource: mysqlEnum("locationSource", ["MANUAL", "GEOCODE", "PIN"]),
+  locationVisibility: mysqlEnum("locationVisibility", ["EXACT", "APPROXIMATE", "HIDDEN"]).default("APPROXIMATE").notNull(),
+  placeId: varchar("placeId", { length: 255 }),
+  geocodeProvider: varchar("geocodeProvider", { length: 20 }),
+  geocodeLastCheckedAt: timestamp("geocodeLastCheckedAt"),
   // Details
   bedrooms: int("bedrooms").default(1),
   bathrooms: int("bathrooms").default(1),
@@ -896,3 +901,19 @@ export const integrationConfigs = mysqlTable("integration_configs", {
 });
 export type IntegrationConfig = typeof integrationConfigs.$inferSelect;
 export type InsertIntegrationConfig = typeof integrationConfigs.$inferInsert;
+
+// ─── Geocode Cache ──────────────────────────────────────────────────
+export const geocodeCache = mysqlTable("geocode_cache", {
+  id: int("id").autoincrement().primaryKey(),
+  addressHash: varchar("addressHash", { length: 64 }).notNull(),
+  provider: varchar("provider", { length: 20 }).notNull().default("google"),
+  lat: decimal("lat", { precision: 10, scale: 7 }).notNull(),
+  lng: decimal("lng", { precision: 10, scale: 7 }).notNull(),
+  placeId: varchar("placeId", { length: 255 }),
+  formattedAddress: text("formattedAddress"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  hitCount: int("hitCount").notNull().default(0),
+});
+export type GeocodeCache = typeof geocodeCache.$inferSelect;
+export type InsertGeocodeCache = typeof geocodeCache.$inferInsert;
