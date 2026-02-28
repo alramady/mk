@@ -364,7 +364,18 @@ export const appRouter = router({
         if (input.durationMonths < minMonths || input.durationMonths > maxMonths) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: `Duration must be between ${minMonths} and ${maxMonths} months` });
         }
-        const totalAmount = Number(prop.monthlyRent) * input.durationMonths;
+        // Use unit price when pricingSource=UNIT
+        let effectiveRent = prop.monthlyRent;
+        if ((prop as any).pricingSource === 'UNIT') {
+          try {
+            const { getLinkedUnitByPropertyId } = await import('./finance-registry.js');
+            const linkedUnit = await getLinkedUnitByPropertyId(input.propertyId);
+            if (linkedUnit?.monthlyBaseRentSAR) {
+              effectiveRent = String(linkedUnit.monthlyBaseRentSAR);
+            }
+          } catch (e) { /* fallback to property rent */ }
+        }
+        const totalAmount = Number(effectiveRent) * input.durationMonths;
         const id = await db.createBooking({
           propertyId: input.propertyId,
           tenantId: ctx.user.id,
@@ -373,7 +384,7 @@ export const appRouter = router({
           moveInDate: new Date(input.moveInDate),
           moveOutDate: new Date(input.moveOutDate),
           durationMonths: input.durationMonths,
-          monthlyRent: prop.monthlyRent,
+          monthlyRent: effectiveRent,
           securityDeposit: prop.securityDeposit,
           totalAmount: String(totalAmount),
           tenantNotes: input.tenantNotes,
