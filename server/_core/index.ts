@@ -89,60 +89,6 @@ async function startServer() {
   });
 
 
-  // ─── Temporary Debug Endpoint for Acceptance Testing ─────────────
-  app.get("/api/debug-proof", async (req, res) => {
-    try {
-      const { getPool } = await import("../db");
-      const pool = getPool();
-      if (!pool) return res.json({ error: "no pool" });
-      
-      // Property #2 data
-      const [props] = await pool.query(`SELECT id, titleAr, titleEn, pricingSource, monthlyRent, status FROM properties WHERE id = 2`);
-      
-      // Linked unit for property #2
-      const [units] = await pool.query(`SELECT id, unitNumber, monthlyBaseRentSAR, propertyId, buildingId FROM units WHERE propertyId = 2 LIMIT 1`);
-      
-      // All bookings
-      const [bookings] = await pool.query(`SELECT id, propertyId, tenantId, status, monthlyRent, totalAmount, durationMonths FROM bookings ORDER BY id DESC LIMIT 5`);
-      
-      // All ledger entries
-      const [ledger] = await pool.query(`SELECT id, invoiceNumber, bookingId, unitId, type, amount, status, propertyDisplayName FROM payment_ledger ORDER BY id DESC LIMIT 5`);
-      
-      // Property #2 photos count from JSON field
-      const prop2 = (props as any[])[0];
-      const photoCount = prop2?.photos ? (typeof prop2.photos === 'string' ? JSON.parse(prop2.photos) : prop2.photos).length : 0;
-      
-      res.json({
-        property2: prop2 || null,
-        linkedUnit: (units as any[])[0] || null,
-        recentBookings: bookings,
-        recentLedger: ledger,
-        property2PhotoCount: photoCount,
-      });
-    } catch (e: any) {
-      res.json({ error: e.message });
-    }
-  });
-
-  // ─── Temporary: Create ledger entry for acceptance testing ─────
-  app.post("/api/debug-create-ledger", async (req, res) => {
-    try {
-      const { getPool } = await import("../db");
-      const pool = getPool();
-      if (!pool) return res.json({ error: "no pool" });
-      const inv = `INV-TEST-${Date.now()}`;
-      await pool.query(
-        `INSERT INTO payment_ledger (invoiceNumber, bookingId, unitId, unitNumber, propertyDisplayName, type, direction, amount, currency, status, dueAt, createdBy)
-         VALUES (?, 2, 3, 'a-1', 'شقة في الرياض', 'RENT', 'IN', '12500.00', 'SAR', 'DUE', NOW(), 1)`,
-        [inv]
-      );
-      // Return the created entry
-      const [rows] = await pool.query(`SELECT * FROM payment_ledger WHERE invoiceNumber = ?`, [inv]);
-      res.json({ created: (rows as any[])[0] });
-    } catch (e: any) {
-      res.json({ error: e.message });
-    }
-  });
 
   // ─── Dynamic OG Image Generation ─────────────────────────────────
   // Homepage OG image
