@@ -141,6 +141,46 @@ async function startServer() {
     }
   });
 
+  // ─── Backfill ledger for old bookings ─────────────────────────────
+  app.get("/api/backfill-ledger", async (req, res) => {
+    try {
+      const { getPool } = await import("../db");
+      const pool = getPool();
+      if (!pool) return res.json({ error: "no pool" });
+
+      // Find bookings without ledger entries
+      const [orphanBookings] = await pool.query(`
+        SELECT b.id, b.propertyId, b.totalAmount, b.monthlyRent, b.unitId,
+               p.titleAr AS propertyName
+        FROM bookings b
+        LEFT JOIN payment_ledger pl ON pl.bookingId = b.id
+        LEFT JOIN properties p ON p.id = b.propertyId
+        WHERE pl.id IS NULL
+      `);
+
+      const created: any[] = [];
+      for (const b of orphanBookings as any[]) {
+        const invoiceNumber = `INV-BF-${Date.now()}-${b.id}`;
+        // Get unit info if available
+        let unitNumber = null;
+        if (b.unitId) {
+          const [uRows] = await pool.query(`SELECT unitNumber FROM units WHERE id = ?`, [b.unitId]);
+          unitNumber = (uRows as any[])[0]?.unitNumber || null;
+        }
+        await pool.query(`
+          INSERT INTO payment_ledger
+            (invoiceNumber, bookingId, unitId, unitNumber, propertyDisplayName, type, direction, amount, currency, status, dueAt, createdAt)
+          VALUES (?, ?, ?, ?, ?, 'RENT', 'IN', ?, 'SAR', 'DUE', NOW(), NOW())
+        `, [invoiceNumber, b.id, b.unitId || null, unitNumber, b.propertyName || 'Unknown', b.totalAmount]);
+        created.push({ bookingId: b.id, invoiceNumber, amount: b.totalAmount });
+      }
+
+      res.json({ backfilled: created.length, entries: created });
+    } catch (e: any) {
+      res.json({ error: e.message });
+    }
+  });
+
   // ─── Dynamic OG Image Generation ─────────────────────────────────────────mepage OG image
   app.get("/api/og/homepage.png", async (_req, res) => {
     try {
