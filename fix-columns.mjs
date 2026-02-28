@@ -42,6 +42,58 @@ async function main() {
       }
     }
 
+    // Create geocode_cache table if it doesn't exist
+    try {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS \`geocode_cache\` (
+          \`id\` int AUTO_INCREMENT NOT NULL,
+          \`addressHash\` varchar(64) NOT NULL,
+          \`provider\` varchar(20) NOT NULL DEFAULT 'google',
+          \`lat\` decimal(10,7) NOT NULL,
+          \`lng\` decimal(10,7) NOT NULL,
+          \`placeId\` varchar(255) DEFAULT NULL,
+          \`formattedAddress\` text DEFAULT NULL,
+          \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          \`expiresAt\` timestamp NOT NULL,
+          \`hitCount\` int NOT NULL DEFAULT 0,
+          CONSTRAINT \`geocode_cache_id\` PRIMARY KEY(\`id\`),
+          CONSTRAINT \`geocode_cache_hash_provider\` UNIQUE(\`addressHash\`, \`provider\`)
+        )
+      `);
+      console.log('[FixColumns] \u2705 geocode_cache table ensured');
+    } catch (err) {
+      if (err.errno === 1050) {
+        console.log('[FixColumns] \u23ed geocode_cache table already exists');
+      } else {
+        console.error('[FixColumns] \u274c Failed to create geocode_cache:', err.message);
+      }
+    }
+
+    // Add index on geocode_cache
+    try {
+      await conn.execute('CREATE INDEX `idx_geocode_cache_hash` ON `geocode_cache` (`addressHash`)');
+      console.log('[FixColumns] \u2705 geocode_cache index created');
+    } catch (err) {
+      // Index may already exist
+      console.log('[FixColumns] \u23ed geocode_cache index already exists or error:', err.message);
+    }
+
+    // Expand audit_log entityType for MAPS/GEOCODE
+    try {
+      await conn.execute("ALTER TABLE `audit_log` MODIFY COLUMN `entityType` ENUM('BUILDING','UNIT','BEDS24_MAP','LEDGER','EXTENSION','PAYMENT_METHOD','PROPERTY','SUBMISSION','INTEGRATION','MAPS','GEOCODE') NOT NULL");
+      console.log('[FixColumns] \u2705 audit_log entityType expanded');
+    } catch (err) {
+      console.log('[FixColumns] \u23ed audit_log entityType already expanded or error:', err.message);
+    }
+
+    // Expand audit_log action for GEOCODE/PIN_SET/OVERRIDE
+    try {
+      await conn.execute("ALTER TABLE `audit_log` MODIFY COLUMN `action` ENUM('CREATE','UPDATE','ARCHIVE','RESTORE','DELETE','LINK_BEDS24','UNLINK_BEDS24','PUBLISH','UNPUBLISH','CONVERT','TEST','ENABLE','DISABLE','GEOCODE','PIN_SET','OVERRIDE') NOT NULL");
+      console.log('[FixColumns] \u2705 audit_log action expanded');
+    } catch (err) {
+      console.log('[FixColumns] \u23ed audit_log action already expanded or error:', err.message);
+    }
+
     console.log('[FixColumns] Done');
   } catch (err) {
     console.error('[FixColumns] Connection error:', err.message);
