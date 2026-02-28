@@ -195,17 +195,29 @@ export default function PropertyDetail() {
   const description = lang === "ar" ? prop.descriptionAr : prop.descriptionEn;
   const city = lang === "ar" ? prop.cityAr : prop.city;
   const district = lang === "ar" ? prop.districtAr : prop.district;
-  // Helper: proxy external URLs through our server
-  const proxyUrl = (url: string) => {
-    if (!url || url.startsWith("/") || url.startsWith("data:")) return url;
+  // Helper: normalize photo URLs
+  // - Relative /uploads/... paths → use as-is (served by our Express static)
+  // - Old absolute URLs with /uploads/ → strip domain, use relative path
+  // - External URLs (Unsplash etc.) → proxy through our server
+  const normalizePhotoUrl = (url: string): string => {
+    if (!url) return url;
+    // Already a relative path
+    if (url.startsWith("/uploads/")) return url;
+    // Old absolute URL pointing to /uploads/ on any domain → extract relative path
+    if (url.includes("/uploads/")) {
+      return "/uploads/" + url.split("/uploads/").pop();
+    }
+    // data: URLs
+    if (url.startsWith("data:") || url.startsWith("/")) return url;
+    // External URL → proxy
     return `/api/img-proxy?url=${encodeURIComponent(url)}`;
   };
-  // Filter out broken /uploads/ URLs, proxy the rest
-  const validPhotos = (prop.photos || []).filter((url: string) => url && url.startsWith("http") && !url.includes("/uploads/")).map(proxyUrl);
+  // Accept ALL photo URLs (relative, absolute, external) and normalize them
+  const validPhotos = (prop.photos || []).filter((url: string) => !!url).map(normalizePhotoUrl);
   const photos = validPhotos.length ? validPhotos : [
-    proxyUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80"),
-    proxyUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80"),
-    proxyUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80"),
+    normalizePhotoUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80"),
+    normalizePhotoUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80"),
+    normalizePhotoUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80"),
   ];
 
   // Derive location data from the hook (hook is called above, before early returns)

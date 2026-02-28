@@ -108,7 +108,8 @@ export default function MapViewPage() {
       ? [prop.districtAr, prop.cityAr].filter(Boolean).join("، ")
       : [prop.district, prop.city].filter(Boolean).join(", ");
     const typeLabel = propertyTypeLabels[prop.propertyType]?.[isAr ? "ar" : "en"] || prop.propertyType;
-    const photo = prop.photos?.[0] || "";
+    const rawPhoto = prop.photos?.[0] || "";
+    const photo = rawPhoto.startsWith("/uploads/") ? rawPhoto : rawPhoto.includes("/uploads/") ? "/uploads/" + rawPhoto.split("/uploads/").pop() : rawPhoto;
     const rent = Number(prop.monthlyRent).toLocaleString();
     const dir = isAr ? "rtl" : "ltr";
 

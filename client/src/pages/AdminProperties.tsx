@@ -100,7 +100,7 @@ export default function AdminProperties() {
                     {/* Thumbnail */}
                     <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0">
                       {prop.photos?.[0] ? (
-                        <img src={prop.photos[0]} alt="" className="w-full h-full object-cover" />
+                        <img src={(() => { const u = prop.photos[0]; if (!u) return u; if (u.startsWith('/uploads/')) return u; if (u.includes('/uploads/')) return '/uploads/' + u.split('/uploads/').pop(); return u; })()} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Building2 className="h-8 w-8 text-muted-foreground/30" />

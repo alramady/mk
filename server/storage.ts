@@ -274,8 +274,8 @@ export async function storagePut(
   }
   fs.writeFileSync(fullPath, buffer);
 
-  const baseUrl = getPublicBaseUrl();
-  const url = `${baseUrl}/uploads/${key}`;
+  // Always use relative URL for local mode — avoids domain mismatch after Railway redeploys
+  const url = `/uploads/${key}`;
 
   console.log(`[Storage:Local] Saved: ${key} (${buffer.length} bytes) ⚠️ EPHEMERAL`);
   return { key, url };
@@ -299,8 +299,8 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
     return { key, url };
   }
 
-  const baseUrl = getPublicBaseUrl();
-  const url = `${baseUrl}/uploads/${key}`;
+  // Always use relative URL for local mode — avoids domain mismatch after Railway redeploys
+  const url = `/uploads/${key}`;
   return { key, url };
 }
 

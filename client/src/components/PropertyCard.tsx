@@ -77,13 +77,15 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
   const fallbackImg = FALLBACK_IMAGES[property.propertyType] || FALLBACK_IMAGES.default;
   const originalPhoto = property.photos?.[0];
-  // Proxy all external URLs; skip broken /uploads/ paths
+  // Normalize photo URLs: fix old domain, keep relative /uploads/ paths, proxy external
   const resolvedPhoto = originalPhoto
-    ? originalPhoto.includes("/uploads/")
-      ? "" // broken Railway upload — skip
-      : originalPhoto.startsWith("http")
-        ? proxyUrl(originalPhoto)
-        : originalPhoto
+    ? originalPhoto.startsWith("/uploads/")
+      ? originalPhoto // already relative
+      : originalPhoto.includes("/uploads/")
+        ? "/uploads/" + originalPhoto.split("/uploads/").pop() // strip old domain
+        : originalPhoto.startsWith("http")
+          ? proxyUrl(originalPhoto)
+          : originalPhoto
     : "";
 
   const [imgSrc, setImgSrc] = useState(resolvedPhoto || fallbackImg);

@@ -297,11 +297,22 @@ function SubmissionDetailDialog({ id, open, onClose, onRefresh, onConvert }: {
               <div className="space-y-2">
                 <h3 className="font-semibold text-sm text-muted-foreground">الصور ({data.photos.length})</h3>
                 <div className="flex flex-wrap gap-3">
-                  {data.photos.map((photo: any, i: number) => (
-                    <a key={i} href={photo.url} target="_blank" rel="noopener" className="w-28 h-28 rounded-lg overflow-hidden border hover:ring-2 ring-[#3ECFC0] transition-all">
-                      <img src={photo.thumbnailUrl || photo.url} alt="" className="w-full h-full object-cover" />
-                    </a>
-                  ))}
+                  {data.photos.map((photo: any, i: number) => {
+                    // Normalize URLs: strip old domain prefix, keep /uploads/... relative
+                    const fixUrl = (u: string) => {
+                      if (!u) return u;
+                      if (u.startsWith("/uploads/")) return u;
+                      if (u.includes("/uploads/")) return "/uploads/" + u.split("/uploads/").pop();
+                      return u;
+                    };
+                    const imgUrl = fixUrl(photo.thumbnailUrl || photo.url);
+                    const fullUrl = fixUrl(photo.url);
+                    return (
+                      <a key={i} href={fullUrl} target="_blank" rel="noopener" className="w-28 h-28 rounded-lg overflow-hidden border hover:ring-2 ring-[#3ECFC0] transition-all">
+                        <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
