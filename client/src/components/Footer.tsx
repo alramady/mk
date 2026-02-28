@@ -40,7 +40,7 @@ export default function Footer() {
             <img 
               src="/assets/brand/mk-logo-dark.svg"
               alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"} 
-              className="h-16 sm:h-20 w-auto object-contain mb-5 drop-shadow-lg"
+              className="h-16 sm:h-20 w-auto object-contain mb-5"
               style={{ maxWidth: '240px' }} 
             />
             <div className="w-12 h-0.5 bg-gradient-to-r from-[#C9A96E] to-[#3ECFC0] mb-4 rounded-full" />

@@ -182,7 +182,7 @@ export default function MaintenanceMode() {
           <img 
             src="/assets/brand/mk-logo-transparent.svg" 
             alt="Monthly Key" 
-            className="w-28 h-28 drop-shadow-2xl"
+            className="w-28 h-28"
           />
           <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-b from-white/5 to-transparent -z-10 blur-xl animate-pulse" />
         </div>

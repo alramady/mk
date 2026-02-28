@@ -85,7 +85,7 @@ export default function DashboardLayout({
             <img 
               src="/assets/brand/mk-logo-transparent.svg" 
               alt="Monthly Key - المفتاح الشهري" 
-              className="h-24 w-auto object-contain drop-shadow-lg"
+              className="h-24 w-auto object-contain"
               style={{ maxWidth: '120px' }} 
             />
             <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#C5A55A] to-transparent" />

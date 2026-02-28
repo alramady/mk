@@ -649,7 +649,7 @@ export default function Home() {
               <img 
                 src="/assets/brand/mk-logo-dark.svg"
                 alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
-                className="h-[48px] sm:h-[64px] md:h-[80px] w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                className="h-[48px] sm:h-[64px] md:h-[80px] w-auto object-contain"
                 style={{ maxWidth: '360px' }}
               />
             </div>
