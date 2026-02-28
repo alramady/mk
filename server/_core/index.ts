@@ -65,6 +65,18 @@ async function startServer() {
   }));
   console.log(`[Storage] Serving uploads from: ${uploadDir}`);
 
+  // ─── Service Worker (MUST be before static middleware to bypass CDN cache) ──
+  app.get("/sw.js", (_req, res) => {
+    const swPath = process.env.NODE_ENV === "development"
+      ? path.resolve(import.meta.dirname, "../../client/public/sw.js")
+      : path.resolve(import.meta.dirname, "public/sw.js");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Content-Type", "application/javascript");
+    res.sendFile(swPath);
+  });
+
   // ─── Dynamic Sitemap ──────────────────────────────────────────────
   app.get("/sitemap.xml", sitemapHandler);
 
@@ -86,6 +98,16 @@ async function startServer() {
     } catch (e: any) {
       res.json({ status: "error", error: e.message });
     }
+  });
+
+  // Build version endpoint — used by admin UI to confirm latest deploy
+  app.get("/api/build-version", (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache");
+    res.json({
+      buildTime: process.env.BUILD_TIME || "unknown",
+      nodeEnv: process.env.NODE_ENV || "unknown",
+      serverStarted: new Date().toISOString(),
+    });
   });
 
   // ─── Debug Proof Endpoint (acceptance testing) ─────────────────────
