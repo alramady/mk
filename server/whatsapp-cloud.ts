@@ -269,3 +269,61 @@ export function parseDeliveryStatuses(body: any): DeliveryStatus[] {
   }
   return statuses;
 }
+
+// ─── Express Request Handlers for Webhook Endpoints ────────────────
+
+import type { Request, Response } from "express";
+
+/**
+ * GET /api/webhooks/whatsapp — Meta webhook verification challenge
+ */
+export async function handleWhatsAppVerification(req: Request, res: Response) {
+  try {
+    const config = await getWhatsAppConfig();
+    const verifyToken = config?.webhookVerifyToken || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "";
+    
+    const mode = req.query["hub.mode"] as string | undefined;
+    const token = req.query["hub.verify_token"] as string | undefined;
+    const challenge = req.query["hub.challenge"] as string | undefined;
+
+    const result = verifyWebhookChallenge(mode, token, challenge, verifyToken);
+    if (result.valid) {
+      console.log("[WhatsApp Webhook] Verification successful");
+      return res.status(200).send(result.challenge);
+    }
+    console.warn("[WhatsApp Webhook] Verification failed — token mismatch");
+    return res.status(403).json({ error: "Verification failed" });
+  } catch (err: any) {
+    console.error("[WhatsApp Webhook] Verification error:", err.message);
+    return res.status(500).json({ error: "Internal error" });
+  }
+}
+
+/**
+ * POST /api/webhooks/whatsapp — Incoming messages + delivery status updates
+ */
+export async function handleWhatsAppWebhook(req: Request, res: Response) {
+  // Always respond 200 quickly to avoid Meta retries
+  res.status(200).json({ status: "ok" });
+
+  try {
+    // Parse delivery statuses and update DB
+    const statuses = parseDeliveryStatuses(req.body);
+    if (statuses.length > 0) {
+      const { updateWhatsAppMessageStatus } = await import("./db");
+      for (const s of statuses) {
+        try {
+          await updateWhatsAppMessageStatus(s.messageId, s.status);
+        } catch (e: any) {
+          console.error(`[WhatsApp Webhook] Failed to update status for ${s.messageId}:`, e.message);
+        }
+      }
+      console.log(`[WhatsApp Webhook] Processed ${statuses.length} delivery status updates`);
+    }
+
+    // TODO: Handle incoming messages (future feature)
+    // const messages = parseIncomingMessages(req.body);
+  } catch (err: any) {
+    console.error("[WhatsApp Webhook] Processing error:", err.message);
+  }
+}
