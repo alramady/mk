@@ -112,6 +112,12 @@ export default function PropertyDetail() {
 
   const prop = property.data;
 
+  // Privacy-aware location from server (MUST be before early returns to avoid hook-order crash)
+  const locationQuery = trpc.maps.getPropertyLocation.useQuery(
+    { propertyId: id },
+    { enabled: !!id && !!prop }
+  );
+
   // Map ready handler - works with both Google Maps and Leaflet
   const handleMapReady = useCallback((mapInst: MapInstance) => {
     if (!prop) return;
@@ -202,11 +208,7 @@ export default function PropertyDetail() {
     proxyUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80"),
   ];
 
-  // Privacy-aware location from server
-  const locationQuery = trpc.maps.getPropertyLocation.useQuery(
-    { propertyId: prop.id },
-    { enabled: !!prop.id }
-  );
+  // Derive location data from the hook (hook is called above, before early returns)
   const locData = locationQuery.data;
   const lat = locData?.showMap ? locData.lat : (prop.latitude ? Number(prop.latitude) : 24.7136);
   const lng = locData?.showMap ? locData.lng : (prop.longitude ? Number(prop.longitude) : 46.6753);
