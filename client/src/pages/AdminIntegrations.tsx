@@ -25,6 +25,7 @@ const INTEGRATION_ICONS: Record<string, string> = {
   moyasar: "💳",
   email: "📧",
   maps: "🗺️",
+  storage: "☁️",
 };
 
 export default function AdminIntegrations() {
