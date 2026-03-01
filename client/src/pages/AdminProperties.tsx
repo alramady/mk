@@ -318,10 +318,8 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
         const result = await uploadPhoto.mutateAsync({ base64, filename: file.name, contentType: file.type });
         setForm(prev => ({ ...prev, photos: [...prev.photos, result.url] }));
       }
-      toast.success("isAr ? "تم رفع الصور بنجاح" : "Photos uploaded successfully"");
-    } catch {
-      toast.error("isAr ? "فشل رفع الصورة" : "Photo upload failed"");
-    }
+    toast.success(isAr ? "تم رفع الصور بنجاح" : "Photos uploaded successfully");   } catch {
+    toast.error(isAr ? "فشل رفع الصورة" : "Photo upload failed");   }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -337,8 +335,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
       if (!createdId) {
         // First save — create property as draft
         if (!form.titleAr && !form.titleEn) {
-          toast.error("isAr ? "يرجى إدخال العنوان" : "Title is required"");
-          setSaving(false);
+          toast.error(isAr ? "يرجى إدخال العنوان" : "Title is required");       setSaving(false);
           return false;
         }
         if (!form.monthlyRent || Number(form.monthlyRent) <= 0) {
@@ -352,7 +349,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
           monthlyRent: form.monthlyRent || "0",
         });
         setCreatedId(result.id);
-        toast.success(`isAr ? `تم إنشاء العقار #${result.id} كمسودة` : `Property #${result.id} created as draft``);
+        toast.success(isAr ? `تم إنشاء العقار #${result.id} كمسودة` : `Property #${result.id} created as draft`);
       } else {
         // Update existing property
         const clean: Record<string, any> = { id: createdId, ...form };
@@ -362,13 +359,11 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
           if (clean[k] === '') clean[k] = undefined;
         }
         await updateProperty.mutateAsync(clean as any);
-        toast.success("isAr ? "تم حفظ التعديلات" : "Changes saved"");
-      }
+     toast.success(isAr ? "تم حفظ التعديلات" : "Changes saved");      }
       setSaving(false);
       return true;
     } catch (err: any) {
-      toast.error(err?.message || "isAr ? "حدث خطأ أثناء الحفظ" : "Error saving"");
-      setSaving(false);
+      toast.error(err?.message || (isAr ? "حدث خطأ أثناء الحفظ" : "Error saving"));   setSaving(false);
       return false;
     }
   };
@@ -407,11 +402,10 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
     setPublishing(true);
     try {
       await publishMutation.mutateAsync({ id: createdId });
-      toast.success("isAr ? "تم نشر العقار بنجاح على الموقع!" : "Property published successfully!"");
-      onSuccess();
+   toast.success(isAr ? "تم نشر العقار بنجاح على الموقع!" : "Property published successfully!");      onSuccess();
       resetWizard();
     } catch (err: any) {
-      toast.error(err?.message || "isAr ? "فشل النشر" : "Publish failed"");
+  toast.error(err?.message || (isAr ? "فشل النشر" : "Publish failed"));
     }
     setPublishing(false);
   };
