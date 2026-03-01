@@ -42,6 +42,12 @@ self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('/api/')) return;
   if (event.request.url.includes('/trpc/')) return;
 
+  // Skip cross-origin requests (e.g., R2 storage images, external CDNs).
+  // Let the browser handle them directly via img-src CSP — avoids
+  // connect-src blocking SW fetch() for cross-origin image URLs.
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) return;
+
   // For navigation requests (HTML pages), always network-first with no cache fallback
   // This prevents stale SPA shells from being served
   if (event.request.mode === 'navigate') {

@@ -50,8 +50,8 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
     "img-src 'self' data: blob: https: http: https://*.tile.openstreetmap.org https://maps.gstatic.com https://maps.googleapis.com https://*.ggpht.com",
     // Media
     "media-src 'self' https://cdn.jsdelivr.net blob:",
-    // Connect: self + Google Maps APIs + OpenStreetMap + Analytics + PayPal
-    "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://*.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com https://*.paypal.com wss:",
+    // Connect: self + Google Maps APIs + OpenStreetMap + Analytics + PayPal + R2 storage
+    "connect-src 'self' https://pub-38c4c6d7eb714a07a24cd2d4c7870282.r2.dev https://*.r2.dev https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://*.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com https://*.paypal.com https://api.moyasar.com wss:",
     // Frames: self + PayPal + Google Maps
     "frame-src 'self' https://*.paypal.com https://maps.google.com",
     "object-src 'none'",

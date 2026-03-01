@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CostCalculator from "@/components/CostCalculator";
 import PaymentMethodsBadges from "@/components/PaymentMethodsBadges";
 import {
-  Heart, Share2, MapPin, BedDouble, Bath, Maximize2, Building, Calendar,
+  Heart, Share2, MapPin, BedDouble, Bath, Maximize2, Building, Building2, Calendar,
   CheckCircle, Star, MessageSquare, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight,
   Wifi, Car, Dumbbell, Shield, Wind, Droplets, Zap, Flame, Tv, Shirt,
   Phone, UserCog, Clock, Eye, Calculator, X
@@ -197,12 +197,9 @@ export default function PropertyDetail() {
   const city = lang === "ar" ? prop.cityAr : prop.city;
   const district = lang === "ar" ? prop.districtAr : prop.district;
   // Normalize ALL photo URLs consistently using shared utility
-  const validPhotos = (prop.photos || []).filter((url: string) => !!url).map(normalizeImageUrl);
-  const photos = validPhotos.length ? validPhotos : [
-    normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80"),
-    normalizeImageUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80"),
-    normalizeImageUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80"),
-  ];
+  // NO Unsplash fallback — show placeholder only when there are truly no photos
+  const photos = (prop.photos || []).filter((url: string) => !!url).map(normalizeImageUrl);
+  const hasPhotos = photos.length > 0;
 
   // Derive location data from the hook (hook is called above, before early returns)
   const locData = locationQuery.data;
@@ -257,19 +254,41 @@ export default function PropertyDetail() {
                 touchStartX.current = null;
               }}
             >
-              <img
-                src={photos[currentPhoto]}
-                alt={title}
-                loading="eager"
-                className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]"
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  if (!target.dataset.fallback) {
-                    target.dataset.fallback = "1";
-                    target.src = normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80");
-                  }
-                }}
-              />
+              {hasPhotos ? (
+                <img
+                  src={photos[currentPhoto]}
+                  alt={title}
+                  loading="eager"
+                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.dataset.failed) {
+                      target.dataset.failed = "1";
+                      // Show error state — do NOT swap to Unsplash
+                      target.style.display = "none";
+                      const fallback = target.nextElementSibling as HTMLElement | null;
+                      if (fallback) fallback.style.display = "flex";
+                      console.error(`[PropertyDetail] Image failed to load: ${photos[currentPhoto]}`);
+                    }
+                  }}
+                />
+              ) : null}
+              {/* Error fallback or no-photo placeholder */}
+              {hasPhotos ? (
+                <div style={{ display: "none" }} className="absolute inset-0 flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+                  <Building2 className="h-16 w-16 text-[#3ECFC0]/40 mb-3" />
+                  <span className="text-sm text-muted-foreground/60 font-medium">
+                    {lang === "ar" ? "فشل تحميل الصورة" : "Image failed to load"}
+                  </span>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+                  <Building2 className="h-16 w-16 text-[#3ECFC0]/40 mb-3" />
+                  <span className="text-sm text-muted-foreground/60 font-medium">
+                    {lang === "ar" ? "لا توجد صور بعد" : "No photos yet"}
+                  </span>
+                </div>
+              )}
               {/* Photo count badge */}
               <div dir="ltr" className="absolute bottom-3 end-3 text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 z-10" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', color: '#ffffff' }}>
                 <Eye className="h-3 w-3" />

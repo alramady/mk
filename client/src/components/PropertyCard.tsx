@@ -98,21 +98,22 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
               loading="lazy"
               decoding="async"
               onError={(e) => {
-                // Hide broken img, show fallback sibling
+                // Hide broken img, show fallback sibling + log failure
                 const target = e.currentTarget;
                 target.style.display = "none";
                 const fallback = target.nextElementSibling as HTMLElement | null;
                 if (fallback) fallback.style.display = "flex";
+                console.error(`[PropertyCard] Image failed to load: ${imgSrc}`);
               }}
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
           )}
           {/* Error fallback (hidden by default, shown on img error) */}
           {imgSrc && (
-            <div style={{ display: "none" }} className="absolute inset-0 flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
-              <Building2 className="h-12 w-12 text-[#3ECFC0]/40 mb-2" />
-              <span className="text-xs text-muted-foreground/60 font-medium">
-                {lang === "ar" ? "صورة قريباً" : "Photo coming soon"}
+            <div style={{ display: "none" }} className="absolute inset-0 flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/20">
+              <Building2 className="h-10 w-10 text-amber-500/60 mb-1" />
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                {lang === "ar" ? "فشل تحميل الصورة" : "Image failed to load"}
               </span>
             </div>
           )}

@@ -171,7 +171,7 @@ export default function BookingFlow() {
           <CardContent className="p-0">
             <div className="flex items-stretch">
               <div className="w-28 h-28 shrink-0 bg-muted">
-                <img src={normalizeImageUrl(prop.photos?.[0]) || normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80")} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
+                <img src={normalizeImageUrl(prop.photos?.[0]) || BROKEN_IMAGE_PLACEHOLDER} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
               </div>
               <div className="flex-1 p-4 flex flex-col justify-center">
                 <h3 className="font-semibold text-base">{title}</h3>
