@@ -1069,6 +1069,24 @@ export const appRouter = router({
     approveProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ id: z.number(), status: z.enum(["active", "rejected", "published", "draft", "archived"]), reason: z.string().optional() }))
       .mutation(async ({ input }) => {
+        // Publish guard: if setting to 'published', enforce the same validation as publishProperty
+        if (input.status === 'published') {
+          const prop = await db.getPropertyById(input.id);
+          if (!prop) throw new TRPCError({ code: 'NOT_FOUND', message: 'Property not found' });
+          const errors: string[] = [];
+          if ((prop as any).pricingSource === 'PROPERTY' || !(prop as any).pricingSource) {
+            if (!prop.monthlyRent || Number(prop.monthlyRent) <= 0) errors.push('monthlyRent must be > 0 / الإيجار الشهري يجب أن يكون أكبر من 0');
+          } else if ((prop as any).pricingSource === 'UNIT') {
+            const linkedUnits = await sharedDb.select().from(units).where(eqDrizzle(units.propertyId, input.id));
+            const validUnits = linkedUnits.filter(u => u.unitStatus !== 'BLOCKED' && u.unitStatus !== 'MAINTENANCE');
+            if (validUnits.length !== 1) errors.push('UNIT pricing requires exactly one linked unit / تسعير الوحدة يتطلب وحدة واحدة مرتبطة');
+            else if (!validUnits[0].monthlyBaseRentSAR || Number(validUnits[0].monthlyBaseRentSAR) <= 0) errors.push('Linked unit must have rent > 0 / الوحدة المرتبطة يجب أن يكون لها إيجار');
+          }
+          if (!prop.titleEn && !prop.titleAr) errors.push('Property must have at least one title / يجب أن يكون للعقار عنوان');
+          const hasPhotos = prop.photos && (prop.photos as string[]).length > 0;
+          if (!hasPhotos) errors.push('Property must have at least one photo / يجب أن يكون للعقار صورة واحدة على الأقل');
+          if (errors.length > 0) throw new TRPCError({ code: 'BAD_REQUEST', message: `Publish guard failed: ${errors.join('; ')}` });
+        }
         await db.updateProperty(input.id, { status: input.status });
         return { success: true };
       }),
@@ -1088,7 +1106,9 @@ export const appRouter = router({
           if (validUnits.length !== 1) errors.push('UNIT pricing requires exactly one linked unit (not BLOCKED/MAINTENANCE)');
           else if (!validUnits[0].monthlyBaseRentSAR || Number(validUnits[0].monthlyBaseRentSAR) <= 0) errors.push('Linked unit must have monthlyBaseRentSAR > 0');
         }
-        if (!prop.titleEn && !prop.titleAr) errors.push('Property must have at least one title');
+        if (!prop.titleEn && !prop.titleAr) errors.push('Property must have at least one title / يجب أن يكون للعقار عنوان');
+        const hasPhotos = prop.photos && (prop.photos as string[]).length > 0;
+        if (!hasPhotos) errors.push('Property must have at least one photo / يجب أن يكون للعقار صورة واحدة على الأقل');
         if (errors.length > 0) throw new TRPCError({ code: 'BAD_REQUEST', message: `Publish guard failed: ${errors.join('; ')}` });
         await db.updateProperty(input.id, { status: 'published' });
         await sharedDb.insert(auditLog).values({
@@ -1252,6 +1272,16 @@ export const appRouter = router({
         const { id, ...data } = input;
         const prop = await db.getPropertyById(id);
         if (!prop) throw new TRPCError({ code: 'NOT_FOUND' });
+
+        // Publish guard: block setting status to 'published' via adminUpdate
+        // Must use publishProperty endpoint instead, which has full validation
+        if (data.status === 'published' && prop.status !== 'published') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Cannot publish via adminUpdate. Use publishProperty endpoint which validates readiness / لا يمكن النشر عبر التحديث. استخدم زر النشر الذي يتحقق من الجاهزية',
+          });
+        }
+
         // Clean empty strings → null for decimal/numeric columns to avoid MySQL errors
         const numericFields = ['monthlyRent', 'securityDeposit', 'latitude', 'longitude', 'sizeSqm'];
         const cleaned: any = { ...data };
