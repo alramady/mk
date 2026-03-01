@@ -2,8 +2,9 @@
 # ═══════════════════════════════════════════════════════════════
 # check-no-proprietary.sh — CI Guard
 #
-# Fails the build if proprietary strings appear in runtime code
-# paths. Documentation and this script itself are excluded.
+# Fails the build if proprietary/external-AI-platform strings
+# appear in runtime code paths.
+# Documentation and this script itself are excluded.
 #
 # Usage:
 #   ./scripts/check-no-proprietary.sh
@@ -19,53 +20,47 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-# Patterns to search for (case-insensitive)
-PATTERNS=(
-  "manus\.ai"
-  "manus\.im"
-  "manus\.computer"
-  "manus-sdk"
-  "manus-agent"
-  "@manus/"
-  "MANUS_API"
-  "manus-telemetry"
-)
+# Build the pattern file dynamically so this script itself stays clean
+PATTERN_FILE=$(mktemp)
+trap 'rm -f "$PATTERN_FILE"' EXIT
+
+# Encode patterns as base64 to avoid self-matching
+# Each line below decodes to a prohibited string pattern
+echo "bWFudXMuYWk=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "bWFudXMuaW0=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "bWFudXMuY29tcHV0ZXI=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "bWFudXMtc2Rr" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "bWFudXMtYWdlbnQ=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "QG1hbnVzLw==" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "TUFOVVNFQVBJ" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "bWFudXMtdGVsZW1ldHJ5" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "bWFudXNjZG4=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "dml0ZS1wbHVnaW4tbWFudXM=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "TWFudXNEaWFsb2c=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "Zm9yZ2VBcGlVcmw=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "Zm9yZ2VBcGlLZXk=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
+echo "QlVJTFRfSU5fRk9SR0U=" | base64 -d >> "$PATTERN_FILE" && echo >> "$PATTERN_FILE"
 
 # Directories to scan (runtime code only)
 SCAN_DIRS=(
+  "server/"
+  "client/"
+  "shared/"
+  "drizzle/"
   "services/"
   "apps/"
   "packages/"
 )
 
-# Files/dirs to exclude from scan
-EXCLUDE_PATTERNS=(
-  "*/node_modules/*"
-  "*/.git/*"
-  "*/dist/*"
-  "*/build/*"
-  "*/docs/*"
-  "*/scripts/check-no-proprietary.sh"
-  "*/.manus-logs/*"
-  "*/README.md"
-  "*/.env*"
-)
-
-echo "🔍 Scanning for proprietary references in runtime code..."
+echo "Scanning for proprietary references in runtime code..."
 echo ""
 
 FOUND=0
 
-for pattern in "${PATTERNS[@]}"; do
-  # Build grep exclude args
-  EXCLUDE_ARGS=""
-  for excl in "${EXCLUDE_PATTERNS[@]}"; do
-    EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude-dir=$(dirname "$excl" 2>/dev/null || echo "$excl")"
-  done
-
+while IFS= read -r pattern; do
+  [ -z "$pattern" ] && continue
   for dir in "${SCAN_DIRS[@]}"; do
     if [ -d "$dir" ]; then
-      # Use grep with exclusions
       MATCHES=$(grep -rni "$pattern" "$dir" \
         --include="*.ts" \
         --include="*.tsx" \
@@ -73,6 +68,7 @@ for pattern in "${PATTERNS[@]}"; do
         --include="*.jsx" \
         --include="*.json" \
         --include="*.css" \
+        --include="*.html" \
         --exclude-dir="node_modules" \
         --exclude-dir="dist" \
         --exclude-dir="build" \
@@ -80,14 +76,14 @@ for pattern in "${PATTERNS[@]}"; do
         2>/dev/null || true)
 
       if [ -n "$MATCHES" ]; then
-        echo -e "${RED}❌ Found '$pattern' in:${NC}"
+        echo -e "${RED}FAIL: Found '$pattern' in:${NC}"
         echo "$MATCHES" | head -20
         echo ""
         FOUND=1
       fi
     fi
   done
-done
+done < "$PATTERN_FILE"
 
 if [ "$FOUND" -eq 1 ]; then
   echo -e "${RED}══════════════════════════════════════════════${NC}"
@@ -95,6 +91,6 @@ if [ "$FOUND" -eq 1 ]; then
   echo -e "${RED}══════════════════════════════════════════════${NC}"
   exit 1
 else
-  echo -e "${GREEN}✅ No proprietary references found — all clear.${NC}"
+  echo -e "${GREEN}No proprietary references found — all clear.${NC}"
   exit 0
 fi

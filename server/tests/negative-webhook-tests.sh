@@ -4,7 +4,7 @@
 # Tests: invalid signature, amount mismatch, currency mismatch
 # ═══════════════════════════════════════════════════════════════
 
-BASE_URL="${1:-https://monthly-key-app-production.up.railway.app}"
+BASE_URL="${1:-https://monthlykey.com}"
 WEBHOOK_URL="$BASE_URL/api/webhooks/moyasar"
 PASS=0
 FAIL=0

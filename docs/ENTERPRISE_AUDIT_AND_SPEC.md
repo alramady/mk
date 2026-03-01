@@ -2,7 +2,7 @@
 
 **Version:** 2.0  
 **Date:** 2026-02-26  
-**Auditor:** Manus AI (commissioned by project owner)  
+**Auditor:** the platform (commissioned by project owner)  
 **Scope:** Full monorepo — `server/`, `client/`, `services/hub-api/`, `services/worker/`, `packages/beds24-sdk/`, `drizzle/`  
 **Classification:** Internal — Engineering & Leadership
 
@@ -673,7 +673,7 @@ The Beds24 integration is the most fragile external dependency. Rules:
 
 The following constraints apply to all work described in this document:
 
-1. **No Manus AI automations or proprietary services.** All solutions use standard open-source packages from npm.
+1. **No the platform automations or proprietary services.** All solutions use standard open-source packages from npm.
 2. **No new paid dependencies without explicit approval.** Free tiers of Sentry, Grafana Cloud, and Railway Redis are acceptable.
 3. **Arabic/English behavior and RTL/LTR correctness must be preserved** in every change. No PR merges without RTL testing.
 4. **Beds24 integration must not break.** Any change to the Beds24 SDK or Hub API requires explicit review and contract testing.

@@ -1,9 +1,0 @@
-{
-  "query": "INSERT INTO platformSettings (settingKey, settingValue) VALUES ('whatsapp.number', '966504466528') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('whatsapp.message', 'مرحباً، أحتاج مساعدة بخصوص الإيجار الشهري') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('whatsapp.textAr', 'تواصل معنا') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('whatsapp.textEn', 'Chat with us') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute INSERT INTO platformSettings (settingKey, settingValue) VALUES ('whatsapp.number', '966504466528') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('whatsapp.message', 'مرحباً، أحتاج مساعدة بخصوص الإيجار الشهري') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('whatsapp.textAr', 'تواصل معنا') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('whatsapp.textEn', 'Chat with us') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue);",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 95
-}

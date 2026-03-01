@@ -3392,5 +3392,34 @@ export const appRouter = router({
         };
       }),
   }),
+  // ─── Audit Log (Admin Viewer) ──
+  audit: router({
+    list: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(50),
+        entityType: z.string().optional(),
+        action: z.string().optional(),
+      }))
+      .query(async ({ input }) => {
+        const pool = (await import('./db')).getPool();
+        if (!pool) return { items: [], total: 0 };
+        const conditions: string[] = [];
+        const params: unknown[] = [];
+        if (input.entityType) { conditions.push('entityType = ?'); params.push(input.entityType); }
+        if (input.action) { conditions.push('action = ?'); params.push(input.action); }
+        const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+        const offset = (input.page - 1) * input.limit;
+        const [rows] = await pool.execute(
+          `SELECT * FROM audit_log ${where} ORDER BY createdAt DESC LIMIT ${input.limit} OFFSET ${offset}`,
+          params
+        );
+        const [countRows] = await pool.execute(
+          `SELECT COUNT(*) as total FROM audit_log ${where}`,
+          params
+        );
+        return { items: rows as any[], total: (countRows as any[])[0]?.total ?? 0 };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

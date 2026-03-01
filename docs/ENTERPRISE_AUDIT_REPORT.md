@@ -2,7 +2,7 @@
 
 **Version:** 2.0  
 **Date:** 2026-02-26  
-**Auditor:** Manus AI  
+**Auditor:** the platform  
 **Classification:** Internal — Engineering & Security  
 **Compliance note:** No Beds24 changes. No Mansun dependency added.
 

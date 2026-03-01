@@ -162,9 +162,8 @@ export const ENV = {
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
   openaiImageModel: process.env.OPENAI_IMAGE_MODEL ?? "dall-e-3",
   openaiWhisperModel: process.env.OPENAI_WHISPER_MODEL ?? "whisper-1",
-  // Legacy Forge API vars (mapped to OpenAI for backward compat)
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? process.env.OPENAI_API_KEY ?? "",
+  // Google Maps API key (direct, no proxy)
+  googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
   // File storage (S3-compatible or local fallback)
   uploadDir: process.env.UPLOAD_DIR ?? "uploads",
   publicUrl: process.env.PUBLIC_URL ?? "", // Auto-detected from request if empty

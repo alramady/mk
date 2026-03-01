@@ -1,9 +1,0 @@
-{
-  "query": "CREATE TABLE IF NOT EXISTS `ai_documents` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `filename` varchar(255) NOT NULL,\n  `fileUrl` text NOT NULL,\n  `fileKey` text NOT NULL,\n  `mimeType` varchar(100) NOT NULL,\n  `fileSize` int NOT NULL,\n  `extractedText` text,\n  `category` varchar(100) DEFAULT 'general',\n  `description` text,\n  `descriptionAr` text,\n  `isActive` boolean DEFAULT true,\n  `uploadedBy` int NOT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `ai_documents_id` PRIMARY KEY(`id`)\n);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute CREATE TABLE IF NOT EXISTS `ai_documents` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `filename` varchar(255) NOT NULL,\n  `fileUrl` text NOT NULL,\n  `fileKey` text NOT NULL,\n  `mimeType` varchar(100) NOT NULL,\n  `fileSize` int NOT NULL,\n  `extractedText` text,\n  `category` varchar(100) DEFAULT 'general',\n  `description` text,\n  `descriptionAr` text,\n  `isActive` boolean DEFAULT true,\n  `uploadedBy` int NOT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `ai_documents_id` PRIMARY KEY(`id`)\n);",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 391
-}

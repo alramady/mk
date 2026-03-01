@@ -24,7 +24,7 @@ const BOT_USER_AGENTS = [
   'lighthouse', 'chrome-lighthouse', 'pagespeed',
 ];
 
-const BASE_URL = process.env.PUBLIC_URL || "https://monthly-key-app-production.up.railway.app";
+const BASE_URL = process.env.PUBLIC_URL || "https://monthlykey.com";
 
 function isBot(userAgent: string): boolean {
   const ua = userAgent.toLowerCase();
@@ -63,7 +63,7 @@ async function generateHomeHTML(): Promise<string> {
     const featuredProps = await db
       .select()
       .from(properties)
-      .where(eq(properties.status, 'active'))
+      .where(eq(properties.status, 'published'))
       .orderBy(desc(properties.createdAt))
       .limit(12);
 
@@ -225,7 +225,7 @@ async function generateSearchHTML(query: Record<string, string>): Promise<string
     const allProps = await db
       .select()
       .from(properties)
-      .where(eq(properties.status, 'active'))
+      .where(eq(properties.status, 'published'))
       .orderBy(desc(properties.createdAt))
       .limit(20);
 

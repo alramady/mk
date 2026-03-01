@@ -11,7 +11,7 @@ if (!DATABASE_URL) {
 const sql = neon(DATABASE_URL);
 
 const updates = {
-  "hero.bgImage": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ylzCxVKgCIkzWJQu.jpg",
+  "hero.bgImage": "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=1600",
   "hero.bgType": "image",
   "hero.bgVideo": "",
   "hero.overlayOpacity": "35",

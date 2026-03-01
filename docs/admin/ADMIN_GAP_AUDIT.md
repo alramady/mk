@@ -187,4 +187,4 @@
 ---
 
 **آخر تحديث / Last Updated:** 2026-02-28
-**المؤلف / Author:** Manus AI
+**المؤلف / Author:** the platform

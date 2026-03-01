@@ -25,9 +25,9 @@ Monthly Key may use, modify, distribute, sublicense, sell, or commercialize any 
 
 ---
 
-## 2. Zero Manus-Specific Runtime Dependencies
+## 2. Zero Monthly Key-Specific Runtime Dependencies
 
-The platform code requires **no Manus SDK, Manus API, Manus service, or Manus infrastructure** to run. Every runtime dependency is a standard, publicly available npm package published under permissive open-source licenses (MIT, Apache-2.0). The complete dependency chain is resolvable from the public npm registry.
+The platform code requires **no Monthly Key SDK, Monthly Key API, Monthly Key service, or Monthly Key infrastructure** to run. Every runtime dependency is a standard, publicly available npm package published under permissive open-source licenses (MIT, Apache-2.0). The complete dependency chain is resolvable from the public npm registry.
 
 ---
 
@@ -35,22 +35,22 @@ The platform code requires **no Manus SDK, Manus API, Manus service, or Manus in
 
 There is **no code** in the `platform/monorepo` branch that:
 
-- Sends telemetry or analytics to Manus or any third party
-- Contacts any Manus server at runtime
+- Sends telemetry or analytics to Monthly Key or any third party
+- Contacts any Monthly Key server at runtime
 - Performs license validation or activation checks
-- Contains time-bombs, feature gates, or expiration logic tied to Manus
+- Contains time-bombs, feature gates, or expiration logic tied to Monthly Key
 - Includes obfuscated or minified proprietary code
 
 The only external network calls in the codebase are to **Beds24's public API** (`api.beds24.com`), which is Monthly Key's chosen property management system.
 
 ---
 
-## 4. Clear Separation — Manus-Hosted vs. Platform Code
+## 4. Clear Separation — Monthly Key-Hosted vs. Platform Code
 
-| Component | Manus Dependency | Status |
+| Component | Monthly Key Dependency | Status |
 |-----------|-----------------|--------|
 | **`platform/monorepo` branch** (all services, packages, tests, docs) | **NONE** | 100% portable, runs anywhere |
-| **`mk-hardening-kb` webdev project** (knowledge base website) | **YES** — uses Manus hosting | Separate artifact, NOT part of the platform |
+| **`mk-hardening-kb` webdev project** (knowledge base website) | **YES** — uses Monthly Key hosting | Separate artifact, NOT part of the platform |
 
 The `mk-hardening-kb` website is a **completely separate artifact** from the platform. It shares no code, no dependencies, and no runtime coupling with the `platform/monorepo` branch.
 

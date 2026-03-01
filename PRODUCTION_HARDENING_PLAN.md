@@ -1,7 +1,7 @@
 # Monthly Key - خطة تقوية الجاهزية للإنتاج
 
 **تاريخ:** 24 فبراير 2026
-**المؤلف:** Manus AI (Principal Web Architect / SRE)
+**المؤلف:** the platform (Principal Web Architect / SRE)
 **الحالة:** مسودة
 
 ## مقدمة

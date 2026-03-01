@@ -68,6 +68,7 @@ const AdminPropertyEdit = lazy(() => import("./pages/AdminPropertyEdit"));
 const AdminSubmissions = lazy(() => import("./pages/AdminSubmissions"));
 const AdminIntegrations = lazy(() => import("./pages/AdminIntegrations"));
 const AdminBookings = lazy(() => import("./pages/AdminBookings"));
+const AdminAuditLog = lazy(() => import("./pages/AdminAuditLog"));
 const SubmitProperty = lazy(() => import("./pages/SubmitProperty"));
 
 function PageLoader() {
@@ -117,6 +118,7 @@ function Router() {
         <Route path="/admin/properties" component={AdminProperties} />
         <Route path="/admin/submissions" component={AdminSubmissions} />
         <Route path="/admin/integrations" component={AdminIntegrations} />
+        <Route path="/admin/audit-log" component={AdminAuditLog} />
         {/* Admin dashboard catch-all (must be LAST among /admin routes) */}
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/messages" component={Messages} />

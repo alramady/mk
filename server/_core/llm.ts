@@ -210,8 +210,8 @@ const normalizeToolChoice = (
 };
 
 const resolveApiUrl = () => {
-  // Priority: OPENAI_BASE_URL > BUILT_IN_FORGE_API_URL > default OpenAI
-  const base = ENV.openaiBaseUrl || ENV.forgeApiUrl || "https://api.openai.com/v1";
+  // Priority: OPENAI_BASE_URL > default OpenAI
+  const base = ENV.openaiBaseUrl || "https://api.openai.com/v1";
   const cleaned = base.replace(/\/+$/, "");
   // If base already ends with /v1, just append /chat/completions
   if (cleaned.endsWith("/v1")) {
@@ -248,7 +248,7 @@ export async function getApiKeyAsync(): Promise<string> {
   const dbKey = await refreshApiKeyFromDb();
   if (dbKey) return dbKey;
   // Fall back to env var
-  const key = ENV.openaiApiKey || ENV.forgeApiKey;
+  const key = ENV.openaiApiKey;
   if (!key) {
     throw new Error("OPENAI_API_KEY is not configured. Set it in Admin Panel → AI Settings or as environment variable.");
   }
@@ -260,7 +260,7 @@ const getApiKey = () => {
   if (_cachedDbApiKey && (Date.now() - _cacheTimestamp) < CACHE_TTL) {
     return _cachedDbApiKey;
   }
-  const key = ENV.openaiApiKey || ENV.forgeApiKey;
+  const key = ENV.openaiApiKey;
   if (!key && !_cachedDbApiKey) {
     throw new Error("OPENAI_API_KEY is not configured. Set it in Admin Panel → AI Settings or as environment variable.");
   }

@@ -117,7 +117,7 @@
 ## 6. الخريطة (Leaflet + OpenStreetMap)
 
 ### ما تم تغييره:
-تم استبدال Google Maps (الذي كان يستخدم Manus Forge proxy) بـ **Leaflet + OpenStreetMap**:
+تم استبدال Google Maps (الذي كان يستخدم OpenAI API proxy) بـ **Leaflet + OpenStreetMap**:
 - **مجاني بالكامل** — لا يحتاج مفتاح API
 - **يعمل على أي استضافة** — Railway, Vercel, أي سيرفر
 - **نفس الميزات**: علامات مواقع، نوافذ معلومات، تجميع العلامات، فلاتر

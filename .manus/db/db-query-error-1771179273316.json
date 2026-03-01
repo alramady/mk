@@ -1,8 +1,0 @@
-{
-  "query": "ALTER TABLE propertyManagers ADD COLUMN editToken varchar(64) UNIQUE;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute ALTER TABLE propertyManagers ADD COLUMN editToken varchar(64) UNIQUE;",
-  "returncode": 1,
-  "logs": [
-    "ERROR 8200 (HY000) at line 1: unsupported add column 'edittoken' constraint UNIQUE KEY when altering '8PFgRgaokK3FbjLsAWs6oV.propertyManagers'"
-  ]
-}

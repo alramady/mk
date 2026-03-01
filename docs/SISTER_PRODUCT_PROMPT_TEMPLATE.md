@@ -1,6 +1,6 @@
 # Sister-Product Website — Reusable Prompt Template
 
-> **Purpose:** This document is a ready-to-use prompt template for instructing any AI coding agent (Manus, Cursor, Claude, etc.) to build a new product website that integrates with the MonthlyKey ecosystem. Copy the relevant sections, fill in the `{{placeholders}}`, and paste into your agent.
+> **Purpose:** This document is a ready-to-use prompt template for instructing any AI coding agent (Monthly Key, Cursor, Claude, etc.) to build a new product website that integrates with the MonthlyKey ecosystem. Copy the relevant sections, fill in the `{{placeholders}}`, and paste into your agent.
 >
 > **Version:** 2.0 — 2026-02-26  
 > **Maintainer:** MonthlyKey Engineering
@@ -110,8 +110,8 @@ This product connects to MonthlyKey via:
 - MUST use the same JWT secret as MonthlyKey for token verification
 - MUST follow the same database naming conventions (camelCase columns)
 - MUST support Arabic RTL layout as the primary language
-- MUST NOT use any Manus AI automations or proprietary services
-- MUST NOT use manuscdn or any Manus-specific CDN
+- MUST NOT use any the platform automations or proprietary services
+- MUST NOT use Monthly Keycdn or any Monthly Key-specific CDN
 - No new paid dependencies without explicit approval
 ```
 
@@ -425,7 +425,7 @@ Every sister product's CI pipeline MUST include:
 4. **Dependency audit** (`pnpm audit --audit-level=high`) — zero high/critical
 5. **License check** (`license-checker --failOn "GPL-3.0;AGPL-3.0"`) — no copyleft in production deps
 6. **Secret scan** (TruffleHog or similar) — zero secrets in code
-7. **No proprietary check** — grep for `manus`, `manuscdn`, `manus.im` in runtime code paths
+7. **No proprietary check** — grep for `Monthly Key`, `Monthly Keycdn`, `Monthly Key.im` in runtime code paths
 
 ---
 
@@ -441,7 +441,7 @@ Every sister product's CI pipeline MUST include:
 6. **No Hardcoded URLs:** All external URLs must be environment variables.
 7. **Zod Validation:** All API inputs must be validated with Zod schemas.
 8. **Error Boundaries:** Every page component must have an error boundary.
-9. **No Manus Dependencies:** No `manuscdn`, no Manus AI automations, no Manus-specific services.
+9. **No Monthly Key Dependencies:** No `Monthly Keycdn`, no the platform automations, no Monthly Key-specific services.
 
 ### 6.2 Soft Constraints (Strongly Recommended)
 
@@ -788,7 +788,7 @@ Include these guardrails in every sister-product prompt to protect the MonthlyKe
 8. **NEVER hardcode the MonthlyKey domain or API URLs.** Always use environment variables.
 9. **ALWAYS validate webhook signatures** before processing events.
 10. **ALWAYS include rate limiting** on public-facing endpoints.
-11. **NEVER use Manus AI automations, manuscdn, or any Manus-specific services.**
+11. **NEVER use the platform automations, Monthly Keycdn, or any Monthly Key-specific services.**
 12. **NEVER introduce paid dependencies** without explicit approval from the project owner.
 
 ---
@@ -1013,8 +1013,8 @@ MK Clean calls Hub API: PATCH /maintenance/:ticketId
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | 2026-02-25 | Manus AI | Initial template |
-| 2.0 | 2026-02-26 | Manus AI | Added: Integration Contract (Section 2), Mandatory UX Rules (Section 3), Feature Flags (Section 4), Security Baseline (Section 5), Cobnb KSA example (Section 12), Cleaning Company example (Section 13). Updated: Quick-Start Prompt with new placeholders, Architecture Constraints, Database Conventions. |
+| 1.0 | 2026-02-25 | the platform | Initial template |
+| 2.0 | 2026-02-26 | the platform | Added: Integration Contract (Section 2), Mandatory UX Rules (Section 3), Feature Flags (Section 4), Security Baseline (Section 5), Cobnb KSA example (Section 12), Cleaning Company example (Section 13). Updated: Quick-Start Prompt with new placeholders, Architecture Constraints, Database Conventions. |
 
 ---
 

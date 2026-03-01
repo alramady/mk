@@ -1,7 +1,7 @@
 /**
  * OAuth Removal Verification Tests
  * 
- * These tests verify that Manus OAuth has been completely removed
+ * These tests verify that external OAuth has been completely removed
  * and that Local Auth (userId + password) is the only authentication method.
  */
 import { describe, expect, it } from "vitest";
@@ -40,8 +40,8 @@ describe("OAuth Removal Verification", () => {
     expect(fs.existsSync(oauthPath)).toBe(false);
   });
 
-  it("manusTypes.ts file should NOT exist", () => {
-    const typesPath = path.join(SERVER_DIR, "_core", "types", "manusTypes.ts");
+  it("externalTypes.ts file should NOT exist", () => {
+    const typesPath = path.join(SERVER_DIR, "_core", "types", "externalTypes.ts");
     expect(fs.existsSync(typesPath)).toBe(false);
   });
 
@@ -160,10 +160,10 @@ describe("OAuth Removal Verification", () => {
   });
 
   // ─── 15. Frontend Has No OAuth References ──────────────────────────
-  it("useAuth.ts should NOT store manus-runtime-user-info", () => {
+  it("useAuth.ts should NOT store runtime-user-info", () => {
     const useAuthPath = path.join(ROOT_DIR, "client", "src", "_core", "hooks", "useAuth.ts");
     const content = readFileIfExists(useAuthPath);
     expect(content).not.toBeNull();
-    expect(content).not.toContain("manus-runtime-user-info");
+    expect(content).not.toContain("runtime-user-info");
   });
 });

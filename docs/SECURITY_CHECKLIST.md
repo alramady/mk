@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0
 **Date:** February 25, 2026
-**Author:** Manus AI
+**Author:** the platform
 
 ---
 
@@ -85,7 +85,7 @@ This checklist must be completed before every production deployment. Any item ma
 | 6.4 | Railway health check path is `/health` (not `/`) | Review `railway.toml` `healthcheckPath` | ☐ |
 | 6.5 | Database migrations succeed before app starts | `start.sh` should exit on migration failure | ☐ |
 | 6.6 | Error responses do not leak stack traces | Test: trigger a 500 error — response should not contain file paths or stack | ☐ |
-| 6.7 | Debug tools are disabled in production | Verify `vitePluginManusDebugCollector` is excluded from production build | ☐ |
+| 6.7 | Debug tools are disabled in production | Verify `vitePluginMonthly KeyDebugCollector` is excluded from production build | ☐ |
 | 6.8 | `npm audit` shows no critical/high vulnerabilities | `pnpm audit --audit-level=high` — must pass | ☐ |
 
 ## 7. Database Integrity

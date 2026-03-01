@@ -247,4 +247,4 @@ These routes exist but are **not** in the sidebar or the admin map above. They s
 ---
 
 **آخر تحديث / Last Updated:** 2026-02-28
-**المؤلف / Author:** Manus AI
+**المؤلف / Author:** the platform

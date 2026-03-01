@@ -189,5 +189,5 @@ All smoke test data has been removed from production:
 2. Admin adds at least one property for tenant-facing testing
 3. Admin switches Moyasar mode from `test` to `live` when ready
 
-**Tester:** Manus AI  
+**Tester:** the platform  
 **Date:** 2026-02-27

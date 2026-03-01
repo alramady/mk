@@ -1,9 +1,0 @@
-{
-  "query": "CREATE TABLE IF NOT EXISTS inspectionRequests (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  propertyId INT NOT NULL,\n  userId INT NOT NULL,\n  managerId INT,\n  requestedDate TIMESTAMP NOT NULL,\n  requestedTimeSlot VARCHAR(50) NOT NULL,\n  status ENUM('pending','confirmed','completed','cancelled','no_show') NOT NULL DEFAULT 'pending',\n  fullName VARCHAR(255) NOT NULL,\n  phone VARCHAR(20) NOT NULL,\n  email VARCHAR(320),\n  notes TEXT,\n  adminNotes TEXT,\n  confirmedAt TIMESTAMP NULL,\n  completedAt TIMESTAMP NULL,\n  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute CREATE TABLE IF NOT EXISTS inspectionRequests (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  propertyId INT NOT NULL,\n  userId INT NOT NULL,\n  managerId INT,\n  requestedDate TIMESTAMP NOT NULL,\n  requestedTimeSlot VARCHAR(50) NOT NULL,\n  status ENUM('pending','confirmed','completed','cancelled','no_show') NOT NULL DEFAULT 'pending',\n  fullName VARCHAR(255) NOT NULL,\n  phone VARCHAR(20) NOT NULL,\n  email VARCHAR(320),\n  notes TEXT,\n  adminNotes TEXT,\n  confirmedAt TIMESTAMP NULL,\n  completedAt TIMESTAMP NULL,\n  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 81
-}

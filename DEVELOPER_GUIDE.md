@@ -71,7 +71,7 @@ The platform follows a monorepo structure with shared types flowing end-to-end v
 | ORM | Drizzle | Latest |
 | Database | MySQL / TiDB | 8.x |
 | Auth | JWT (bcrypt) | Custom |
-| Storage | S3 (Manus) | Built-in |
+| Storage | S3 (Monthly Key) | Built-in |
 | Maps | Google Maps JS API | Proxied |
 | Payments | PayPal Checkout SDK | 1.x |
 | Email | Nodemailer | Latest |
@@ -719,7 +719,7 @@ npx vitest
 
 ## Deployment
 
-### Manus Hosting (Recommended)
+### Monthly Key Hosting (Recommended)
 
 1. Save a checkpoint: The platform auto-builds and deploys
 2. Click "Publish" in the Management UI
@@ -836,13 +836,13 @@ const hash = await bcrypt.hash("newPassword123", 12);
 
 ```bash
 # Server logs
-tail -50 .manus-logs/devserver.log
+tail -50 .Monthly Key-logs/devserver.log
 
 # Browser console errors
-tail -50 .manus-logs/browserConsole.log
+tail -50 .Monthly Key-logs/browserConsole.log
 
 # Network request failures
-grep "error" .manus-logs/networkRequests.log | tail -20
+grep "error" .Monthly Key-logs/networkRequests.log | tail -20
 ```
 
 ### Database Debugging

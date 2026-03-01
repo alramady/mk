@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0
 **Audit Date:** February 25, 2026
-**Auditor:** Manus AI — Enterprise Audit Engine
+**Auditor:** the platform — Enterprise Audit Engine
 **Codebase Snapshot:** `raneemndmo-collab/mk` (main branch)
 
 ---
@@ -81,7 +81,7 @@ The monorepo houses **two distinct database technologies**: the main application
 #### ARC-03: Debug Collector Plugin in Production Build — MEDIUM
 
 - **File:** `vite.config.ts`, line 153
-- **Risk:** The `vitePluginManusDebugCollector` is included unconditionally in the Vite plugin array. In production builds, this collector may expose internal debugging information to end users and adds unnecessary bundle overhead.
+- **Risk:** The `vitePluginMonthly KeyDebugCollector` is included unconditionally in the Vite plugin array. In production builds, this collector may expose internal debugging information to end users and adds unnecessary bundle overhead.
 - **Recommendation:** Conditionally include the plugin only when `process.env.NODE_ENV !== 'production'`.
 
 #### ARC-04: Outdated Dependencies — HIGH

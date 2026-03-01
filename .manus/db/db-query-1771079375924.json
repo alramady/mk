@@ -1,9 +1,0 @@
-{
-  "query": "INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.serviceFeePercent', '5') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.vatPercent', '15') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.minRent', '500') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.maxRent', '100000') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.depositMonths', '2') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.serviceFeePercent', '5') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.vatPercent', '15') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.minRent', '500') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.maxRent', '100000') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue); INSERT INTO platformSettings (settingKey, settingValue) VALUES ('fees.depositMonths', '2') ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue);",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 88
-}

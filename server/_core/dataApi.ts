@@ -1,7 +1,7 @@
 /**
  * Quick example (matches curl usage):
  *   await callDataApi("Youtube/search", {
- *     query: { gl: "US", hl: "en", q: "manus" },
+ *     query: { gl: "US", hl: "en", q: "example" },
  *   })
  */
 import { ENV } from "./env";
@@ -14,16 +14,16 @@ export type DataApiCallOptions = {
 };
 
 /**
- * Local mode: Data API is not available without Manus Forge.
- * This stub returns an error message. Replace with direct API calls as needed.
+ * Data API stub.
+ * External data APIs should be called directly with fetch() and your own API keys.
  */
 export async function callDataApi(
   apiId: string,
   options: DataApiCallOptions = {}
 ): Promise<unknown> {
-  console.warn(`[DataApi] callDataApi("${apiId}") called but Manus Forge is not available in local mode.`);
-  console.warn(`[DataApi] To use external APIs, call them directly with fetch() and your own API keys.`);
+  console.warn(`[DataApi] callDataApi("${apiId}") called — use direct API calls instead.`);
+  console.warn(`[DataApi] Configure your API keys in Admin Panel → Integrations.`);
   throw new Error(
-    `Data API "${apiId}" is not available in local mode. Use direct API calls instead.`
+    `Data API "${apiId}" is not available. Use direct API calls instead.`
   );
 }

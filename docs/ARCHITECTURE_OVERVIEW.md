@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0
 **Date:** February 25, 2026
-**Author:** Manus AI
+**Author:** the platform
 
 ---
 

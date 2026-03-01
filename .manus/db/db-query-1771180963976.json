@@ -1,9 +1,0 @@
-{
-  "query": "INSERT INTO propertyManagers (name, nameAr, email, phone, whatsapp, title, titleAr, bio, bioAr, photoUrl, isActive, editToken) SELECT 'Mohammed Al-Harbi', 'محمد الحربي', 'mohammed.alharbi@ijar.sa', '+966551234567', '+966551234567', 'Senior Property Manager', 'مدير عقارات أول', 'Experienced property manager with over 8 years in the Saudi real estate market. Specialized in premium residential properties in Riyadh.', 'مدير عقارات ذو خبرة تتجاوز 8 سنوات في سوق العقارات السعودي. متخصص في العقارات السكنية المميزة في الرياض.', 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/dWvNldGBaBNuhgwJ.jpg', 1, 'demo_edit_token_abc123xyz' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM propertyManagers WHERE email = 'mohammed.alharbi@ijar.sa');",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute INSERT INTO propertyManagers (name, nameAr, email, phone, whatsapp, title, titleAr, bio, bioAr, photoUrl, isActive, editToken) SELECT 'Mohammed Al-Harbi', 'محمد الحربي', 'mohammed.alharbi@ijar.sa', '+966551234567', '+966551234567', 'Senior Property Manager', 'مدير عقارات أول', 'Experienced property manager with over 8 years in the Saudi real estate market. Specialized in premium residential properties in Riyadh.', 'مدير عقارات ذو خبرة تتجاوز 8 سنوات في سوق العقارات السعودي. متخصص في العقارات السكنية المميزة في الرياض.', 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/dWvNldGBaBNuhgwJ.jpg', 1, 'demo_edit_token_abc123xyz' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM propertyManagers WHERE email = 'mohammed.alharbi@ijar.sa');",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 57
-}

@@ -1,8 +1,0 @@
-{
-  "query": "UPDATE platformSettings SET `value` = 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/yyVTkxEyLeYyNbQq.jpg' WHERE `key` = 'hero.bgImage';",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute UPDATE platformSettings SET `value` = 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/yyVTkxEyLeYyNbQq.jpg' WHERE `key` = 'hero.bgImage';",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1054 (42S22) at line 1: Unknown column 'key' in 'where clause'"
-  ]
-}

@@ -1,9 +1,0 @@
-{
-  "query": "CREATE TABLE IF NOT EXISTS `platform_services` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `nameAr` varchar(255) NOT NULL,\n  `nameEn` varchar(255) NOT NULL,\n  `descriptionAr` text,\n  `descriptionEn` text,\n  `price` decimal(10,2) NOT NULL,\n  `category` enum('cleaning','maintenance','furniture','moving','other') NOT NULL DEFAULT 'other',\n  `icon` varchar(50) DEFAULT 'Wrench',\n  `isActive` boolean NOT NULL DEFAULT true,\n  `sortOrder` int DEFAULT 0,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `platform_services_id` PRIMARY KEY(`id`)\n);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute CREATE TABLE IF NOT EXISTS `platform_services` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `nameAr` varchar(255) NOT NULL,\n  `nameEn` varchar(255) NOT NULL,\n  `descriptionAr` text,\n  `descriptionEn` text,\n  `price` decimal(10,2) NOT NULL,\n  `category` enum('cleaning','maintenance','furniture','moving','other') NOT NULL DEFAULT 'other',\n  `icon` varchar(50) DEFAULT 'Wrench',\n  `isActive` boolean NOT NULL DEFAULT true,\n  `sortOrder` int DEFAULT 0,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `platform_services_id` PRIMARY KEY(`id`)\n);",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 327
-}

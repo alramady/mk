@@ -144,39 +144,39 @@ CMD ["pnpm", "start"]
 
 ---
 
-## No-Manus Dependency Audit
+## No-Monthly Key Dependency Audit
 
-This project was originally developed using the Manus AI platform. The following items are **Manus-specific** but do **NOT affect production runtime**:
+This project was originally developed using the the platform platform. The following items are **Monthly Key-specific** but do **NOT affect production runtime**:
 
 | Item | Location | Impact | Action Needed |
 |---|---|---|---|
-| `vite-plugin-manus-runtime` | `vite.config.ts`, `package.json` | Dev-only Vite plugin, not included in production build | Can be removed if desired |
-| `client/public/__manus__/` | Debug collector scripts | Only loaded in Manus dev environment | Can be deleted |
-| `.manus/` directory | DB query logs, debug data | Not deployed | Can be deleted |
-| `files.manuscdn.com` URLs | Image fallbacks in components | CDN-hosted images, will continue to work | Replace with your own CDN if desired |
+| `vite-plugin-Monthly Key-runtime` | `vite.config.ts`, `package.json` | Dev-only Vite plugin, not included in production build | Can be removed if desired |
+| `client/public/__Monthly Key__/` | Debug collector scripts | Only loaded in Monthly Key dev environment | Can be deleted |
+| `.Monthly Key/` directory | DB query logs, debug data | Not deployed | Can be deleted |
+| `files.Monthly Keycdn.com` URLs | Image fallbacks in components | CDN-hosted images, will continue to work | Replace with your own CDN if desired |
 | `BUILT_IN_FORGE_API_*` env vars | `server/_core/env.ts` | Legacy aliases for OpenAI vars | Use `OPENAI_*` vars instead |
 
-### To fully remove Manus dependencies:
+### To fully remove Monthly Key dependencies:
 
 ```bash
-# 1. Remove Manus debug collector
-rm -rf client/public/__manus__/
+# 1. Remove Monthly Key debug collector
+rm -rf client/public/__Monthly Key__/
 
-# 2. Remove Manus dev logs
-rm -rf .manus/
+# 2. Remove Monthly Key dev logs
+rm -rf .Monthly Key/
 
-# 3. Remove vite-plugin-manus-runtime from vite.config.ts
+# 3. Remove vite-plugin-Monthly Key-runtime from vite.config.ts
 # Edit vite.config.ts: remove the import and plugin from the plugins array
 
 # 4. Uninstall the package
-pnpm remove vite-plugin-manus-runtime
+pnpm remove vite-plugin-Monthly Key-runtime
 
-# 5. (Optional) Replace manuscdn.com image URLs with your own CDN
-grep -rn "manuscdn.com" client/src/ | cut -d: -f1 | sort -u
+# 5. (Optional) Replace Monthly Keycdn.com image URLs with your own CDN
+grep -rn "Monthly Keycdn.com" client/src/ | cut -d: -f1 | sort -u
 # Then replace URLs in those files
 ```
 
-### What is NOT Manus-dependent:
+### What is NOT Monthly Key-dependent:
 
 - Authentication (pure JWT, local bcrypt)
 - Database (standard MySQL/TiDB)

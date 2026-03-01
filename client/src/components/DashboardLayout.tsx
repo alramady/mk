@@ -28,7 +28,7 @@ import {
   AlertTriangle, BarChart3, Settings, MapPin, KeyRound,
   BookOpen, UserCog, Shield, MessageCircle, Database,
   Building2, Inbox, Plug, CalendarCheck, CreditCard, Hotel,
-  Sun, Moon, Languages,
+  Sun, Moon, Languages, FileText,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -58,6 +58,7 @@ const menuItems: MenuItem[] = [
   { icon: MessageCircle, labelKey: "adminMenu.whatsapp", path: "/admin/whatsapp" },
   { icon: Plug, labelKey: "adminMenu.integrations", path: "/admin/integrations" },
   { icon: Shield, labelKey: "adminMenu.hardening", path: "/admin/hardening" },
+  { icon: FileText, labelKey: "adminMenu.auditLog", path: "/admin/audit-log" },
   { icon: Database, labelKey: "adminMenu.dbStatus", path: "/admin/db-status" },
   { icon: Settings, labelKey: "adminMenu.settings", path: "/admin/settings" },
 ];

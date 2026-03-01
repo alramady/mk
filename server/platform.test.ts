@@ -74,7 +74,7 @@ function createUserContext(role: "user" | "admin" = "user"): { ctx: TrpcContext;
     openId: "test-user-123",
     email: "test@example.com",
     name: "Test User",
-    loginMethod: "manus",
+    loginMethod: "local",
     role,
     createdAt: new Date(),
     updatedAt: new Date(),

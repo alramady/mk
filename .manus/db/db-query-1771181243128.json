@@ -1,9 +1,0 @@
-{
-  "query": "INSERT INTO propertyManagerAssignments (managerId, propertyId, assignedAt) VALUES (1, 7, NOW()), (1, 8, NOW()), (1, 9, NOW()), (1, 10, NOW()), (1, 11, NOW()), (1, 12, NOW()) ON DUPLICATE KEY UPDATE managerId = managerId;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute INSERT INTO propertyManagerAssignments (managerId, propertyId, assignedAt) VALUES (1, 7, NOW()), (1, 8, NOW()), (1, 9, NOW()), (1, 10, NOW()), (1, 11, NOW()), (1, 12, NOW()) ON DUPLICATE KEY UPDATE managerId = managerId;",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 81
-}

@@ -1,8 +1,0 @@
-{
-  "query": "SELECT id, nameAr, nameEn, regionAr, regionEn, imageUrl, isActive FROM cities ORDER BY id;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yaEUUPpH7u5Dce.aaede0f464fc --database 8PFgRgaokK3FbjLsAWs6oV --execute SELECT id, nameAr, nameEn, regionAr, regionEn, imageUrl, isActive FROM cities ORDER BY id;",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1054 (42S22) at line 1: Unknown column 'regionen' in 'field list'"
-  ]
-}

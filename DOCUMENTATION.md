@@ -3,7 +3,7 @@
 **Platform:** Monthly Key (المفتاح الشهري)
 **Version:** 1.0.0
 **Last Updated:** February 2026
-**Author:** Manus AI
+**Author:** the platform
 
 ---
 
@@ -74,10 +74,10 @@ The request flow is straightforward: the React client calls tRPC procedures thro
 <tr><td>Backend</td><td>tRPC</td><td>11</td><td>End-to-end type-safe API layer</td></tr>
 <tr><td>Backend</td><td>Drizzle ORM</td><td>Latest</td><td>Type-safe SQL query builder</td></tr>
 <tr><td>Database</td><td>MySQL/TiDB</td><td>8.x</td><td>Relational database</td></tr>
-<tr><td>Auth</td><td>Manus OAuth + JWT</td><td>-</td><td>Authentication with session cookies</td></tr>
+<tr><td>Auth</td><td>local auth + JWT</td><td>-</td><td>Authentication with session cookies</td></tr>
 <tr><td>Email</td><td>Nodemailer</td><td>6.x</td><td>SMTP email delivery</td></tr>
 <tr><td>Push</td><td>web-push</td><td>3.x</td><td>Web Push Notifications (VAPID)</td></tr>
-<tr><td>AI</td><td>Manus LLM API</td><td>-</td><td>AI assistant with knowledge base</td></tr>
+<tr><td>AI</td><td>Monthly Key LLM API</td><td>-</td><td>AI assistant with knowledge base</td></tr>
 <tr><td>Build</td><td>Vite</td><td>6.x</td><td>Frontend bundler with HMR</td></tr>
 <tr><td>Runtime</td><td>tsx</td><td>Latest</td><td>TypeScript execution for server</td></tr>
 <tr><td>Testing</td><td>Vitest</td><td>Latest</td><td>Unit and integration testing</td></tr>
@@ -350,10 +350,10 @@ The platform exposes **165 tRPC endpoints** across **32 routers**. All endpoints
 
 ### 6.1 Authentication Flow
 
-Authentication uses **Manus OAuth** with JWT session cookies. The flow is:
+Authentication uses **local auth** with JWT session cookies. The flow is:
 
 1. User clicks "تسجيل الدخول" (Login) on the frontend.
-2. Frontend redirects to Manus OAuth portal with `window.location.origin` encoded in state.
+2. Frontend redirects to local auth portal with `window.location.origin` encoded in state.
 3. User authenticates on the OAuth portal.
 4. OAuth callback at `/api/oauth/callback` receives the authorization code.
 5. Server exchanges code for user profile, creates/updates user record in database.
@@ -545,7 +545,7 @@ The platform is a **Progressive Web App** with the following features:
 
 ## 12. AI Assistant
 
-The AI assistant provides contextual help to users using the platform's knowledge base. It is powered by the Manus LLM API with a system prompt that includes relevant knowledge base articles.
+The AI assistant provides contextual help to users using the platform's knowledge base. It is powered by the Monthly Key LLM API with a system prompt that includes relevant knowledge base articles.
 
 ### 12.1 Features
 
@@ -648,13 +648,13 @@ These are automatically injected by the platform and should not be modified manu
 <tr><td>Variable</td><td>Purpose</td></tr>
 <tr><td>DATABASE_URL</td><td>MySQL/TiDB connection string</td></tr>
 <tr><td>JWT_SECRET</td><td>Session cookie signing secret</td></tr>
-<tr><td>VITE_APP_ID</td><td>Manus OAuth application ID</td></tr>
-<tr><td>VITE_OAUTH_PORTAL_URL</td><td>Manus login portal URL</td></tr>
+<tr><td>VITE_APP_ID</td><td>local auth application ID</td></tr>
+<tr><td>VITE_OAUTH_PORTAL_URL</td><td>Monthly Key login portal URL</td></tr>
 <tr><td>OWNER_NAME</td><td>Platform owner's display name</td></tr>
-<tr><td>BUILT_IN_FORGE_API_URL</td><td>Manus built-in API endpoint</td></tr>
-<tr><td>BUILT_IN_FORGE_API_KEY</td><td>Server-side API key for Manus services</td></tr>
-<tr><td>VITE_FRONTEND_FORGE_API_KEY</td><td>Frontend API key for Manus services</td></tr>
-<tr><td>VITE_FRONTEND_FORGE_API_URL</td><td>Frontend API URL for Manus services</td></tr>
+<tr><td>BUILT_IN_FORGE_API_URL</td><td>Monthly Key built-in API endpoint</td></tr>
+<tr><td>BUILT_IN_FORGE_API_KEY</td><td>Server-side API key for Monthly Key services</td></tr>
+<tr><td>VITE_FRONTEND_FORGE_API_KEY</td><td>Frontend API key for Monthly Key services</td></tr>
+<tr><td>VITE_FRONTEND_FORGE_API_URL</td><td>Frontend API URL for Monthly Key services</td></tr>
 <tr><td>VITE_VAPID_PUBLIC_KEY</td><td>VAPID public key for push notifications</td></tr>
 <tr><td>VAPID_PRIVATE_KEY</td><td>VAPID private key for push notifications</td></tr>
 </table>
@@ -678,14 +678,14 @@ These should be added via Settings > Secrets in the admin panel:
 
 ## 17. Deployment Guide
 
-### 17.1 Manus Hosting (Recommended)
+### 17.1 Monthly Key Hosting (Recommended)
 
-The platform is designed for deployment on Manus hosting infrastructure:
+The platform is designed for deployment on Monthly Key hosting infrastructure:
 
 1. Ensure all tests pass: `pnpm test`
-2. Save a checkpoint via the Manus UI or `webdev_save_checkpoint`
-3. Click the **Publish** button in the Manus Management UI header
-4. The platform will be deployed to `{project-name}.manus.space`
+2. Save a checkpoint via the Monthly Key UI or `webdev_save_checkpoint`
+3. Click the **Publish** button in the Monthly Key Management UI header
+4. The platform will be deployed to `{project-name}.Monthly Key.space`
 5. Custom domains can be configured in Settings > Domains
 
 ### 17.2 Database Migrations

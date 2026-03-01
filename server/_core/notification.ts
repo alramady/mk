@@ -52,7 +52,7 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
 
 /**
  * Local notification handler - logs to console and stores in memory.
- * Replaces Manus Notification Service with local logging + optional email.
+ * Local notification handler with logging + optional email.
  */
 export async function notifyOwner(
   payload: NotificationPayload

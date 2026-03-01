@@ -82,7 +82,7 @@ Or connect to your Railway MySQL and run the migrations manually.
 - The server binds to `0.0.0.0` and reads `PORT` from environment (Railway compatible)
 - Static files are served from the built `dist/` directory
 - Database migrations need to be run after first deployment
-- AI Assistant and S3 Storage features require Manus Forge API credentials
+- AI Assistant and S3 Storage features require OpenAI API API credentials
 - Without Forge API credentials, the platform works fully except AI chat and file uploads to S3
 
 ---

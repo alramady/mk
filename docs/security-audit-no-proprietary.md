@@ -12,10 +12,10 @@ This document certifies that the MonthlyKey authentication and OTP verification 
 
 | Requirement | Status |
 |---|---|
-| No Manus SDKs, services, or webhooks | **Confirmed** |
-| No Manus-specific proprietary endpoints | **Confirmed** |
+| No Monthly Key SDKs, services, or webhooks | **Confirmed** |
+| No Monthly Key-specific proprietary endpoints | **Confirmed** |
 | No telemetry or phone-home mechanisms | **Confirmed** |
-| No automation services tied to Manus | **Confirmed** |
+| No automation services tied to Monthly Key | **Confirmed** |
 | All dependencies are standard OSS (npm registry) | **Confirmed** |
 | No hardcoded API keys in source code | **Confirmed** |
 

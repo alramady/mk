@@ -1,8 +1,9 @@
 /**
- * Google Maps API Integration for Manus WebDev Templates
+ * Google Maps API Integration
  * 
  * Main function: makeRequest<T>(endpoint, params) - Makes authenticated requests to Google Maps APIs
- * All credentials are automatically injected. Array parameters use | as separator.
+ * Credentials are configured via GOOGLE_MAPS_API_KEY environment variable.
+ * Array parameters use | as separator.
  * 
  * See API examples below the type definitions for usage patterns.
  */
@@ -19,28 +20,15 @@ type MapsConfig = {
 };
 
 function getMapsConfig(): MapsConfig {
-  // In local mode, use Google Maps API directly with GOOGLE_MAPS_API_KEY
-  const googleMapsKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (googleMapsKey) {
-    return {
-      baseUrl: "https://maps.googleapis.com",
-      apiKey: googleMapsKey,
-    };
-  }
-
-  // Fallback to Forge proxy if configured
-  const baseUrl = ENV.forgeApiUrl;
-  const apiKey = ENV.forgeApiKey;
-
-  if (!baseUrl || !apiKey) {
+  const googleMapsKey = ENV.googleMapsApiKey;
+  if (!googleMapsKey) {
     throw new Error(
-      "Google Maps API key missing: set GOOGLE_MAPS_API_KEY environment variable"
+      "Google Maps API key missing: set GOOGLE_MAPS_API_KEY environment variable in admin settings or Railway env vars."
     );
   }
-
   return {
-    baseUrl: baseUrl.replace(/\/+$/, ""),
-    apiKey,
+    baseUrl: "https://maps.googleapis.com",
+    apiKey: googleMapsKey,
   };
 }
 
@@ -68,12 +56,8 @@ export async function makeRequest<T = unknown>(
 ): Promise<T> {
   const { baseUrl, apiKey } = getMapsConfig();
 
-  // Construct full URL
-  // If using Google Maps directly, no proxy path needed
-  const isDirectGoogle = baseUrl.includes("googleapis.com");
-  const url = isDirectGoogle
-    ? new URL(`${baseUrl}${endpoint}`)
-    : new URL(`${baseUrl}/v1/maps/proxy${endpoint}`);
+  // Construct full URL for direct Google Maps API
+  const url = new URL(`${baseUrl}${endpoint}`);
 
   // Add API key as query parameter (standard Google Maps API authentication)
   url.searchParams.append("key", apiKey);

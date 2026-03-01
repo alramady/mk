@@ -1,4 +1,4 @@
-# Manus OAuth Removal — Complete Report
+# local auth Removal — Complete Report
 
 **Date:** 2026-02-24  
 **Status:** ✅ Complete  
@@ -10,8 +10,8 @@
 
 | File | Description |
 |------|-------------|
-| `server/_core/oauth.ts` | OAuth callback route, Manus token exchange, login/register with OAuth |
-| `server/_core/types/manusTypes.ts` | Manus OAuth type definitions (ExchangeTokenResponse, UserInfo) |
+| `server/_core/oauth.ts` | OAuth callback route, Monthly Key token exchange, login/register with OAuth |
+| `server/_core/types/Monthly KeyTypes.ts` | local auth type definitions (ExchangeTokenResponse, UserInfo) |
 | `hardening-kb/` | Standalone KB project (contained OAuth references in const.ts) |
 
 ## 2. Rewritten Files
@@ -40,7 +40,7 @@
 
 | File | What Changed |
 |------|-------------|
-| `client/src/_core/hooks/useAuth.ts` | Removed `localStorage.setItem("manus-runtime-user-info", ...)` |
+| `client/src/_core/hooks/useAuth.ts` | Removed `localStorage.setItem("Monthly Key-runtime-user-info", ...)` |
 | `client/src/pages/AdminHardeningKB.tsx` | Removed `user.openId === (window as any).__OWNER_OPEN_ID__` check from isRootAdmin |
 
 ## 5. Removed Config Keys / Env Vars
@@ -67,7 +67,7 @@
 ```
  ✓ server/oauth-removal.test.ts (16 tests) — ALL PASSED
    ✓ oauth.ts file should NOT exist
-   ✓ manusTypes.ts file should NOT exist
+   ✓ Monthly KeyTypes.ts file should NOT exist
    ✓ auth.ts (local auth routes) should exist
    ✓ sdk.ts should NOT contain OAuthService class
    ✓ env.ts should NOT reference oAuthServerUrl or ownerOpenId
@@ -81,7 +81,7 @@
    ✓ .env.example should NOT contain OAUTH_SERVER_URL or OWNER_OPEN_ID
    ✓ auth.ts should NOT have /api/oauth/callback route
    ✓ sdk.ts should NOT import axios
-   ✓ useAuth.ts should NOT store manus-runtime-user-info
+   ✓ useAuth.ts should NOT store Monthly Key-runtime-user-info
 
  ✓ server/auth.logout.test.ts (1 test) — PASSED
    ✓ clears the session cookie and reports success
@@ -90,7 +90,7 @@
 ## 8. Verification Checklist
 
 - [x] `server/_core/oauth.ts` deleted
-- [x] `server/_core/types/manusTypes.ts` deleted
+- [x] `server/_core/types/Monthly KeyTypes.ts` deleted
 - [x] `server/_core/auth.ts` created with local-only routes
 - [x] `server/_core/sdk.ts` rewritten — no OAuthService, no axios
 - [x] `server/_core/env.ts` cleaned — no OAuth env vars
@@ -101,7 +101,7 @@
 - [x] `server/_core/cookies.ts` — sameSite=lax
 - [x] `.env.example` — no OAuth vars
 - [x] All documentation updated
-- [x] Frontend `useAuth.ts` — no manus-runtime localStorage
+- [x] Frontend `useAuth.ts` — no Monthly Key-runtime localStorage
 - [x] Frontend `AdminHardeningKB.tsx` — no OWNER_OPEN_ID check
 - [x] Rate limiting on login/register endpoints
 - [x] Auth event logging implemented

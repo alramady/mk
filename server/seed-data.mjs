@@ -7,59 +7,59 @@ const pool = mysql.createPool(process.env.DATABASE_URL);
 
 // S3 CDN image URLs (permanent, reliable)
 const CDN = {
-  apt1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
-  apt2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XiUOcEDYrBvXeHBV.jpg",
-  apt3: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
-  villa1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
-  villa2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
-  villa3: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
-  studio1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
-  studio2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
+  apt1: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
+  apt2: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
+  apt3: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
+  villa1: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800",
+  villa2: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800",
+  villa3: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800",
+  studio1: "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800",
+  studio2: "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800",
 };
 
 // S3 CDN photo pools by property type (permanent, reliable URLs)
 const U = {
   apt: [
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",  // luxury apartment living room
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XiUOcEDYrBvXeHBV.jpg",  // sea view apartment
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // master bedroom
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // modern kitchen
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",  // furnished room
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",  // luxury apartment living room
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",  // sea view apartment
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",  // master bedroom
+    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",  // modern kitchen
+    "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800",  // furnished room
   ],
   villa: [
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",  // villa exterior with pool
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/YVFDFNOrkJFOHnnK.jpg",  // compound/villa community
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // kitchen
+    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800",  // villa exterior with pool
+    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800",  // compound/villa community
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",  // bedroom
+    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",  // kitchen
   ],
   studio: [
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",  // studio interior
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",  // furnished room
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // kitchen
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
+    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800",  // studio interior
+    "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800",  // furnished room
+    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",  // kitchen
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",  // bedroom
   ],
   duplex: [
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/RtkavXViypgMuShv.jpg",  // duplex staircase interior
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",  // living room
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // kitchen
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800",  // duplex staircase interior
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",  // living room
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",  // bedroom
+    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",  // kitchen
   ],
   room: [
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",  // furnished room
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",  // studio
+    "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800",  // furnished room
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",  // bedroom
+    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800",  // studio
   ],
   compound: [
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/YVFDFNOrkJFOHnnK.jpg",  // compound aerial
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",  // villa
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",  // living room
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
+    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800",  // compound aerial
+    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800",  // villa
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",  // living room
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",  // bedroom
   ],
   hotel: [
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/fWMwLCqNgiFXqzBU.jpg",  // hotel apartment suite
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",  // furnished room
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",  // bedroom
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",  // kitchen
+    "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800",  // hotel apartment suite
+    "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800",  // furnished room
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",  // bedroom
+    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",  // kitchen
   ],
 };
 

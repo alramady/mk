@@ -5,7 +5,7 @@
  * Uses bcrypt for hashing (same as passwords) with a pepper for extra security.
  * Rate limiting is per-destination + per-IP.
  *
- * NO Manus AI automations/services/SDKs. Standard Node/TypeScript only.
+ * Standard Node/TypeScript only. No external AI dependencies.
  */
 import bcrypt from "bcryptjs";
 import crypto from "crypto";

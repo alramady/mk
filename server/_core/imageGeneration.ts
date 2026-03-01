@@ -1,6 +1,6 @@
 /**
- * Image generation using OpenAI DALL-E API (local mode)
- * Replaces Manus ImageService with direct OpenAI API calls
+ * Image generation using OpenAI DALL-E API
+ * Uses direct OpenAI API calls for image generation
  *
  * Example usage:
  *   const { url: imageUrl } = await generateImage({

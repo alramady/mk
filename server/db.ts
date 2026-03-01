@@ -345,9 +345,10 @@ export async function getPropertyCount(status?: string) {
 }
 
 export async function deleteProperty(id: number) {
+  // Soft delete: archive instead of hard delete to preserve data integrity
   const db = await getDb();
   if (!db) return;
-  await db.delete(properties).where(eq(properties.id, id));
+  await db.update(properties).set({ status: 'archived' }).where(eq(properties.id, id));
 }
 
 export async function incrementPropertyViews(id: number) {

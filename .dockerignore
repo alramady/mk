@@ -5,7 +5,6 @@ dist
 .env
 .env.*
 *.md
-.manus-logs
 .webdev
 coverage
 *.test.ts

@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0
 **Date:** February 25, 2026
-**Author:** Manus AI — Enterprise Documentation Engine
+**Author:** the platform — Enterprise Documentation Engine
 **Classification:** Internal — For Development Teams
 
 ---

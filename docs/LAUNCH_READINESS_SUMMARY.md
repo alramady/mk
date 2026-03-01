@@ -1,7 +1,7 @@
 # Launch Readiness Summary — المفتاح الشهري (Monthly Key)
 
 **Date:** 2026-02-27  
-**Prepared by:** Manus AI  
+**Prepared by:** the platform  
 **Status:** ✅ READY FOR LAUNCH (with noted recommendations)
 
 ---
