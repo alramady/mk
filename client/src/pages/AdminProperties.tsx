@@ -147,7 +147,7 @@ export default function AdminProperties() {
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     {/* Thumbnail */}
-                    <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0 relative">
+                    <div className="w-28 h-28 rounded-lg bg-muted overflow-hidden shrink-0 relative border border-border">
                       <AdminPropertyThumbnail photos={prop.photos} propertyType={prop.propertyType} />
                     </div>
                     {/* Info */}
