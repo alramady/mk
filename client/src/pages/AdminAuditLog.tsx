@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useLanguage } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import {
   FileText, ChevronLeft, ChevronRight, Filter,
   Building2, Home, CreditCard, Settings2, MessageCircle,
@@ -36,7 +36,7 @@ const ENTITY_ICONS: Record<string, typeof Building2> = {
 };
 
 export default function AdminAuditLog() {
-  const { lang } = useLanguage();
+  const { lang } = useI18n();
   const isAr = lang === "ar";
   const [page, setPage] = useState(1);
   const [entityType, setEntityType] = useState<string>("");
