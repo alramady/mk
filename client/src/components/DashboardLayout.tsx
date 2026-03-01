@@ -318,8 +318,11 @@ function DashboardLayoutContent({
               </DropdownMenuContent>
             </DropdownMenu>
             <div className="mt-2 text-center group-data-[collapsible=icon]:hidden">
-              <p className="text-[10px] text-muted-foreground/50 font-mono">
+              <p className="text-[10px] text-muted-foreground/50 font-mono" title={`Full build: ${typeof __APP_BUILD_DATE__ !== 'undefined' ? __APP_BUILD_DATE__ : ''}`}>
                 Build {typeof __APP_BUILD_VERSION__ !== 'undefined' ? __APP_BUILD_VERSION__ : 'dev'}
+              </p>
+              <p className="text-[9px] text-muted-foreground/40 font-mono">
+                {typeof __APP_GIT_SHA__ !== 'undefined' && __APP_GIT_SHA__ !== 'unknown' ? `SHA: ${__APP_GIT_SHA__}` : ''}
               </p>
             </div>
           </SidebarFooter>

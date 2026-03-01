@@ -157,6 +157,10 @@ export default defineConfig({
   define: {
     '__APP_BUILD_VERSION__': JSON.stringify(new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)),
     '__APP_BUILD_DATE__': JSON.stringify(new Date().toISOString()),
+    '__APP_GIT_SHA__': JSON.stringify(
+      process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7)
+      || (() => { try { const { execSync } = require('child_process'); return execSync('git rev-parse --short HEAD').toString().trim(); } catch { return 'unknown'; } })()
+    ),
   },
   resolve: {
     alias: {
