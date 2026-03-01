@@ -18,6 +18,7 @@ import { optimizeImage, optimizeAvatar } from "./image-optimizer";
 import { generateLeaseContractHTML } from "./lease-contract";
 import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./paypal";
 import { notifyOwner } from "./_core/notification";
+import { calculateBookingTotal, parseCalcSettings } from "./booking-calculator";
 import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, sendNewMaintenanceAlert, verifySmtpConnection, isSmtpConfigured } from "./email";
 import { savePushSubscription, removePushSubscription, sendPushToUser, sendPushBroadcast, isPushConfigured, getUserSubscriptionCount } from "./push";
 import { roles as rolesTable, aiMessages as aiMessagesTable, whatsappMessages, units, auditLog, integrationConfigs } from "../drizzle/schema";
@@ -360,13 +361,16 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const prop = await db.getPropertyById(input.propertyId);
         if (!prop) throw new TRPCError({ code: 'NOT_FOUND', message: 'Property not found' });
-        // Dynamic rental duration validation from settings
-        const minMonths = parseInt(await db.getSetting("rental.minMonths") || "1");
-        const maxMonths = parseInt(await db.getSetting("rental.maxMonths") || "2");
+
+        // ─── Validation: duration from system settings ───
+        const allSettings = await db.getAllSettings();
+        const minMonths = parseInt(allSettings["rental.minMonths"] || "1");
+        const maxMonths = parseInt(allSettings["rental.maxMonths"] || "2");
         if (input.durationMonths < minMonths || input.durationMonths > maxMonths) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: `Duration must be between ${minMonths} and ${maxMonths} months` });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Duration must be between ${minMonths} and ${maxMonths} months / المدة يجب أن تكون بين ${minMonths} و ${maxMonths} شهر` });
         }
-        // Use unit price when pricingSource=UNIT
+
+        // ─── Resolve effective monthly rent ───
         let effectiveRent = prop.monthlyRent;
         if ((prop as any).pricingSource === 'UNIT') {
           try {
@@ -377,7 +381,19 @@ export const appRouter = router({
             }
           } catch (e) { /* fallback to property rent */ }
         }
-        const totalAmount = Number(effectiveRent) * input.durationMonths;
+        const monthlyRentNum = Number(effectiveRent);
+        if (!monthlyRentNum || monthlyRentNum <= 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Property has no valid monthly rent / العقار ليس له إيجار شهري صالح' });
+        }
+
+        // ─── Calculate full breakdown using shared calculator (same as cost calculator) ───
+        const calcSettings = parseCalcSettings(allSettings);
+        const calc = calculateBookingTotal(
+          { monthlyRent: monthlyRentNum, durationMonths: input.durationMonths },
+          calcSettings
+        );
+
+        // ─── Create booking with full total (includes fees + VAT) ───
         const id = await db.createBooking({
           propertyId: input.propertyId,
           tenantId: ctx.user.id,
@@ -387,10 +403,23 @@ export const appRouter = router({
           moveOutDate: new Date(input.moveOutDate),
           durationMonths: input.durationMonths,
           monthlyRent: effectiveRent,
-          securityDeposit: prop.securityDeposit,
-          totalAmount: String(totalAmount),
+          securityDeposit: String(calc.insuranceAmount),
+          totalAmount: String(calc.grandTotal),
+          fees: String(calc.serviceFeeAmount),
+          vatAmount: String(calc.vatAmount),
           tenantNotes: input.tenantNotes,
+          priceBreakdown: {
+            baseRentTotal: calc.baseRentTotal,
+            insuranceAmount: calc.insuranceAmount,
+            serviceFeeAmount: calc.serviceFeeAmount,
+            subtotal: calc.subtotal,
+            vatAmount: calc.vatAmount,
+            grandTotal: calc.grandTotal,
+            appliedRates: calc.appliedRates,
+            currency: calc.currency,
+          },
         });
+
         // ─── Auto-create payment_ledger entry for this booking ───
         try {
           const { createLedgerEntry, getLinkedUnitByPropertyId: getUnit } = await import('./finance-registry.js');
@@ -413,19 +442,18 @@ export const appRouter = router({
             propertyDisplayName: prop.titleAr || prop.titleEn || `Property #${prop.id}`,
             type: 'INITIAL_RENT',
             direction: 'IN',
-            amount: String(totalAmount),
-            currency: 'SAR',
+            amount: String(calc.grandTotal),
+            currency: calc.currency,
             status: 'DUE',
             dueAt: new Date(input.moveInDate),
             createdBy: ctx.user.id,
             guestName: ctx.user.displayName || ctx.user.name || undefined,
             guestEmail: ctx.user.email || undefined,
-            notes: `Auto-created on booking #${id} for ${input.durationMonths} month(s)`,
-            notesAr: `تم الإنشاء تلقائياً عند الحجز #${id} لمدة ${input.durationMonths} شهر`,
+            notes: `Booking #${id}: Rent ${calc.baseRentTotal} + Insurance ${calc.insuranceAmount} + Service ${calc.serviceFeeAmount} + VAT ${calc.vatAmount} = Total ${calc.grandTotal} SAR`,
+            notesAr: `حجز #${id}: إيجار ${calc.baseRentTotal} + تأمين ${calc.insuranceAmount} + رسوم خدمة ${calc.serviceFeeAmount} + ضريبة ${calc.vatAmount} = إجمالي ${calc.grandTotal} ر.س`,
           });
         } catch (e) {
           console.error('[Ledger] Failed to auto-create ledger entry for booking', id, e);
-          // Ledger creation is best-effort — booking still succeeds
         }
 
         // Create notification for landlord
@@ -443,7 +471,7 @@ export const appRouter = router({
         try {
           await notifyOwner({
             title: `طلب حجز جديد - New Booking Request #${id}`,
-            content: `طلب حجز جديد للعقار: ${prop.titleAr || prop.titleEn}\nالمستأجر: ${ctx.user.displayName || ctx.user.name}\nالمدة: ${input.durationMonths} شهر\nالمبلغ: ${totalAmount} ر.س\n\nNew booking for: ${prop.titleEn}\nTenant: ${ctx.user.displayName || ctx.user.name}\nDuration: ${input.durationMonths} month(s)\nTotal: SAR ${totalAmount}`,
+            content: `طلب حجز جديد للعقار: ${prop.titleAr || prop.titleEn}\nالمستأجر: ${ctx.user.displayName || ctx.user.name}\nالمدة: ${input.durationMonths} شهر\nالإجمالي: ${calc.grandTotal} ر.س (إيجار ${calc.baseRentTotal} + تأمين ${calc.insuranceAmount} + رسوم ${calc.serviceFeeAmount} + ضريبة ${calc.vatAmount})\n\nNew booking for: ${prop.titleEn}\nTenant: ${ctx.user.displayName || ctx.user.name}\nDuration: ${input.durationMonths} month(s)\nTotal: SAR ${calc.grandTotal} (Rent ${calc.baseRentTotal} + Insurance ${calc.insuranceAmount} + Fee ${calc.serviceFeeAmount} + VAT ${calc.vatAmount})`,
           });
         } catch { /* notification delivery is best-effort */ }
         // Send booking confirmation email if instant book
@@ -457,13 +485,26 @@ export const appRouter = router({
                 propertyTitle: prop.titleAr || prop.titleEn,
                 checkIn: input.moveInDate,
                 checkOut: input.moveOutDate,
-                totalAmount,
+                totalAmount: calc.grandTotal,
                 bookingId: id!,
               });
             }
           } catch { /* email is best-effort */ }
         }
-        return { id, status: prop.instantBook ? "approved" : "pending" };
+        return {
+          id,
+          status: prop.instantBook ? "approved" : "pending",
+          priceBreakdown: {
+            baseRentTotal: calc.baseRentTotal,
+            insuranceAmount: calc.insuranceAmount,
+            serviceFeeAmount: calc.serviceFeeAmount,
+            subtotal: calc.subtotal,
+            vatAmount: calc.vatAmount,
+            grandTotal: calc.grandTotal,
+            appliedRates: calc.appliedRates,
+            currency: calc.currency,
+          },
+        };
       }),
 
     updateStatus: protectedProcedure
@@ -2963,7 +3004,9 @@ export const appRouter = router({
       };
     }),
 
-    /** POST calculate: server-side calculation with full validation */
+    /** POST calculate: server-side calculation with full validation
+     *  Uses the SAME shared calculateBookingTotal function as booking.create
+     *  to guarantee calculator preview matches actual charge. */
     calculate: publicProcedure
       .input(z.object({
         monthlyRent: z.number().positive("Monthly rent must be positive"),
@@ -3004,58 +3047,38 @@ export const appRouter = router({
           });
         }
 
-        // Get rates from settings (single source of truth)
-        const insuranceMode = settings["calculator.insuranceMode"] || "percentage";
-        const hideInsurance = settings["calculator.hideInsuranceFromTenant"] === "true";
-        const insuranceRate = parseFloat(settings["fees.depositPercent"] || "10") / 100;
-        const insuranceFixedAmount = parseFloat(settings["calculator.insuranceFixedAmount"] || "0");
-        const serviceFeeRate = parseFloat(settings["fees.serviceFeePercent"] || "5") / 100;
-        const vatRate = parseFloat(settings["fees.vatPercent"] || "15") / 100;
-
-        // Calculate insurance based on mode
-        const insuranceAmount = insuranceMode === "fixed"
-          ? Math.round(insuranceFixedAmount)
-          : Math.round(input.monthlyRent * insuranceRate);
-
-        // Calculate rent total
-        const baseRentTotal = Math.round(input.monthlyRent * input.selectedMonths);
-
-        // If insurance is hidden from tenant, merge it into the displayed rent
-        const displayedRentTotal = hideInsurance ? baseRentTotal + insuranceAmount : baseRentTotal;
-        const serviceFeeAmount = Math.round(baseRentTotal * serviceFeeRate);
-
-        // Subtotal: always includes rent + insurance + service fee (for correct VAT)
-        const subtotal = baseRentTotal + insuranceAmount + serviceFeeAmount;
-        const vatAmount = Math.round(subtotal * vatRate);
-        const grandTotal = subtotal + vatAmount;
+        // Use the SHARED calculator (same as booking.create)
+        const { calculateBookingTotal, parseCalcSettings } = await import("./booking-calculator");
+        const calcSettings = parseCalcSettings(settings);
+        const calc = calculateBookingTotal(
+          { monthlyRent: input.monthlyRent, durationMonths: input.selectedMonths },
+          calcSettings
+        );
 
         return {
           // Input echo
           monthlyRent: input.monthlyRent,
           selectedMonths: input.selectedMonths,
           // Breakdown for tenant (insurance may be hidden)
-          rentTotal: displayedRentTotal,
-          insuranceAmount: hideInsurance ? 0 : insuranceAmount,
-          serviceFeeAmount,
-          subtotal: hideInsurance ? (displayedRentTotal + serviceFeeAmount) : subtotal,
-          vatAmount,
-          grandTotal,
+          rentTotal: calc.displayRentTotal,
+          insuranceAmount: calc.displayInsurance,
+          serviceFeeAmount: calc.serviceFeeAmount,
+          subtotal: calc.hideInsuranceFromTenant
+            ? (calc.displayRentTotal + calc.serviceFeeAmount)
+            : calc.subtotal,
+          vatAmount: calc.vatAmount,
+          grandTotal: calc.grandTotal,
           // Flag so frontend knows whether to show insurance line
-          insuranceHidden: hideInsurance,
+          insuranceHidden: calc.hideInsuranceFromTenant,
           // Applied rates (for transparency)
-          appliedRates: {
-            insuranceRate: parseFloat(settings["fees.depositPercent"] || "10"),
-            serviceFeeRate: parseFloat(settings["fees.serviceFeePercent"] || "5"),
-            vatRate: parseFloat(settings["fees.vatPercent"] || "15"),
-            insuranceMode,
-          },
-          currency: settings["payment.currency"] || "SAR",
+          appliedRates: calc.appliedRates,
+          currency: calc.currency,
           // Admin-only breakdown (full details for backend/admin use)
           _adminBreakdown: {
-            baseRentTotal,
-            insuranceAmount,
-            insuranceMode,
-            insuranceHidden: hideInsurance,
+            baseRentTotal: calc.baseRentTotal,
+            insuranceAmount: calc.insuranceAmount,
+            insuranceMode: calc.appliedRates.insuranceMode,
+            insuranceHidden: calc.hideInsuranceFromTenant,
           },
         };
       }),

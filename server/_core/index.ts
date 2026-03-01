@@ -189,6 +189,37 @@ async function startServer() {
     });
   });
 
+  // ─── Image Loading Test Page ──────────────────────────────────────
+  app.get("/api/test-images", async (_req, res) => {
+    const { getPool } = await import("../db");
+    const pool = getPool();
+    const [rows] = await pool.execute("SELECT id, titleEn, photos FROM properties WHERE photos IS NOT NULL LIMIT 3");
+    const props = (rows as any[]).map(r => ({
+      id: r.id,
+      title: r.titleEn,
+      photos: typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos
+    }));
+    const html = `<!DOCTYPE html><html><head><title>Image Test</title></head><body style="background:#111;color:#fff;font-family:sans-serif;padding:20px">
+      <h1>R2 Image Loading Test</h1>
+      <p>If images show below, R2 loading works from monthlykey.com context.</p>
+      ${props.map(p => `
+        <h2>Property ${p.id}: ${p.title}</h2>
+        ${(p.photos || []).slice(0, 2).map((url: string, i: number) => `
+          <div style="margin:10px 0">
+            <p>Photo ${i+1}: <code>${url}</code></p>
+            <img src="${url}" style="max-width:400px;max-height:300px;border:2px solid #333" 
+                 onerror="this.style.border='3px solid red';this.nextElementSibling.textContent='FAILED TO LOAD'" />
+            <p style="color:lime">OK</p>
+          </div>
+        `).join('')}
+      `).join('')}
+      <h2>Direct Unsplash (via proxy)</h2>
+      <img src="/api/img-proxy?url=${encodeURIComponent('https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80')}" style="max-width:400px;border:2px solid #333" 
+           onerror="this.style.border='3px solid red'" />
+    </body></html>`;
+    res.type('html').send(html);
+  });
+
   // ─── Debug Proof Endpoint (acceptance testing) ─────────────────────
   app.get("/api/debug-proof", async (req, res) => {
     try {

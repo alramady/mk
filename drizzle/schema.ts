@@ -166,6 +166,24 @@ export const bookings = mysqlTable("bookings", {
   renewalWindowDays: int("renewalWindowDays").default(14),
   buildingId: int("buildingId"),
   unitId: int("unitId"),
+  // Frozen snapshot of full fee calculation at booking creation time.
+  // NULL = legacy booking (base-rent-only total, created before this column existed).
+  priceBreakdown: json("priceBreakdown").$type<{
+    baseRentTotal: number;
+    insuranceAmount: number;
+    serviceFeeAmount: number;
+    subtotal: number;
+    vatAmount: number;
+    grandTotal: number;
+    appliedRates: {
+      insuranceRate: number;
+      insuranceMode: string;
+      serviceFeeRate: number;
+      vatRate: number;
+      hideInsuranceFromTenant: boolean;
+    };
+    currency: string;
+  }>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

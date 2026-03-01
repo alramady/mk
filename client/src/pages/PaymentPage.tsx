@@ -250,7 +250,52 @@ export default function PaymentPage() {
             <Separator />
 
             {(() => {
-              const hideIns = setting("calculator.hideInsuranceFromTenant", "false") === "true";
+              const bd = (b as any).priceBreakdown;
+              const hideIns = bd
+                ? bd.appliedRates?.hideInsuranceFromTenant
+                : setting("calculator.hideInsuranceFromTenant", "false") === "true";
+
+              if (bd) {
+                // New bookings: full breakdown from frozen snapshot
+                return (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {lang === "ar" ? `الإيجار الشهري × ${b.durationMonths}` : `Monthly Rent × ${b.durationMonths}`}
+                      </span>
+                      <span className="font-medium">
+                        {(hideIns ? bd.baseRentTotal + bd.insuranceAmount : bd.baseRentTotal).toLocaleString()} {t("payment.sar")}
+                      </span>
+                    </div>
+                    {!hideIns && bd.insuranceAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {lang === "ar" ? `التأمين (${bd.appliedRates?.insuranceRate || 10}%)` : `Insurance (${bd.appliedRates?.insuranceRate || 10}%)`}
+                        </span>
+                        <span className="font-medium">{bd.insuranceAmount.toLocaleString()} {t("payment.sar")}</span>
+                      </div>
+                    )}
+                    {bd.serviceFeeAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {lang === "ar" ? `رسوم الخدمة (${bd.appliedRates?.serviceFeeRate || 5}%)` : `Service Fee (${bd.appliedRates?.serviceFeeRate || 5}%)`}
+                        </span>
+                        <span className="font-medium">{bd.serviceFeeAmount.toLocaleString()} {t("payment.sar")}</span>
+                      </div>
+                    )}
+                    {bd.vatAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {lang === "ar" ? `ضريبة القيمة المضافة (${bd.appliedRates?.vatRate || 15}%)` : `VAT (${bd.appliedRates?.vatRate || 15}%)`}
+                        </span>
+                        <span className="font-medium">{bd.vatAmount.toLocaleString()} {t("payment.sar")}</span>
+                      </div>
+                    )}
+                  </>
+                );
+              }
+
+              // Legacy bookings (no priceBreakdown): show old format
               const rentTotal = monthlyRent * b.durationMonths;
               const deposit = b.securityDeposit ? Number(b.securityDeposit) : 0;
               return (
@@ -265,6 +310,9 @@ export default function PaymentPage() {
                       <span className="font-medium">{deposit.toLocaleString()} {t("payment.sar")}</span>
                     </div>
                   )}
+                  <div className="text-xs text-amber-500 mt-1">
+                    {lang === "ar" ? "⚠ حجز قديم — المبلغ يشمل الإيجار الأساسي فقط" : "⚠ Legacy booking — amount is base rent only"}
+                  </div>
                 </>
               );
             })()}
