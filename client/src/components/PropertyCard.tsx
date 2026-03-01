@@ -6,20 +6,15 @@ import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
-import { useState, useEffect, useCallback } from "react";
-import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
+import { normalizeImageUrl } from "@/lib/image-utils";
 
-// Reliable fallback images by property type (Unsplash via proxy)
-const FALLBACK_IMAGES: Record<string, string> = {
-  apartment: normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80"),
-  villa: normalizeImageUrl("https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80"),
-  studio: normalizeImageUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80"),
-  duplex: normalizeImageUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80"),
-  furnished_room: normalizeImageUrl("https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&q=80"),
-  compound: normalizeImageUrl("https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80"),
-  hotel_apartment: normalizeImageUrl("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80"),
-  default: normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80"),
-};
+/**
+ * PropertyCard — public listing card.
+ *
+ * FIX (Phase 1 P0): Removed opacity-0/opacity-100 state machine + 8-second
+ * timeout that caused loaded R2 images to stay invisible and then be replaced
+ * by Unsplash fallbacks.  Now uses a simple <img> with onError fallback.
+ */
 
 interface PropertyCardProps {
   property: {
@@ -67,41 +62,9 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
   const district = lang === "ar" ? property.districtAr : property.district;
   const typeKey = `type.${property.propertyType}` as any;
 
-  const fallbackImg = FALLBACK_IMAGES[property.propertyType] || FALLBACK_IMAGES.default;
+  // Simple image: use R2 photo if available, no state machine, no Unsplash fallback
   const originalPhoto = property.photos?.[0];
-  // Normalize photo URL using shared utility
-  const resolvedPhoto = originalPhoto ? normalizeImageUrl(originalPhoto) : "";
-
-  const [imgSrc, setImgSrc] = useState(resolvedPhoto || fallbackImg);
-  const [imgStatus, setImgStatus] = useState<"loading" | "loaded" | "error">("loading");
-
-  const handleLoad = useCallback(() => {
-    setImgStatus("loaded");
-  }, []);
-
-  const handleError = useCallback(() => {
-    if (imgSrc !== fallbackImg) {
-      setImgSrc(fallbackImg);
-      setImgStatus("loading");
-    } else {
-      setImgStatus("error");
-    }
-  }, [imgSrc, fallbackImg]);
-
-  // Safety timeout
-  useEffect(() => {
-    if (imgStatus !== "loading") return;
-    const timer = setTimeout(() => {
-      if (imgStatus === "loading") {
-        if (imgSrc !== fallbackImg) {
-          setImgSrc(fallbackImg);
-        } else {
-          setImgStatus("error");
-        }
-      }
-    }, 8000);
-    return () => clearTimeout(timer);
-  }, [imgStatus, imgSrc, fallbackImg]);
+  const imgSrc = originalPhoto ? normalizeImageUrl(originalPhoto) : "";
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -118,12 +81,8 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
       <Card className="property-card group overflow-hidden cursor-pointer border-border/40 py-0 gap-0 bg-white dark:bg-card rounded-xl">
         {/* Image Container */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl bg-muted">
-          {/* Skeleton shimmer while loading */}
-          {imgStatus === "loading" && (
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/70 to-muted" />
-          )}
-          {/* Clean error fallback — building icon, no broken image icon */}
-          {imgStatus === "error" && (
+          {/* No-photo placeholder */}
+          {!imgSrc && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
               <Building2 className="h-12 w-12 text-[#3ECFC0]/40 mb-2" />
               <span className="text-xs text-muted-foreground/60 font-medium">
@@ -131,19 +90,34 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
               </span>
             </div>
           )}
-          <img
-            src={imgSrc}
-            alt={title}
-            loading="lazy"
-            decoding="async"
-            width={400}
-            height={300}
-            onLoad={handleLoad}
-            onError={handleError}
-            className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110 ${imgStatus === "loaded" ? "opacity-100" : "opacity-0"}`}
-          />
+          {/* Direct img — visible immediately, no opacity tricks */}
+          {imgSrc && (
+            <img
+              src={imgSrc}
+              alt={title}
+              loading="lazy"
+              decoding="async"
+              onError={(e) => {
+                // Hide broken img, show fallback sibling
+                const target = e.currentTarget;
+                target.style.display = "none";
+                const fallback = target.nextElementSibling as HTMLElement | null;
+                if (fallback) fallback.style.display = "flex";
+              }}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+            />
+          )}
+          {/* Error fallback (hidden by default, shown on img error) */}
+          {imgSrc && (
+            <div style={{ display: "none" }} className="absolute inset-0 flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+              <Building2 className="h-12 w-12 text-[#3ECFC0]/40 mb-2" />
+              <span className="text-xs text-muted-foreground/60 font-medium">
+                {lang === "ar" ? "صورة قريباً" : "Photo coming soon"}
+              </span>
+            </div>
+          )}
           {/* Gradient overlay on hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-70 transition-opacity duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-70 transition-opacity duration-500 pointer-events-none" />
 
           {/* Badges */}
           <div className="absolute top-3 start-3 flex gap-1.5">

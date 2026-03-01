@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { normalizeImageUrl, handleImageError, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import { Link } from "wouter";
@@ -20,22 +20,17 @@ import {
   AlertTriangle, ImageOff
 } from "lucide-react";
 
-// Admin property thumbnail: shows real photo, or CORS warning if photos exist but fail, or placeholder if no photos
+/**
+ * Admin property thumbnail — simple direct img, no state machine.
+ * FIX (Phase 1 P0): Removed opacity-0/opacity-100 transition that caused
+ * loaded R2 images to stay invisible.
+ */
 function AdminPropertyThumbnail({ photos, propertyType }: { photos?: string[] | null; propertyType?: string }) {
   const hasPhotos = Array.isArray(photos) && photos.length > 0;
-  const raw = hasPhotos ? photos[0] : null;
-  const primaryUrl = raw ? normalizeImageUrl(raw) : null;
+  const primaryUrl = hasPhotos ? normalizeImageUrl(photos![0]) : null;
   const photoCount = hasPhotos ? photos!.length : 0;
 
-  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
-
-  // Reset when photos change
-  useEffect(() => {
-    setStatus(primaryUrl ? 'loading' : 'error');
-  }, [primaryUrl]);
-
-  // No photos at all — show placeholder
-  if (!hasPhotos || !primaryUrl) {
+  if (!primaryUrl) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted gap-1">
         <Building2 className="h-6 w-6 text-muted-foreground/40" />
@@ -44,36 +39,28 @@ function AdminPropertyThumbnail({ photos, propertyType }: { photos?: string[] | 
     );
   }
 
-  // Photos exist but failed to load — show CORS warning
-  if (status === 'error') {
-    return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-amber-950/30 gap-1 p-1">
-        <ImageOff className="h-5 w-5 text-amber-400" />
-        <span className="text-[9px] text-amber-300 text-center leading-tight">
-          {photoCount} صور موجودة
-        </span>
-        <span className="text-[8px] text-amber-400/70 text-center leading-tight">
-          فشل التحميل (CORS)
-        </span>
-      </div>
-    );
-  }
-
   return (
     <>
-      {status === 'loading' && (
-        <div className="absolute inset-0 animate-pulse bg-muted" />
-      )}
       <img
         src={primaryUrl}
         alt=""
         loading="lazy"
-        onLoad={() => setStatus('loaded')}
-        onError={() => setStatus('error')}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+        onError={(e) => {
+          const target = e.currentTarget;
+          target.style.display = 'none';
+          const fallback = target.nextElementSibling as HTMLElement | null;
+          if (fallback) fallback.style.display = 'flex';
+        }}
+        className="absolute inset-0 w-full h-full object-cover"
       />
-      {status === 'loaded' && photoCount > 1 && (
-        <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+      <div style={{ display: 'none' }} className="absolute inset-0 flex-col items-center justify-center bg-amber-950/30 gap-1 p-1">
+        <ImageOff className="h-5 w-5 text-amber-400" />
+        <span className="text-[9px] text-amber-300 text-center leading-tight">
+          {photoCount} صور موجودة - فشل التحميل
+        </span>
+      </div>
+      {photoCount > 1 && (
+        <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded z-10">
           +{photoCount - 1}
         </div>
       )}
