@@ -163,7 +163,7 @@ export default function AdminAnalytics() {
     {
       icon: Calendar,
       value: stats.data?.activeBookings ?? 0,
-      label: lang === "ar" ? "حجوزات نشطة" : "Active Bookings",
+      label: lang === "ar" ? `حجوزات نشطة (${stats.data?.approvedBookings ?? 0} بانتظار الدفع)` : `Active Bookings (${stats.data?.approvedBookings ?? 0} awaiting payment)`,
       color: "#6366f1",
       bgClass: "from-[#6366f1]/15 via-[#6366f1]/5 to-transparent",
     },
@@ -180,8 +180,8 @@ export default function AdminAnalytics() {
   const secondaryKpis = [
     {
       icon: Percent,
-      value: data?.occupancy?.occupancyRate ?? 0,
-      label: lang === "ar" ? "نسبة الإشغال" : "Occupancy",
+      value: stats.data?.occupancyRate ?? data?.occupancy?.occupancyRate ?? 0,
+      label: lang === "ar" ? `نسبة الإشغال (${stats.data?.bookedDays ?? 0} يوم محجوز)` : `Occupancy (${stats.data?.bookedDays ?? 0} booked days)`,
       color: "#3ECFC0",
       suffix: "%",
     },

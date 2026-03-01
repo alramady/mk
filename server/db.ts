@@ -270,6 +270,77 @@ export async function getDb() {
       } catch (e: any) {
         // Ignore if already correct
       }
+      // Auto-migrate: ensure availability_blocks table exists (for occupancy tracking)
+      try {
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS availability_blocks (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          propertyId int NOT NULL,
+          unitId int DEFAULT NULL,
+          bookingId int DEFAULT NULL,
+          blockType ENUM('BOOKING','MAINTENANCE','BEDS24_IMPORT','MANUAL_BLOCK') NOT NULL DEFAULT 'BOOKING',
+          status ENUM('ACTIVE','CANCELLED','EXPIRED') NOT NULL DEFAULT 'ACTIVE',
+          startDate date NOT NULL,
+          endDate date NOT NULL,
+          source ENUM('LOCAL','BEDS24','ICAL','ADMIN') NOT NULL DEFAULT 'LOCAL',
+          sourceRef varchar(255) DEFAULT NULL,
+          notes text,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_ab_propertyId (propertyId),
+          INDEX idx_ab_bookingId (bookingId),
+          INDEX idx_ab_dates (startDate, endDate),
+          INDEX idx_ab_status (status),
+          UNIQUE KEY uq_booking_block (bookingId, blockType)
+        )`);
+      } catch (e: any) {
+        if (!e?.message?.includes('already exists')) {
+          console.warn(`[Database] availability_blocks table note:`, e?.message?.substring(0, 120));
+        }
+      }
+      // Auto-migrate: ensure unit_daily_status table exists (for occupancy snapshots)
+      try {
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS unit_daily_status (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          date timestamp NOT NULL,
+          buildingId int NOT NULL,
+          unitId int NOT NULL,
+          occupied boolean NOT NULL DEFAULT false,
+          available boolean NOT NULL DEFAULT true,
+          source ENUM('BEDS24','LOCAL','UNKNOWN') NOT NULL DEFAULT 'LOCAL',
+          bookingRef varchar(100),
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_uds_date (date),
+          INDEX idx_uds_unitId (unitId)
+        )`);
+      } catch (e: any) {
+        if (!e?.message?.includes('already exists')) {
+          console.warn(`[Database] unit_daily_status table note:`, e?.message?.substring(0, 120));
+        }
+      }
+      // Auto-migrate: ensure beds24_map table exists (for Beds24 integration)
+      try {
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS beds24_map (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          unitId int NOT NULL,
+          beds24PropertyId varchar(100),
+          beds24RoomId varchar(100),
+          sourceOfTruth ENUM('BEDS24','LOCAL') NOT NULL DEFAULT 'LOCAL',
+          connectionType ENUM('API','ICAL') DEFAULT NULL,
+          icalImportUrl text,
+          icalExportUrl text,
+          beds24ApiKey varchar(255),
+          lastSyncAt timestamp NULL,
+          lastSyncStatus ENUM('SUCCESS','FAILED','PENDING') DEFAULT 'PENDING',
+          lastSyncError text,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_unitId (unitId)
+        )`);
+      } catch (e: any) {
+        if (!e?.message?.includes('already exists')) {
+          console.warn(`[Database] beds24_map table note:`, e?.message?.substring(0, 120));
+        }
+      }
       // Auto-migrate: extend audit_log ENUMs for WhatsApp
       const auditMigrations = [
         `ALTER TABLE audit_log MODIFY COLUMN action ENUM('CREATE','UPDATE','ARCHIVE','RESTORE','DELETE','LINK_BEDS24','UNLINK_BEDS24','PUBLISH','UNPUBLISH','CONVERT','TEST','ENABLE','DISABLE','SEND') NOT NULL`,
@@ -683,8 +754,9 @@ export async function getPaymentsByBooking(bookingId: number) {
 export async function getTotalRevenue() {
   const db = await getDb();
   if (!db) return 0;
+  // Include both 'completed' (manual override) and 'paid' (Moyasar webhook) statuses
   const result = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(payments)
-    .where(eq(payments.status, "completed"));
+    .where(sql`${payments.status} IN ('completed', 'paid')`);
   return result[0]?.total ?? 0;
 }
 
@@ -1775,8 +1847,10 @@ export async function getBookingsByMonth(months = 12) {
       DATE_FORMAT(createdAt, '%Y-%m') AS month,
       COUNT(*) AS count,
       SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS activeCount,
+      SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approvedCount,
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completedCount,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelledCount,
+      SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejectedCount,
       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingCount
     FROM bookings
     WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ${months} MONTH)
@@ -1793,7 +1867,7 @@ export async function getRevenueByMonth(months = 12) {
   const result = await db.execute(sql`
     SELECT
       DATE_FORMAT(createdAt, '%Y-%m') AS month,
-      COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) AS revenue,
+      COALESCE(SUM(CASE WHEN status IN ('completed', 'paid') THEN amount ELSE 0 END), 0) AS revenue,
       COUNT(*) AS transactionCount
     FROM payments
     WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ${months} MONTH)
@@ -1929,15 +2003,32 @@ export async function getMaintenanceSummary() {
 /** Occupancy rate: active bookings / active properties */
 export async function getOccupancyRate() {
   const db = await getDb();
-  if (!db) return { occupancyRate: 0, activeBookings: 0, activeProperties: 0 };
+  if (!db) return { occupancyRate: 0, activeBookings: 0, activeProperties: 0, bookedDays: 0, totalPropertyDays: 0 };
+  // Count active bookings
   const [bookingResult] = await db.select({ count: sql<number>`count(*)` }).from(bookings)
     .where(eq(bookings.status, "active"));
+  // Count published/active properties
   const [propertyResult] = await db.select({ count: sql<number>`count(*)` }).from(properties)
-    .where(eq(properties.status, "published"));
+    .where(sql`${properties.status} IN ('published', 'active')`);
   const activeBookingsCount = bookingResult?.count ?? 0;
   const activePropertiesCount = propertyResult?.count ?? 0;
-  const rate = activePropertiesCount > 0 ? Math.round((activeBookingsCount / activePropertiesCount) * 100) : 0;
-  return { occupancyRate: rate, activeBookings: activeBookingsCount, activeProperties: activePropertiesCount };
+
+  // Try to use availability_blocks for date-based occupancy (preferred)
+  let occupancyRate = 0;
+  let bookedDays = 0;
+  let totalPropertyDays = activePropertiesCount * 30; // last 30 days
+  try {
+    const { getOccupancyStats } = await import('./availability-blocks.js');
+    const stats = await getOccupancyStats(30);
+    occupancyRate = stats.occupancyRate;
+    bookedDays = stats.bookedDays;
+    totalPropertyDays = stats.totalPropertyDays;
+  } catch {
+    // Fallback: simple ratio if availability_blocks table doesn't exist yet
+    occupancyRate = activePropertiesCount > 0 ? Math.round((activeBookingsCount / activePropertiesCount) * 100) : 0;
+  }
+
+  return { occupancyRate, activeBookings: activeBookingsCount, activeProperties: activePropertiesCount, bookedDays, totalPropertyDays };
 }
 
 /** Recent activity feed */

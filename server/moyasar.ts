@@ -416,6 +416,29 @@ export async function handleMoyasarWebhookVerified(req: Request, res: Response) 
             [bookingId]
           );
           console.log(`[Moyasar Webhook] Booking #${bookingId} updated to paid/active`);
+          // Create availability block for occupancy tracking
+          try {
+            const [bkRows] = await pool.query<RowDataPacket[]>(
+              "SELECT propertyId, unitId, moveInDate, moveOutDate FROM bookings WHERE id = ?",
+              [bookingId]
+            );
+            const bk = bkRows[0];
+            if (bk?.moveInDate && bk?.moveOutDate) {
+              const { createBookingBlock } = await import('./availability-blocks.js');
+              await createBookingBlock({
+                propertyId: bk.propertyId,
+                unitId: bk.unitId || undefined,
+                bookingId: Number(bookingId),
+                startDate: new Date(bk.moveInDate).toISOString().split('T')[0],
+                endDate: new Date(bk.moveOutDate).toISOString().split('T')[0],
+                source: 'LOCAL',
+                sourceRef: `moyasar:${ledgerEntry.providerRef || 'unknown'}`,
+              });
+              console.log(`[Moyasar Webhook] Created availability block for booking #${bookingId}`);
+            }
+          } catch (abErr: any) {
+            console.error(`[Moyasar Webhook] Failed to create availability block:`, abErr.message);
+          }
         }
       }
       

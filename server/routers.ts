@@ -574,6 +574,13 @@ export const appRouter = router({
             }
           } catch { /* email is best-effort */ }
         }
+        // Cancel availability block if booking is cancelled or rejected
+        if (input.status === 'cancelled' || input.status === 'rejected') {
+          try {
+            const { cancelBookingBlock } = await import('./availability-blocks.js');
+            await cancelBookingBlock(input.id, `Status changed to ${input.status}`);
+          } catch { /* block may not exist */ }
+        }
         return { success: true };
       }),
 
@@ -1029,18 +1036,33 @@ export const appRouter = router({
     }),
 
     stats: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS).query(async () => {
-      const [userCount, propertyCount, activeProperties, pendingProperties, bookingCount, activeBookings, totalRevenue] = await Promise.all([
+      const [userCount, propertyCount, activeProperties, pendingProperties, publishedProperties, bookingCount, activeBookings, approvedBookings, pendingBookings, totalRevenue, occupancy] = await Promise.all([
         db.getUserCount(),
         db.getPropertyCount(),
         db.getPropertyCount("active"),
         db.getPropertyCount("pending"),
+        db.getPropertyCount("published"),
         db.getBookingCount(),
         db.getBookingCount("active"),
+        db.getBookingCount("approved"),
+        db.getBookingCount("pending"),
         db.getTotalRevenue(),
+        db.getOccupancyRate(),
       ]);
-      return { userCount, propertyCount, activeProperties, pendingProperties, bookingCount, activeBookings, totalRevenue };
+      return {
+        userCount, propertyCount, activeProperties, pendingProperties, publishedProperties,
+        bookingCount, activeBookings, approvedBookings, pendingBookings,
+        totalRevenue,
+        occupancyRate: occupancy.occupancyRate,
+        bookedDays: occupancy.bookedDays,
+        totalPropertyDays: occupancy.totalPropertyDays,
+      };
+     }),
+    backfillAvailabilityBlocks: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS).mutation(async () => {
+      const { backfillFromBookings } = await import('./availability-blocks.js');
+      const count = await backfillFromBookings();
+      return { success: true, blocksCreated: count };
     }),
-
     users: adminWithPermission(PERMISSIONS.MANAGE_USERS)
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional(), search: z.string().max(200).optional(), role: z.string().optional() }))
       .query(async ({ input }) => {
@@ -1411,6 +1433,11 @@ export const appRouter = router({
           const voided = await voidLedgerByBookingId(input.id, input.rejectionReason);
           console.log(`[Ledger] Voided ${voided} entries for rejected booking #${input.id}`);
         } catch (e) { process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: 'error', component: 'ledger', msg: 'Failed to void entries on rejection', error: (e as Error).message }) + '\n'); }
+        // Cancel availability block if one exists
+        try {
+          const { cancelBookingBlock } = await import('./availability-blocks.js');
+          await cancelBookingBlock(input.id, `Rejected: ${input.rejectionReason}`);
+        } catch { /* block may not exist for pending bookings */ }
         await db.createNotification({
           userId: booking.tenantId,
           type: 'booking_rejected',
@@ -1513,6 +1540,23 @@ export const appRouter = router({
             },
           });
         } catch (e) { console.error('[Audit] Failed to log payment override', e); }
+        
+        // ── Create availability block for occupancy tracking ──
+        try {
+          const { createBookingBlock } = await import('./availability-blocks.js');
+          const startDate = booking.moveInDate ? new Date(booking.moveInDate).toISOString().split('T')[0] : null;
+          const endDate = booking.moveOutDate ? new Date(booking.moveOutDate).toISOString().split('T')[0] : null;
+          if (startDate && endDate) {
+            await createBookingBlock({
+              propertyId: booking.propertyId,
+              unitId: (booking as any).unitId || undefined,
+              bookingId: input.bookingId,
+              startDate,
+              endDate,
+              source: 'LOCAL',
+            });
+          }
+        } catch (e) { process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: 'error', component: 'availability', msg: 'Failed to create availability block', error: (e as Error).message }) + '\n'); }
         
         // Notify tenant: payment confirmed (outside tx — best-effort)
         await db.createNotification({
