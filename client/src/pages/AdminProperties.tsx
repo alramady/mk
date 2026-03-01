@@ -19,24 +19,12 @@ import {
   Building2, MapPin, BedDouble, Bath, Ruler, ChevronLeft, ChevronRight
 } from "lucide-react";
 
-// Robust thumbnail component with state-based image loading (matches PropertyCard pattern)
+// Simple thumbnail component - renders cover image or fallback
 function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: string; photos?: string[] | null }) {
   const imgUrl = coverImageUrl || (Array.isArray(photos) && photos.length > 0 ? normalizeImageUrl(photos[0]) : "");
-  const [src, setSrc] = useState(imgUrl);
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">(imgUrl ? "loading" : "error");
+  const [failed, setFailed] = useState(false);
 
-  // Reset when data changes
-  useEffect(() => {
-    const newUrl = coverImageUrl || (Array.isArray(photos) && photos.length > 0 ? normalizeImageUrl(photos[0]) : "");
-    if (newUrl && newUrl !== src) {
-      setSrc(newUrl);
-      setStatus("loading");
-    } else if (!newUrl) {
-      setStatus("error");
-    }
-  }, [coverImageUrl, photos]);
-
-  if (status === "error" || !src) {
+  if (!imgUrl || failed) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-muted">
         <Building2 className="h-8 w-8 text-muted-foreground/30" />
@@ -45,19 +33,13 @@ function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: str
   }
 
   return (
-    <>
-      {status === "loading" && (
-        <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/70 to-muted" />
-      )}
-      <img
-        src={src}
-        alt=""
-        className="w-full h-full object-cover"
-        loading="lazy"
-        onLoad={() => setStatus("loaded")}
-        onError={() => setStatus("error")}
-      />
-    </>
+    <img
+      src={imgUrl}
+      alt=""
+      className="w-full h-full object-cover"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
   );
 }
 
@@ -141,11 +123,15 @@ export default function AdminProperties() {
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     {/* Thumbnail */}
-                    <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0">
+                    <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0 relative">
                       <AdminPropertyThumbnail
                         coverImageUrl={prop.coverImageUrl}
                         photos={prop.photos}
                       />
+                      {/* DEBUG: show photo data status */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-[8px] text-white p-0.5 leading-tight">
+                        c:{prop.coverImageUrl ? '✓' : '✗'} p:{Array.isArray(prop.photos) ? prop.photos.length : 'null'}
+                      </div>
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
