@@ -1,6 +1,7 @@
 import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
@@ -159,7 +160,7 @@ export default defineConfig({
     '__APP_BUILD_DATE__': JSON.stringify(new Date().toISOString()),
     '__APP_GIT_SHA__': JSON.stringify(
       process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7)
-      || (() => { try { const { execSync } = require('child_process'); return execSync('git rev-parse --short HEAD').toString().trim(); } catch { return 'unknown'; } })()
+      || (() => { try { return execSync('git rev-parse --short HEAD').toString().trim(); } catch { return 'unknown'; } })()
     ),
   },
   resolve: {
