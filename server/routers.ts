@@ -440,7 +440,7 @@ export const appRouter = router({
             unitNumber,
             buildingId,
             propertyDisplayName: prop.titleAr || prop.titleEn || `Property #${prop.id}`,
-            type: 'INITIAL_RENT',
+            type: 'RENT',
             direction: 'IN',
             amount: String(calc.grandTotal),
             currency: calc.currency,

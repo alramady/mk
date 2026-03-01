@@ -63,6 +63,213 @@ export async function getDb() {
           }
         }
       }
+      // Auto-migrate: ensure bookings table has all required columns (migrations 0017/0020/0024)
+      const bookingColumnFixes = [
+        // From migration 0020 (property_publish_integrations)
+        "ALTER TABLE `bookings` ADD COLUMN `fees` decimal(10,2) DEFAULT 0",
+        "ALTER TABLE `bookings` ADD COLUMN `vatAmount` decimal(10,2) DEFAULT 0",
+        // From migration 0017 (finance_registry)
+        "ALTER TABLE `bookings` ADD COLUMN `beds24BookingId` varchar(100) DEFAULT NULL",
+        "ALTER TABLE `bookings` ADD COLUMN `source` enum('BEDS24','LOCAL') DEFAULT 'LOCAL'",
+        "ALTER TABLE `bookings` ADD COLUMN `renewalsUsed` int DEFAULT 0",
+        "ALTER TABLE `bookings` ADD COLUMN `maxRenewals` int DEFAULT 1",
+        "ALTER TABLE `bookings` ADD COLUMN `renewalWindowDays` int DEFAULT 14",
+        "ALTER TABLE `bookings` ADD COLUMN `buildingId` int DEFAULT NULL",
+        "ALTER TABLE `bookings` ADD COLUMN `unitId` int DEFAULT NULL",
+        // From migration 0024 (booking_price_breakdown)
+        "ALTER TABLE `bookings` ADD COLUMN `priceBreakdown` json DEFAULT NULL",
+      ];
+      for (const sql of bookingColumnFixes) {
+        try {
+          await _pool.execute(sql);
+          console.log(`[Database] Bookings migration applied: ${sql.substring(0, 60)}...`);
+        } catch (e: any) {
+          if (e?.code === 'ER_DUP_FIELDNAME' || e?.errno === 1060) {
+            // Column already exists, that's fine
+          } else {
+            console.warn(`[Database] Bookings migration note:`, e?.message?.substring(0, 120));
+          }
+        }
+      }
+      // Auto-migrate: ensure finance tables exist (migration 0017)
+      const financeTables = [
+        `CREATE TABLE IF NOT EXISTS buildings (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          name varchar(255) NOT NULL,
+          nameAr varchar(255),
+          address text,
+          city varchar(100),
+          totalUnits int DEFAULT 0,
+          isArchived boolean NOT NULL DEFAULT false,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS units (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          buildingId int NOT NULL,
+          unitNumber varchar(50) NOT NULL,
+          floor int,
+          bedrooms int DEFAULT 1,
+          bathrooms int DEFAULT 1,
+          sizeSqm decimal(10,2),
+          monthlyBaseRentSAR decimal(10,2),
+          status enum('AVAILABLE','OCCUPIED','MAINTENANCE','RESERVED') NOT NULL DEFAULT 'AVAILABLE',
+          beds24PropertyId varchar(100),
+          beds24RoomId varchar(100),
+          propertyId int DEFAULT NULL,
+          isArchived boolean NOT NULL DEFAULT false,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS payment_ledger (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          invoiceNumber varchar(50) NOT NULL UNIQUE,
+          bookingId int,
+          beds24BookingId varchar(100),
+          customerId int,
+          guestName varchar(255),
+          guestEmail varchar(320),
+          guestPhone varchar(20),
+          buildingId int,
+          unitId int,
+          unitNumber varchar(50),
+          propertyDisplayName varchar(255),
+          type enum('RENT','RENEWAL_RENT','PROTECTION_FEE','DEPOSIT','CLEANING','PENALTY','REFUND','ADJUSTMENT') NOT NULL,
+          direction enum('IN','OUT') NOT NULL DEFAULT 'IN',
+          amount decimal(10,2) NOT NULL,
+          currency varchar(3) NOT NULL DEFAULT 'SAR',
+          status enum('DUE','PENDING','PAID','FAILED','REFUNDED','VOID') NOT NULL DEFAULT 'DUE',
+          paymentMethod enum('MADA_CARD','APPLE_PAY','GOOGLE_PAY','TABBY','TAMARA','BANK_TRANSFER','CASH'),
+          provider enum('moyasar','tabby','tamara','manual'),
+          providerRef varchar(255),
+          dueAt timestamp NULL,
+          paidAt timestamp NULL,
+          createdBy int,
+          parentLedgerId int,
+          notes text,
+          notesAr text,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS payment_method_settings (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          methodKey varchar(50) NOT NULL UNIQUE,
+          displayName varchar(100) NOT NULL,
+          displayNameAr varchar(100),
+          provider varchar(50) NOT NULL,
+          isEnabled boolean NOT NULL DEFAULT false,
+          apiKeyConfigured boolean NOT NULL DEFAULT false,
+          configJson json,
+          sortOrder int DEFAULT 0,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      ];
+      for (const sql of financeTables) {
+        try {
+          await _pool.execute(sql);
+        } catch (e: any) {
+          // Table already exists or other non-critical error
+          if (!e?.message?.includes('already exists')) {
+            console.warn(`[Database] Finance table migration note:`, e?.message?.substring(0, 120));
+          }
+        }
+      }
+      // Auto-migrate: ensure audit_log table exists (migration 0018)
+      try {
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS audit_log (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          userId int,
+          userName varchar(255),
+          action enum('CREATE','UPDATE','ARCHIVE','RESTORE','DELETE','LINK_BEDS24','UNLINK_BEDS24','PUBLISH','UNPUBLISH','CONVERT','TEST','ENABLE','DISABLE','SEND') NOT NULL,
+          entityType enum('BUILDING','UNIT','BEDS24_MAP','LEDGER','EXTENSION','PAYMENT_METHOD','PROPERTY','SUBMISSION','INTEGRATION','WHATSAPP_MESSAGE','WHATSAPP_TEMPLATE') NOT NULL,
+          entityId int NOT NULL,
+          entityLabel varchar(255),
+          changes json,
+          metadata json,
+          ipAddress varchar(45),
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_audit_entityType_entityId (entityType, entityId),
+          INDEX idx_audit_userId (userId),
+          INDEX idx_audit_createdAt (createdAt)
+        )`);
+      } catch (e: any) {
+        if (!e?.message?.includes('already exists')) {
+          console.warn(`[Database] audit_log table note:`, e?.message?.substring(0, 120));
+        }
+      }
+      // Auto-migrate: ensure property_submissions table exists (migration 0019)
+      try {
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS property_submissions (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          userId int NOT NULL,
+          titleEn varchar(255),
+          titleAr varchar(255),
+          descriptionEn text,
+          descriptionAr text,
+          propertyType varchar(50) DEFAULT 'apartment',
+          city varchar(100),
+          cityAr varchar(100),
+          district varchar(100),
+          districtAr varchar(100),
+          address text,
+          addressAr text,
+          googleMapsUrl text,
+          latitude varchar(50),
+          longitude varchar(50),
+          bedrooms int DEFAULT 1,
+          bathrooms int DEFAULT 1,
+          sizeSqm decimal(10,2),
+          monthlyRent decimal(10,2),
+          amenities json,
+          utilitiesIncluded json,
+          status enum('PENDING','APPROVED','REJECTED','CONVERTED') NOT NULL DEFAULT 'PENDING',
+          adminNotes text,
+          convertedPropertyId int,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`);
+      } catch (e: any) {
+        if (!e?.message?.includes('already exists')) {
+          console.warn(`[Database] property_submissions table note:`, e?.message?.substring(0, 120));
+        }
+      }
+      try {
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS submission_photos (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          submissionId int NOT NULL,
+          url text NOT NULL,
+          sortOrder int DEFAULT 0,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+      } catch (e: any) {
+        if (!e?.message?.includes('already exists')) {
+          console.warn(`[Database] submission_photos table note:`, e?.message?.substring(0, 120));
+        }
+      }
+      // Auto-migrate: ensure properties table has all required columns (migration 0020)
+      const propertiesColumnFixes = [
+        "ALTER TABLE `properties` ADD COLUMN `pricingSource` ENUM('PROPERTY','UNIT') NOT NULL DEFAULT 'PROPERTY'",
+        "ALTER TABLE `properties` ADD COLUMN `submissionId` int DEFAULT NULL",
+      ];
+      for (const sql of propertiesColumnFixes) {
+        try {
+          await _pool.execute(sql);
+          console.log(`[Database] Properties migration applied: ${sql.substring(0, 60)}...`);
+        } catch (e: any) {
+          if (e?.code === 'ER_DUP_FIELDNAME' || e?.errno === 1060) {
+            // Column already exists, that's fine
+          } else {
+            console.warn(`[Database] Properties migration note:`, e?.message?.substring(0, 120));
+          }
+        }
+      }
+      // Auto-migrate: ensure properties status enum includes all values
+      try {
+        await _pool.execute("ALTER TABLE `properties` MODIFY COLUMN `status` ENUM('draft','pending','active','inactive','rejected','published','archived') NOT NULL DEFAULT 'draft'");
+      } catch (e: any) {
+        // Ignore if already correct
+      }
       // Auto-migrate: extend audit_log ENUMs for WhatsApp
       const auditMigrations = [
         `ALTER TABLE audit_log MODIFY COLUMN action ENUM('CREATE','UPDATE','ARCHIVE','RESTORE','DELETE','LINK_BEDS24','UNLINK_BEDS24','PUBLISH','UNPUBLISH','CONVERT','TEST','ENABLE','DISABLE','SEND') NOT NULL`,
