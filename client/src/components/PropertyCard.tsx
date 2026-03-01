@@ -95,8 +95,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             <img
               src={imgSrc}
               alt={title}
-              loading="lazy"
-              decoding="async"
+              loading="eager"
               onError={(e) => {
                 // Hide broken img, show fallback sibling + log failure
                 const target = e.currentTarget;
@@ -105,7 +104,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
                 if (fallback) fallback.style.display = "flex";
                 console.error(`[PropertyCard] Image failed to load: ${imgSrc}`);
               }}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
           )}
           {/* Error fallback (hidden by default, shown on img error) */}
