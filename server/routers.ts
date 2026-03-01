@@ -1205,10 +1205,11 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const prop = await db.getPropertyById(input.id);
         if (!prop) throw new TRPCError({ code: 'NOT_FOUND' });
-        const checks: { label: string; labelAr: string; passed: boolean; detail?: string }[] = [];
-        checks.push({ label: 'Has title', labelAr: 'يوجد عنوان', passed: !!(prop.titleEn || prop.titleAr) });
+        const checks: { label: string; labelAr: string; labelEn: string; passed: boolean; detail?: string; required?: boolean }[] = [];
+        // Required checks (block publish)
+        checks.push({ label: 'Has title', labelAr: 'يوجد عنوان', labelEn: 'Has title', passed: !!(prop.titleEn || prop.titleAr), required: true });
         if ((prop as any).pricingSource === 'PROPERTY' || !(prop as any).pricingSource) {
-          checks.push({ label: 'Monthly rent > 0', labelAr: 'الإيجار الشهري > 0', passed: Number(prop.monthlyRent) > 0, detail: `SAR ${prop.monthlyRent}` });
+          checks.push({ label: 'Monthly rent > 0', labelAr: 'الإيجار الشهري > 0', labelEn: 'Monthly rent > 0', passed: Number(prop.monthlyRent) > 0, detail: `SAR ${prop.monthlyRent}`, required: true });
         } else {
           const linkedUnits = await sharedDb.select().from(units).where(eqDrizzle(units.propertyId, input.id));
           const validUnits = linkedUnits.filter(u => u.unitStatus !== 'BLOCKED' && u.unitStatus !== 'MAINTENANCE');
@@ -1220,15 +1221,17 @@ export const appRouter = router({
           } else {
             unitCheck = { passed: false, detail: 'Unit rent is 0 or null' };
           }
-          checks.push({ label: 'Linked unit with valid rent', labelAr: 'وحدة مرتبطة بإيجار صالح', ...unitCheck });
+          checks.push({ label: 'Linked unit with valid rent', labelAr: 'وحدة مرتبطة بإيجار صالح', labelEn: 'Linked unit with valid rent', ...unitCheck, required: true });
         }
         const hasPhotos = prop.photos && (prop.photos as string[]).length > 0;
-        checks.push({ label: 'Has photos', labelAr: 'يوجد صور', passed: !!hasPhotos, detail: hasPhotos ? `${(prop.photos as string[]).length} photos` : 'No photos' });
-        checks.push({ label: 'Has location', labelAr: 'يوجد موقع', passed: !!(prop.city || prop.cityAr) });
+        checks.push({ label: 'Has photos', labelAr: 'يوجد صور', labelEn: 'Has photos', passed: !!hasPhotos, detail: hasPhotos ? `${(prop.photos as string[]).length} photos` : 'No photos', required: true });
+        checks.push({ label: 'Has location', labelAr: 'يوجد موقع', labelEn: 'Has location', passed: !!(prop.city || prop.cityAr), required: true });
+        // Warning checks (do NOT block publish)
         const hasCoords = !!(prop.latitude && prop.longitude && Number(prop.latitude) !== 0);
-        checks.push({ label: 'Has coordinates', labelAr: 'يوجد إحداثيات', passed: hasCoords, detail: hasCoords ? `${prop.latitude}, ${prop.longitude}` : 'استخدم الترميز الجغرافي أو الدبوس' });
-        const allPassed = checks.every(c => c.passed);
-        return { ready: allPassed, checks, pricingSource: (prop as any).pricingSource || 'PROPERTY', status: prop.status };
+        checks.push({ label: 'Has coordinates', labelAr: 'يوجد إحداثيات', labelEn: 'Has coordinates', passed: hasCoords, detail: hasCoords ? `${prop.latitude}, ${prop.longitude}` : 'Recommended for map visibility', required: false });
+        // ready = all REQUIRED checks pass (warnings don't block)
+        const allRequiredPassed = checks.filter(c => c.required !== false).every(c => c.passed);
+        return { ready: allRequiredPassed, checks, pricingSource: (prop as any).pricingSource || 'PROPERTY', status: prop.status };
       }),
 
     // Admin create property (creates as DRAFT)

@@ -47,7 +47,7 @@ export default function AdminBookings() {
 
   const approveBooking = trpc.admin.approveBooking.useMutation({
     onSuccess: () => {
-      toast.success("تم قبول الحجز وإرسال الفاتورة للمستأجر | Booking approved, invoice sent");
+      toast.success(isAr ? "تم قبول الحجز وإرسال الفاتورة للمستأجر" : "Booking approved, invoice sent");
       utils.admin.bookings.invalidate();
       setApproveDialog({ open: false, bookingId: null });
     },
@@ -56,7 +56,7 @@ export default function AdminBookings() {
 
   const rejectBooking = trpc.admin.rejectBooking.useMutation({
     onSuccess: () => {
-      toast.success("تم رفض الحجز وإلغاء الفاتورة | Booking rejected, ledger voided");
+      toast.success(isAr ? "تم رفض الحجز وإلغاء الفاتورة" : "Booking rejected, ledger voided");
       utils.admin.bookings.invalidate();
       setRejectDialog({ open: false, bookingId: null });
       setRejectReason("");
@@ -66,7 +66,7 @@ export default function AdminBookings() {
 
   const confirmPayment = trpc.admin.confirmPayment.useMutation({
     onSuccess: () => {
-      toast.success("⚠️ تم تأكيد الدفع يدوياً - مسجل في سجل المراجعة | Manual override logged to audit trail");
+      toast.success(isAr ? "⚠️ تم تأكيد الدفع يدوياً - مسجل في سجل المراجعة" : "⚠️ Manual override logged to audit trail");
       utils.admin.bookings.invalidate();
       setConfirmDialog({ open: false, bookingId: null });
       setOverrideReason("");
@@ -104,23 +104,23 @@ export default function AdminBookings() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">الحجوزات | Bookings</h1>
-            <p className="text-muted-foreground text-sm mt-1">إدارة جميع الحجوزات ومتابعة حالتها | Manage all bookings and track their status</p>
+            <h1 className="text-2xl font-bold tracking-tight">{isAr ? "الحجوزات" : "Bookings"}</h1>
+            <p className="text-muted-foreground text-sm mt-1">{isAr ? "إدارة جميع الحجوزات ومتابعة حالتها" : "Manage all bookings and track their status"}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Payment Config Status */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${paymentConfigured ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
               <CreditCard className="h-3.5 w-3.5" />
               {paymentConfigured
-                ? "الدفع الإلكتروني مفعّل | Online Payment Active"
-                : "الدفع الإلكتروني غير مفعّل | Online Payment Not Configured"}
+                ? (isAr ? "الدفع الإلكتروني مفعّل" : "Online Payment Active")
+                : (isAr ? "الدفع الإلكتروني غير مفعّل" : "Online Payment Not Configured")}
             </div>
             {/* Override Status */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${isOverrideOn ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
               <ShieldAlert className="h-3.5 w-3.5" />
               {isOverrideOn
-                ? "التأكيد اليدوي مفعّل | Manual Override ON"
-                : "التأكيد اليدوي معطّل | Manual Override OFF"}
+                ? (isAr ? "التأكيد اليدوي مفعّل" : "Manual Override ON")
+                : (isAr ? "التأكيد اليدوي معطّل" : "Manual Override OFF")}
             </div>
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function AdminBookings() {
                 <CalendarCheck className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-2xl font-bold">{counts.all}</p>
-                  <p className="text-xs text-muted-foreground">إجمالي | Total</p>
+                  <p className="text-xs text-muted-foreground">{isAr ? "إجمالي" : "Total"}</p>
                 </div>
               </div>
             </CardContent>
@@ -144,7 +144,7 @@ export default function AdminBookings() {
                 <Clock className="h-5 w-5 text-yellow-500" />
                 <div>
                   <p className="text-2xl font-bold">{counts.pending}</p>
-                  <p className="text-xs text-muted-foreground">بانتظار الموافقة | Pending</p>
+                  <p className="text-xs text-muted-foreground">{isAr ? "بانتظار الموافقة" : "Pending"}</p>
                 </div>
               </div>
             </CardContent>
@@ -155,7 +155,7 @@ export default function AdminBookings() {
                 <BanknoteIcon className="h-5 w-5 text-blue-500" />
                 <div>
                   <p className="text-2xl font-bold">{counts.approved}</p>
-                  <p className="text-xs text-muted-foreground">بانتظار الدفع | Awaiting Pay</p>
+                  <p className="text-xs text-muted-foreground">{isAr ? "بانتظار الدفع" : "Awaiting Pay"}</p>
                 </div>
               </div>
             </CardContent>
@@ -166,7 +166,7 @@ export default function AdminBookings() {
                 <CheckCircle className="h-5 w-5 text-green-500" />
                 <div>
                   <p className="text-2xl font-bold">{counts.active}</p>
-                  <p className="text-xs text-muted-foreground">نشط | Active</p>
+                  <p className="text-xs text-muted-foreground">{isAr ? "نشط" : "Active"}</p>
                 </div>
               </div>
             </CardContent>
@@ -178,7 +178,7 @@ export default function AdminBookings() {
           <div className="relative flex-1">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="بحث برقم الحجز أو الفاتورة... | Search by booking or invoice #"
+              placeholder={isAr ? "بحث برقم الحجز أو الفاتورة..." : "Search by booking or invoice #"}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="ps-9"
@@ -187,27 +187,27 @@ export default function AdminBookings() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[200px]">
               <Filter className="h-4 w-4 me-2" />
-              <SelectValue placeholder="تصفية الحالة" />
+              <SelectValue placeholder={isAr ? "تصفية الحالة" : "Filter Status"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">الكل | All ({counts.all})</SelectItem>
-              <SelectItem value="pending">بانتظار الموافقة ({counts.pending})</SelectItem>
-              <SelectItem value="approved">بانتظار الدفع ({counts.approved})</SelectItem>
-              <SelectItem value="active">نشط ({counts.active})</SelectItem>
-              <SelectItem value="completed">مكتمل</SelectItem>
-              <SelectItem value="rejected">مرفوض</SelectItem>
-              <SelectItem value="cancelled">ملغي</SelectItem>
+              <SelectItem value="all">{isAr ? "الكل" : "All"} ({counts.all})</SelectItem>
+              <SelectItem value="pending">{isAr ? "بانتظار الموافقة" : "Pending"} ({counts.pending})</SelectItem>
+              <SelectItem value="approved">{isAr ? "بانتظار الدفع" : "Awaiting Pay"} ({counts.approved})</SelectItem>
+              <SelectItem value="active">{isAr ? "نشط" : "Active"} ({counts.active})</SelectItem>
+              <SelectItem value="completed">{isAr ? "مكتمل" : "Completed"}</SelectItem>
+              <SelectItem value="rejected">{isAr ? "مرفوض" : "Rejected"}</SelectItem>
+              <SelectItem value="cancelled">{isAr ? "ملغي" : "Cancelled"}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Bookings Table */}
         {bookings.isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">جارٍ التحميل...</div>
+          <div className="text-center py-12 text-muted-foreground">{isAr ? "جارٍ التحميل..." : "Loading..."}</div>
         ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              لا توجد حجوزات {statusFilter !== "all" ? "بهذه الحالة" : ""}
+              {isAr ? `لا توجد حجوزات ${statusFilter !== "all" ? "بهذه الحالة" : ""}` : `No bookings ${statusFilter !== "all" ? "with this status" : ""}`}
             </CardContent>
           </Card>
         ) : (
@@ -217,14 +217,14 @@ export default function AdminBookings() {
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="text-start p-3 font-medium">#</th>
-                    <th className="text-start p-3 font-medium">العقار | Property</th>
-                    <th className="text-start p-3 font-medium">المستأجر | Tenant</th>
-                    <th className="text-start p-3 font-medium">المدة | Duration</th>
-                    <th className="text-start p-3 font-medium">المبلغ | Amount</th>
-                    <th className="text-start p-3 font-medium">الفاتورة | Invoice</th>
-                    <th className="text-start p-3 font-medium">حالة السجل | Ledger</th>
-                    <th className="text-start p-3 font-medium">الحالة | Status</th>
-                    <th className="text-start p-3 font-medium">الإجراءات | Actions</th>
+                    <th className="text-start p-3 font-medium">{isAr ? "العقار" : "Property"}</th>
+                    <th className="text-start p-3 font-medium">{isAr ? "المستأجر" : "Tenant"}</th>
+                    <th className="text-start p-3 font-medium">{isAr ? "المدة" : "Duration"}</th>
+                    <th className="text-start p-3 font-medium">{isAr ? "المبلغ" : "Amount"}</th>
+                    <th className="text-start p-3 font-medium">{isAr ? "الفاتورة" : "Invoice"}</th>
+                    <th className="text-start p-3 font-medium">{isAr ? "حالة السجل" : "Ledger"}</th>
+                    <th className="text-start p-3 font-medium">{isAr ? "الحالة" : "Status"}</th>
+                    <th className="text-start p-3 font-medium">{isAr ? "الإجراءات" : "Actions"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -238,12 +238,12 @@ export default function AdminBookings() {
                         <tr key={b.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setExpandedRow(isExpanded ? null : b.id)}>
                           <td className="p-3 font-mono text-xs">{b.id}</td>
                           <td className="p-3">
-                            <div className="font-medium">عقار #{b.propertyId}</div>
-                            {b.unitId && <div className="text-xs text-muted-foreground">وحدة #{b.unitId}</div>}
+                            <div className="font-medium">{isAr ? "عقار" : "Property"} #{b.propertyId}</div>
+                            {b.unitId && <div className="text-xs text-muted-foreground">{isAr ? "وحدة" : "Unit"} #{b.unitId}</div>}
                           </td>
                           <td className="p-3 text-xs">#{b.tenantId}</td>
-                          <td className="p-3 text-xs">{b.durationMonths} شهر</td>
-                          <td className="p-3 font-medium text-xs">{Number(b.totalAmount || b.monthlyRent).toLocaleString()} ر.س</td>
+                          <td className="p-3 text-xs">{b.durationMonths} {isAr ? "شهر" : "mo"}</td>
+                          <td className="p-3 font-medium text-xs">{Number(b.totalAmount || b.monthlyRent).toLocaleString()} {isAr ? "ر.س" : "SAR"}</td>
                           <td className="p-3">
                             {ledger ? (
                               <div className="flex items-center gap-1">
@@ -277,7 +277,7 @@ export default function AdminBookings() {
                                     onClick={() => setApproveDialog({ open: true, bookingId: b.id })}
                                   >
                                     <CheckCircle className="h-3 w-3 me-1" />
-                                    قبول
+                                    {isAr ? "قبول" : "Approve"}
                                   </Button>
                                   <Button
                                     size="sm"
@@ -286,7 +286,7 @@ export default function AdminBookings() {
                                     onClick={() => setRejectDialog({ open: true, bookingId: b.id })}
                                   >
                                     <XCircle className="h-3 w-3 me-1" />
-                                    رفض
+                                    {isAr ? "رفض" : "Reject"}
                                   </Button>
                                 </>
                               )}
@@ -298,11 +298,11 @@ export default function AdminBookings() {
                                   onClick={() => setConfirmDialog({ open: true, bookingId: b.id })}
                                 >
                                   <ShieldAlert className="h-3 w-3 me-1" />
-                                  تأكيد يدوي
+                                  {isAr ? "تأكيد يدوي" : "Manual Override"}
                                 </Button>
                               )}
                               {b.status === "approved" && !isOverrideOn && (
-                                <span className="text-xs text-muted-foreground italic">ينتظر الدفع الإلكتروني</span>
+                                <span className="text-xs text-muted-foreground italic">{isAr ? "ينتظر الدفع الإلكتروني" : "Awaiting online payment"}</span>
                               )}
                               {!["pending", "approved"].includes(b.status) && (
                                 <span className="text-xs text-muted-foreground">—</span>
@@ -328,23 +328,23 @@ export default function AdminBookings() {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Booking Details */}
                                 <div className="space-y-2">
-                                  <h4 className="font-semibold text-sm">تفاصيل الحجز | Booking Details</h4>
+                                  <h4 className="font-semibold text-sm">{isAr ? "تفاصيل الحجز" : "Booking Details"}</h4>
                                   <div className="text-xs space-y-1">
-                                    <div><span className="text-muted-foreground">تاريخ الدخول:</span> {b.moveInDate ? new Date(b.moveInDate).toLocaleDateString("ar-SA") : "-"}</div>
-                                    <div><span className="text-muted-foreground">تاريخ الخروج:</span> {b.moveOutDate ? new Date(b.moveOutDate).toLocaleDateString("ar-SA") : "-"}</div>
-                                    <div><span className="text-muted-foreground">الإيجار الشهري:</span> {Number(b.monthlyRent).toLocaleString()} ر.س</div>
-                                    <div><span className="text-muted-foreground">المبلغ الإجمالي:</span> {Number(b.totalAmount).toLocaleString()} ر.س</div>
-                                    <div><span className="text-muted-foreground">المصدر:</span> {b.source === "BEDS24" ? "Beds24" : "محلي | Local"}</div>
+                                    <div><span className="text-muted-foreground">{isAr ? "تاريخ الدخول:" : "Move-in:"}</span> {b.moveInDate ? new Date(b.moveInDate).toLocaleDateString(isAr ? "ar-SA" : "en-US") : "-"}</div>
+                                    <div><span className="text-muted-foreground">{isAr ? "تاريخ الخروج:" : "Move-out:"}</span> {b.moveOutDate ? new Date(b.moveOutDate).toLocaleDateString(isAr ? "ar-SA" : "en-US") : "-"}</div>
+                                    <div><span className="text-muted-foreground">{isAr ? "الإيجار الشهري:" : "Monthly Rent:"}</span> {Number(b.monthlyRent).toLocaleString()} {isAr ? "ر.س" : "SAR"}</div>
+                                    <div><span className="text-muted-foreground">{isAr ? "المبلغ الإجمالي:" : "Total Amount:"}</span> {Number(b.totalAmount).toLocaleString()} ر.س</div>
+                                    <div><span className="text-muted-foreground">{isAr ? "المصدر:" : "Source:"}</span> {b.source === "BEDS24" ? "Beds24" : isAr ? "محلي" : "Local"}</div>
                                     {b.rejectionReason && (
                                       <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700">
-                                        <span className="font-medium">سبب الرفض:</span> {b.rejectionReason}
+                                        <span className="font-medium">{isAr ? "سبب الرفض:" : "Rejection Reason:"}</span> {b.rejectionReason}
                                       </div>
                                     )}
                                   </div>
                                 </div>
                                 {/* Ledger Details */}
                                 <div className="space-y-2">
-                                  <h4 className="font-semibold text-sm">السجل المالي | Payment Ledger</h4>
+                                  <h4 className="font-semibold text-sm">{isAr ? "السجل المالي" : "Payment Ledger"}</h4>
                                   {b.ledgerEntries?.length > 0 ? (
                                     <div className="space-y-2">
                                       {b.ledgerEntries.map((le: any) => {
@@ -355,15 +355,15 @@ export default function AdminBookings() {
                                               <span className="font-mono font-medium">{le.invoiceNumber}</span>
                                               <span className={`px-2 py-0.5 rounded-full border text-xs ${ls.color}`}>{ls.labelAr} | {ls.label}</span>
                                             </div>
-                                            <div><span className="text-muted-foreground">المبلغ:</span> {Number(le.amount).toLocaleString()} {le.currency}</div>
-                                            <div><span className="text-muted-foreground">النوع:</span> {le.type}</div>
-                                            {le.provider && <div><span className="text-muted-foreground">المزود:</span> {le.provider === 'manual_override' ? '⚠️ تأكيد يدوي' : le.provider}</div>}
-                                            {le.paidAt && <div><span className="text-muted-foreground">تاريخ الدفع:</span> {new Date(le.paidAt).toLocaleDateString("ar-SA")}</div>}
-                                            {le.paymentMethod && <div><span className="text-muted-foreground">طريقة الدفع:</span> {le.paymentMethod}</div>}
+                                            <div><span className="text-muted-foreground">{isAr ? "المبلغ:" : "Amount:"}</span> {Number(le.amount).toLocaleString()} {le.currency}</div>
+                                            <div><span className="text-muted-foreground">{isAr ? "النوع:" : "Type:"}</span> {le.type}</div>
+                                            {le.provider && <div><span className="text-muted-foreground">{isAr ? "المزود:" : "Provider:"}</span> {le.provider === 'manual_override' ? isAr ? '⚠️ تأكيد يدوي' : '⚠️ Manual override' : le.provider}</div>}
+                                            {le.paidAt && <div><span className="text-muted-foreground">{isAr ? "تاريخ الدفع:" : "Paid At:"}</span> {new Date(le.paidAt).toLocaleDateString(isAr ? "ar-SA" : "en-US")}</div>}
+                                            {le.paymentMethod && <div><span className="text-muted-foreground">{isAr ? "طريقة الدفع:" : "Payment Method:"}</span> {le.paymentMethod}</div>}
                                             {le.webhookVerified !== undefined && (
                                               <div>
-                                                <span className="text-muted-foreground">تحقق الويب هوك:</span>{" "}
-                                                {le.webhookVerified ? <span className="text-green-600">نعم ✓</span> : <span className="text-amber-600">لا (يدوي)</span>}
+                                                <span className="text-muted-foreground">{isAr ? "تحقق الويب هوك:" : "Webhook Verified:"}</span>{" "}
+                                                {le.webhookVerified ? <span className="text-green-600">{isAr ? "نعم ✓" : "Yes ✓"}</span> : <span className="text-amber-600">{isAr ? "لا (يدوي)" : "No (manual)"}</span>}
                                               </div>
                                             )}
                                           </div>
@@ -371,14 +371,14 @@ export default function AdminBookings() {
                                       })}
                                     </div>
                                   ) : (
-                                    <p className="text-xs text-muted-foreground">لا توجد سجلات مالية | No ledger entries</p>
+                                    <p className="text-xs text-muted-foreground">{isAr ? "لا توجد سجلات مالية" : "No ledger entries"}</p>
                                   )}
                                   {/* Payment Config Warning */}
                                   {b.status === "approved" && !b.paymentConfigured && (
                                     <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-amber-700 text-xs">
                                       <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                                       <div>
-                                        <p className="font-medium">الدفع الإلكتروني غير مفعّل</p>
+                                        <p className="font-medium">{isAr ? "الدفع الإلكتروني غير مفعّل" : "Online payment not configured"}</p>
                                         <p>Online payment not configured — manual override required</p>
                                       </div>
                                     </div>
@@ -402,21 +402,21 @@ export default function AdminBookings() {
       <Dialog open={approveDialog.open} onOpenChange={(o) => !o && setApproveDialog({ open: false, bookingId: null })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>تأكيد قبول الحجز #{approveDialog.bookingId} | Approve Booking</DialogTitle>
+            <DialogTitle>{isAr ? `تأكيد قبول الحجز #${approveDialog.bookingId}` : `Approve Booking #${approveDialog.bookingId}`}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            سيتم تغيير حالة الحجز إلى "بانتظار الدفع" وإرسال إشعار للمستأجر.
+            {isAr ? 'سيتم تغيير حالة الحجز إلى "بانتظار الدفع" وإرسال إشعار للمستأجر.' : "Booking status will change to Awaiting Payment and tenant will be notified."}
             <br />
             Booking status will change to "Approved – Pending Payment" and tenant will be notified.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveDialog({ open: false, bookingId: null })}>إلغاء | Cancel</Button>
+            <Button variant="outline" onClick={() => setApproveDialog({ open: false, bookingId: null })}>{isAr ? "إلغاء" : "Cancel"}</Button>
             <Button
               className="bg-green-600 hover:bg-green-700"
               onClick={() => approveDialog.bookingId && approveBooking.mutate({ id: approveDialog.bookingId })}
               disabled={approveBooking.isPending}
             >
-              {approveBooking.isPending ? "جارٍ..." : "قبول الحجز | Approve"}
+              {approveBooking.isPending ? isAr ? "جارٍ..." : "Processing..." : isAr ? "قبول الحجز" : "Approve"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -426,16 +426,16 @@ export default function AdminBookings() {
       <Dialog open={rejectDialog.open} onOpenChange={(o) => { if (!o) { setRejectDialog({ open: false, bookingId: null }); setRejectReason(""); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>رفض الحجز #{rejectDialog.bookingId} | Reject Booking</DialogTitle>
+            <DialogTitle>{isAr ? `رفض الحجز #${rejectDialog.bookingId}` : `Reject Booking #${rejectDialog.bookingId}`}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              سيتم رفض الحجز وإلغاء الفاتورة المرتبطة (VOID). يجب كتابة سبب الرفض.
+              {isAr ? "سيتم رفض الحجز وإلغاء الفاتورة المرتبطة (VOID). يجب كتابة سبب الرفض." : "Booking will be rejected and linked invoice voided. A reason is required."}
               <br />
               Booking will be rejected and linked ledger entries will be voided. Reason is required.
             </p>
             <Textarea
-              placeholder="سبب الرفض (مطلوب) | Rejection reason (required)..."
+              placeholder={isAr ? "سبب الرفض (مطلوب)..." : "Rejection reason (required)..."}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               rows={3}
@@ -444,18 +444,18 @@ export default function AdminBookings() {
             {rejectReason.length === 0 && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" />
-                سبب الرفض مطلوب | Reason is required
+                {isAr ? "سبب الرفض مطلوب" : "Reason is required"}
               </p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejectDialog({ open: false, bookingId: null }); setRejectReason(""); }}>إلغاء | Cancel</Button>
+            <Button variant="outline" onClick={() => { setRejectDialog({ open: false, bookingId: null }); setRejectReason(""); }}>{isAr ? "إلغاء" : "Cancel"}</Button>
             <Button
               variant="destructive"
               onClick={() => rejectDialog.bookingId && rejectBooking.mutate({ id: rejectDialog.bookingId, rejectionReason: rejectReason })}
               disabled={rejectBooking.isPending || rejectReason.trim().length === 0}
             >
-              {rejectBooking.isPending ? "جارٍ..." : "رفض الحجز | Reject"}
+              {rejectBooking.isPending ? "جارٍ..." : isAr ? "رفض الحجز" : "Reject"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -467,7 +467,7 @@ export default function AdminBookings() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-700">
               <ShieldAlert className="h-5 w-5" />
-              تأكيد دفع يدوي (طوارئ) | Manual Payment Override
+              {isAr ? "تأكيد دفع يدوي (طوارئ)" : "Manual Payment Override"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -476,52 +476,52 @@ export default function AdminBookings() {
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
                 <div className="text-xs text-red-700 space-y-1">
-                  <p className="font-semibold">تحذير: هذا الإجراء يتجاوز بوابة الدفع الإلكتروني</p>
+                  <p className="font-semibold">{isAr ? "تحذير: هذا الإجراء يتجاوز بوابة الدفع الإلكتروني" : "Warning: This action bypasses the payment gateway"}</p>
                   <p>Warning: This action bypasses the payment gateway (Moyasar webhook).</p>
                   <ul className="list-disc ps-4 space-y-0.5 mt-1">
-                    <li>سيتم تسجيل هذا الإجراء في سجل المراجعة (Audit Log)</li>
-                    <li>يتطلب صلاحية <code className="bg-red-100 px-1 rounded">manage_payments_override</code></li>
-                    <li>يجب كتابة سبب التأكيد اليدوي (10 أحرف على الأقل)</li>
+                    <li>{isAr ? "سيتم تسجيل هذا الإجراء في سجل المراجعة" : "This action will be logged in the Audit Log"}</li>
+                    <li>{isAr ? "يتطلب صلاحية" : "Requires permission"} <code className="bg-red-100 px-1 rounded">manage_payments_override</code></li>
+                    <li>{isAr ? "يجب كتابة سبب التأكيد اليدوي (10 أحرف على الأقل)" : "Override reason required (min 10 characters)"}</li>
                   </ul>
                 </div>
               </div>
             </div>
 
             <p className="text-sm text-muted-foreground">
-              الحجز #{confirmDialog.bookingId} — سيتم تفعيله وتحديث السجل المالي إلى "مدفوع" مع تسجيل التجاوز.
+              {isAr ? `الحجز #${confirmDialog.bookingId} — سيتم تفعيله وتحديث السجل المالي إلى "مدفوع" مع تسجيل التجاوز.` : `Booking #${confirmDialog.bookingId} — will be activated and ledger marked as paid with override logged.`}
             </p>
 
             {/* Payment Method */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">طريقة الدفع | Payment Method</label>
+              <label className="text-xs font-medium">{isAr ? "طريقة الدفع" : "Payment Method"}</label>
               <Select value={overridePaymentMethod} onValueChange={setOverridePaymentMethod}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">نقدي | Cash</SelectItem>
-                  <SelectItem value="bank_transfer">تحويل بنكي | Bank Transfer</SelectItem>
+                  <SelectItem value="cash">{isAr ? "نقدي" : "Cash"}</SelectItem>
+                  <SelectItem value="bank_transfer">{isAr ? "تحويل بنكي" : "Bank Transfer"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Override Reason */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">سبب التأكيد اليدوي (مطلوب) | Override Reason (required)</label>
+              <label className="text-xs font-medium">{isAr ? "سبب التأكيد اليدوي (مطلوب)" : "Override Reason (required)"}</label>
               <Textarea
-                placeholder="مثال: تم استلام تحويل بنكي مباشر - رقم العملية: ..."
+                placeholder={isAr ? "مثال: تم استلام تحويل بنكي مباشر - رقم العملية: ..." : "e.g.: Direct bank transfer received - transaction #: ..."}
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
                 rows={3}
                 className="border-amber-200 focus:border-amber-400"
               />
               {overrideReason.length > 0 && overrideReason.length < 10 && (
-                <p className="text-xs text-amber-600">يجب أن يكون السبب 10 أحرف على الأقل ({overrideReason.length}/10)</p>
+                <p className="text-xs text-amber-600">{isAr ? "يجب أن يكون السبب 10 أحرف على الأقل" : "Reason must be at least 10 characters"} ({overrideReason.length}/10)</p>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setConfirmDialog({ open: false, bookingId: null }); setOverrideReason(""); }}>إلغاء | Cancel</Button>
+            <Button variant="outline" onClick={() => { setConfirmDialog({ open: false, bookingId: null }); setOverrideReason(""); }}>{isAr ? "إلغاء" : "Cancel"}</Button>
             <Button
               className="bg-amber-600 hover:bg-amber-700 text-white"
               onClick={() => confirmDialog.bookingId && confirmPayment.mutate({
@@ -532,7 +532,7 @@ export default function AdminBookings() {
               disabled={confirmPayment.isPending || overrideReason.trim().length < 10}
             >
               <ShieldAlert className="h-4 w-4 me-1" />
-              {confirmPayment.isPending ? "جارٍ..." : "تأكيد يدوي (مسجّل) | Override & Log"}
+              {confirmPayment.isPending ? "جارٍ..." : isAr ? "تأكيد يدوي (مسجّل)" : "Override & Log"}
             </Button>
           </DialogFooter>
         </DialogContent>

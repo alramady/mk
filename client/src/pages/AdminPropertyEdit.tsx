@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useI18n } from "@/lib/i18n";
 import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-700",
 };
 
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS_AR: Record<string, string> = {
   draft: "مسودة",
   pending: "قيد المراجعة",
   published: "منشور",
@@ -46,11 +47,20 @@ const STATUS_LABELS: Record<string, string> = {
   inactive: "غير نشط",
   rejected: "مرفوض",
 };
+const STATUS_LABELS_EN: Record<string, string> = {
+  draft: "Draft",
+  pending: "Pending Review",
+  published: "Published",
+  archived: "Archived",
+  active: "Active",
+  inactive: "Inactive",
+  rejected: "Rejected",
+};
 
-// ─── Sortable Photo Item ─────────────────────────────────────────────
-function SortablePhoto({ id, url, index, onRemove, onSetCover }: {
+// ─── Sortable Photo Item ─────────────────────────────────────────────────────
+function SortablePhoto({ id, url, index, onRemove, onSetCover, isAr }: {
   id: string; url: string; index: number;
-  onRemove: () => void; onSetCover: () => void;
+  onRemove: () => void; onSetCover: () => void; isAr: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
@@ -74,18 +84,18 @@ function SortablePhoto({ id, url, index, onRemove, onSetCover }: {
       {index === 0 && (
         <div className="absolute top-1 right-1">
           <Badge className="bg-amber-500 text-white text-xs gap-1">
-            <Star className="h-3 w-3" /> غلاف
+            <Star className="h-3 w-3" /> {isAr ? "غلاف" : "Cover"}
           </Badge>
         </div>
       )}
       {/* Hover actions */}
       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
         {index !== 0 && (
-          <Button size="sm" variant="secondary" onClick={onSetCover} title="تعيين كغلاف">
+          <Button size="sm" variant="secondary" onClick={onSetCover} title={isAr ? "تعيين كغلاف" : "Set as cover"}>
             <Star className="h-3 w-3" />
           </Button>
         )}
-        <Button size="sm" variant="destructive" onClick={onRemove} title="حذف">
+        <Button size="sm" variant="destructive" onClick={onRemove} title={isAr ? "حذف" : "Delete"}>
           <X className="h-3 w-3" />
         </Button>
       </div>
@@ -97,6 +107,9 @@ function SortablePhoto({ id, url, index, onRemove, onSetCover }: {
 export default function AdminPropertyEdit() {
   const [, params] = useRoute("/admin/properties/:id/edit");
   const [, navigate] = useLocation();
+  const { lang, dir } = useI18n();
+  const isAr = lang === "ar";
+  const STATUS_LABELS = isAr ? STATUS_LABELS_AR : STATUS_LABELS_EN;
 
   const isNew = params?.id === "new";
   const propertyId = isNew ? null : Number(params?.id);
@@ -163,7 +176,7 @@ export default function AdminPropertyEdit() {
   // Mutations
   const adminCreate = trpc.admin.adminCreate.useMutation({
     onSuccess: (data) => {
-      toast.success("تم إنشاء العقار كمسودة");
+      toast.success(isAr ? "تم إنشاء العقار كمسودة" : "Property created as draft");
       navigate(`/admin/properties/${data.id}/edit`);
     },
     onError: (e) => toast.error(e.message),
@@ -171,7 +184,7 @@ export default function AdminPropertyEdit() {
 
   const adminUpdate = trpc.admin.adminUpdate.useMutation({
     onSuccess: () => {
-      toast.success("تم حفظ التغييرات");
+      toast.success(isAr ? "تم حفظ التغييرات" : "Changes saved");
       utils.property.getById.invalidate({ id: propertyId! });
       refetchReadiness();
     },
@@ -180,7 +193,7 @@ export default function AdminPropertyEdit() {
 
   const publishMutation = trpc.admin.publishProperty.useMutation({
     onSuccess: () => {
-      toast.success("العقار الآن مرئي على الموقع ✅");
+      toast.success(isAr ? "العقار الآن مرئي على الموقع ✅" : "Property is now visible on the site ✅");
       utils.property.getById.invalidate({ id: propertyId! });
       refetchReadiness();
     },
@@ -189,7 +202,7 @@ export default function AdminPropertyEdit() {
 
   const unpublishMutation = trpc.admin.unpublishProperty.useMutation({
     onSuccess: () => {
-      toast.success("العقار الآن مسودة");
+      toast.success(isAr ? "العقار الآن مسودة" : "Property is now a draft");
       utils.property.getById.invalidate({ id: propertyId! });
       refetchReadiness();
     },
@@ -198,7 +211,7 @@ export default function AdminPropertyEdit() {
 
   const archiveMutation = trpc.admin.archiveProperty.useMutation({
     onSuccess: () => {
-      toast.success("العقار مؤرشف الآن");
+      toast.success(isAr ? "العقار مؤرشف الآن" : "Property archived");
       utils.property.getById.invalidate({ id: propertyId! });
       refetchReadiness();
     },
@@ -207,7 +220,7 @@ export default function AdminPropertyEdit() {
 
   const linkUnitMutation = trpc.finance.units.linkToProperty.useMutation({
     onSuccess: () => {
-      toast.success("تم ربط الوحدة بالعقار");
+      toast.success(isAr ? "تم ربط الوحدة بالعقار" : "Unit linked to property");
       utils.finance.units.availableForLinking.invalidate();
       refetchReadiness();
     },
@@ -312,11 +325,11 @@ export default function AdminPropertyEdit() {
     const newPhotos = [...form.photos];
     for (const file of Array.from(files)) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error(`${file.name} أكبر من 5MB`);
+        toast.error(isAr ? `${file.name} أكبر من 5MB` : `${file.name} exceeds 5MB`);
         continue;
       }
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-        toast.error(`${file.name} نوع غير مدعوم`);
+        toast.error(isAr ? `${file.name} نوع غير مدعوم` : `${file.name} unsupported type`);
         continue;
       }
       try {
@@ -387,11 +400,11 @@ export default function AdminPropertyEdit() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto" dir="rtl">
+      <div className="space-y-6 max-w-5xl mx-auto" dir={dir}>
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{isNew ? "إنشاء عقار جديد" : "تعديل العقار"}</h1>
+            <h1 className="text-2xl font-bold">{isNew ? (isAr ? "إنشاء عقار جديد" : "Create New Property") : (isAr ? "تعديل العقار" : "Edit Property")}</h1>
             {!isNew && (
               <div className="flex items-center gap-2 mt-1">
                 <Badge className={STATUS_COLORS[currentStatus]}>
@@ -406,16 +419,16 @@ export default function AdminPropertyEdit() {
             {!isNew && currentStatus === "published" && (
               <Button variant="outline" asChild>
                 <a href={`/property/${propertyId}`} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4 ml-1" /> معاينة عامة
+                  <ExternalLink className="h-4 w-4 ml-1" /> {isAr ? "معاينة عامة" : "Public Preview"}
                 </a>
               </Button>
             )}
             <Button variant="outline" onClick={() => navigate("/admin/properties")}>
-              <ArrowRight className="h-4 w-4 ml-1" /> العودة
+              <ArrowRight className="h-4 w-4 ml-1" /> {isAr ? "العودة" : "Back"}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Save className="h-4 w-4 ml-1" />}
-              حفظ
+              {isAr ? "حفظ" : "Save"}
             </Button>
           </div>
         </div>
@@ -426,12 +439,12 @@ export default function AdminPropertyEdit() {
             {/* Basic Info */}
             <Card>
               <CardHeader>
-                <CardTitle>المعلومات الأساسية</CardTitle>
+                <CardTitle>{isAr ? "المعلومات الأساسية" : "Basic Information"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>العنوان (عربي)</Label>
+                    <Label>{isAr ? "العنوان (عربي)" : "Title (Arabic)"}</Label>
                     <Input value={form.titleAr} onChange={e => setForm(p => ({ ...p, titleAr: e.target.value }))} />
                   </div>
                   <div>
@@ -441,7 +454,7 @@ export default function AdminPropertyEdit() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>الوصف (عربي)</Label>
+                    <Label>{isAr ? "الوصف (عربي)" : "Description (Arabic)"}</Label>
                     <Textarea value={form.descriptionAr} onChange={e => setForm(p => ({ ...p, descriptionAr: e.target.value }))} rows={3} />
                   </div>
                   <div>
@@ -451,27 +464,27 @@ export default function AdminPropertyEdit() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>نوع العقار</Label>
+                    <Label>{isAr ? "نوع العقار" : "Property Type"}</Label>
                     <Select value={form.propertyType} onValueChange={v => setForm(p => ({ ...p, propertyType: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="apartment">شقة</SelectItem>
-                        <SelectItem value="villa">فيلا</SelectItem>
-                        <SelectItem value="studio">استوديو</SelectItem>
-                        <SelectItem value="duplex">دوبلكس</SelectItem>
-                        <SelectItem value="furnished_room">غرفة مفروشة</SelectItem>
-                        <SelectItem value="compound">مجمع سكني</SelectItem>
-                        <SelectItem value="hotel_apartment">شقة فندقية</SelectItem>
+                        <SelectItem value="apartment">{isAr ? "شقة" : "Apartment"}</SelectItem>
+                        <SelectItem value="villa">{isAr ? "فيلا" : "Villa"}</SelectItem>
+                        <SelectItem value="studio">{isAr ? "استوديو" : "Studio"}</SelectItem>
+                        <SelectItem value="duplex">{isAr ? "دوبلكس" : "Duplex"}</SelectItem>
+                        <SelectItem value="furnished_room">{isAr ? "غرفة مفروشة" : "Furnished Room"}</SelectItem>
+                        <SelectItem value="compound">{isAr ? "مجمع سكني" : "Compound"}</SelectItem>
+                        <SelectItem value="hotel_apartment">{isAr ? "شقة فندقية" : "Hotel Apartment"}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>مصدر التسعير</Label>
+                    <Label>{isAr ? "مصدر التسعير" : "Pricing Source"}</Label>
                     <Select value={form.pricingSource} onValueChange={v => setForm(p => ({ ...p, pricingSource: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="PROPERTY">تسعير العقار</SelectItem>
-                        <SelectItem value="UNIT">تسعير الوحدة</SelectItem>
+                        <SelectItem value="PROPERTY">{isAr ? "تسعير العقار" : "Property Pricing"}</SelectItem>
+                        <SelectItem value="UNIT">{isAr ? "تسعير الوحدة" : "Unit Pricing"}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -485,10 +498,10 @@ export default function AdminPropertyEdit() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Link2 className="h-5 w-5 text-blue-500" />
-                    ربط الوحدة
+                    {isAr ? "ربط الوحدة" : "Link Unit"}
                   </CardTitle>
                   <CardDescription>
-                    عند تسعير الوحدة، يجب ربط العقار بوحدة من المباني. السعر يأتي من الوحدة المرتبطة.
+                    {isAr ? "عند تسعير الوحدة، يجب ربط العقار بوحدة من المباني. السعر يأتي من الوحدة المرتبطة." : "When using unit pricing, link the property to a building unit. Price comes from the linked unit."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -496,37 +509,37 @@ export default function AdminPropertyEdit() {
                     <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <div>
                         <p className="font-medium text-sm">
-                          {linkedUnit.buildingNameAr || linkedUnit.buildingName} — وحدة {linkedUnit.unitNumber}
+                          {isAr ? (linkedUnit.buildingNameAr || linkedUnit.buildingName) : (linkedUnit.buildingName || linkedUnit.buildingNameAr)} — {isAr ? "وحدة" : "Unit"} {linkedUnit.unitNumber}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          الإيجار: {linkedUnit.monthlyBaseRentSAR || "—"} ر.س/شهر
-                          {linkedUnit.floor != null && ` • الطابق ${linkedUnit.floor}`}
+                          {isAr ? "الإيجار" : "Rent"}: {linkedUnit.monthlyBaseRentSAR || "—"} {isAr ? "ر.س/شهر" : "SAR/mo"}
+                          {linkedUnit.floor != null && ` • ${isAr ? "الطابق" : "Floor"} ${linkedUnit.floor}`}
                         </p>
                       </div>
                       <Button size="sm" variant="outline" onClick={handleUnlinkUnit} className="text-red-600">
-                        <Unlink className="h-3.5 w-3.5 ml-1" /> فك الربط
+                        <Unlink className="h-3.5 w-3.5 ml-1" /> {isAr ? "فك الربط" : "Unlink"}
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <p className="text-sm text-amber-600 flex items-center gap-1.5">
                         <AlertTriangle className="h-4 w-4" />
-                        لا توجد وحدة مرتبطة — يجب ربط وحدة قبل النشر
+                        {isAr ? "لا توجد وحدة مرتبطة — يجب ربط وحدة قبل النشر" : "No linked unit — link a unit before publishing"}
                       </p>
                       {availableUnits && (availableUnits as any[]).length > 0 ? (
                         <Select onValueChange={v => handleLinkUnit(Number(v))}>
-                          <SelectTrigger><SelectValue placeholder="اختر وحدة للربط..." /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder={isAr ? "اختر وحدة للربط..." : "Select unit to link..."} /></SelectTrigger>
                           <SelectContent>
                             {(availableUnits as any[]).map((u: any) => (
                               <SelectItem key={u.id} value={String(u.id)}>
-                                {u.buildingNameAr || u.buildingName} — وحدة {u.unitNumber}
-                                {u.monthlyBaseRentSAR ? ` (${u.monthlyBaseRentSAR} ر.س)` : ""}
+                                {isAr ? (u.buildingNameAr || u.buildingName) : (u.buildingName || u.buildingNameAr)} — {isAr ? "وحدة" : "Unit"} {u.unitNumber}
+                                {u.monthlyBaseRentSAR ? ` (${u.monthlyBaseRentSAR} ${isAr ? "ر.س" : "SAR"})` : ""}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       ) : (
-                        <p className="text-xs text-muted-foreground">لا توجد وحدات متاحة للربط. أنشئ وحدات من صفحة المباني أولاً.</p>
+                        <p className="text-xs text-muted-foreground">{isAr ? "لا توجد وحدات متاحة للربط. أنشئ وحدات من صفحة المباني أولاً." : "No units available. Create units from the Buildings page first."}</p>
                       )}
                     </div>
                   )}
@@ -539,13 +552,13 @@ export default function AdminPropertyEdit() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Map className="h-5 w-5 text-[#3ECFC0]" />
-                  الموقع والإحداثيات
+                  {isAr ? "الموقع والإحداثيات" : "Location & Coordinates"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>المدينة (عربي)</Label>
+                    <Label>{isAr ? "المدينة (عربي)" : "City (Arabic)"}</Label>
                     <Input value={form.cityAr} onChange={e => setForm(p => ({ ...p, cityAr: e.target.value }))} />
                   </div>
                   <div>
@@ -555,7 +568,7 @@ export default function AdminPropertyEdit() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>الحي (عربي)</Label>
+                    <Label>{isAr ? "الحي (عربي)" : "District (Arabic)"}</Label>
                     <Input value={form.districtAr} onChange={e => setForm(p => ({ ...p, districtAr: e.target.value }))} />
                   </div>
                   <div>
@@ -566,16 +579,16 @@ export default function AdminPropertyEdit() {
                 <div>
                   <Label className="flex items-center gap-1.5">
                     <MapPin className="h-3.5 w-3.5 text-[#3ECFC0]" />
-                    رابط Google Maps
+                    {isAr ? "رابط Google Maps" : "Google Maps Link"}
                   </Label>
                   <Input
                     value={form.googleMapsUrl}
                     onChange={e => setForm(p => ({ ...p, googleMapsUrl: e.target.value }))}
-                    placeholder="الصق رابط الموقع من Google Maps"
+                    placeholder={isAr ? "الصق رابط الموقع من Google Maps" : "Paste location link from Google Maps"}
                     dir="ltr"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    افتح Google Maps → اضغط مشاركة → انسخ الرابط
+                    {isAr ? "افتح Google Maps → اضغط مشاركة → انسخ الرابط" : "Open Google Maps → Share → Copy Link"}
                   </p>
                 </div>
 
@@ -584,25 +597,25 @@ export default function AdminPropertyEdit() {
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-semibold flex items-center gap-1.5">
                       <Crosshair className="h-4 w-4" />
-                      الإحداثيات
+                      {isAr ? "الإحداثيات" : "Coordinates"}
                     </h4>
                     <Select
                       value={form.locationSource || "MANUAL"}
                       onValueChange={(val) => setForm(p => ({ ...p, locationSource: val }))}
                     >
                       <SelectTrigger className="w-[140px] h-8 text-xs">
-                        <SelectValue placeholder="مصدر الموقع" />
+                        <SelectValue placeholder={isAr ? "مصدر الموقع" : "Location source"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="MANUAL">✏️ يدوي (Manual)</SelectItem>
-                        <SelectItem value="GEOCODE">🔍 ترميز (Geocode)</SelectItem>
-                        <SelectItem value="PIN">📍 دبوس (Pin)</SelectItem>
+                        <SelectItem value="MANUAL">{isAr ? "✏️ يدوي" : "✏️ Manual"}</SelectItem>
+                        <SelectItem value="GEOCODE">{isAr ? "🔍 ترميز" : "🔍 Geocode"}</SelectItem>
+                        <SelectItem value="PIN">{isAr ? "📍 دبوس" : "📍 Pin"}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-xs">خط العرض (Latitude)</Label>
+                      <Label className="text-xs">{isAr ? "خط العرض (Latitude)" : "Latitude"}</Label>
                       <Input
                         value={form.latitude}
                         onChange={e => setForm(p => ({ ...p, latitude: e.target.value, locationSource: "MANUAL" }))}
@@ -612,7 +625,7 @@ export default function AdminPropertyEdit() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">خط الطول (Longitude)</Label>
+                      <Label className="text-xs">{isAr ? "خط الطول (Longitude)" : "Longitude"}</Label>
                       <Input
                         value={form.longitude}
                         onChange={e => setForm(p => ({ ...p, longitude: e.target.value, locationSource: "MANUAL" }))}
@@ -649,11 +662,11 @@ export default function AdminPropertyEdit() {
                             }));
                             toast.success(
                               result.result.fromCache
-                                ? "تم استرجاع الإحداثيات من الذاكرة المؤقتة ✅"
-                                : `تم الترميز الجغرافي بنجاح (${result.result.provider}) ✅`
+                                ? (isAr ? "تم استرجاع الإحداثيات من الذاكرة المؤقتة ✅" : "Coordinates retrieved from cache ✅")
+                                : (isAr ? `تم الترميز الجغرافي بنجاح (${result.result.provider}) ✅` : `Geocoded successfully (${result.result.provider}) ✅`)
                             );
                           } else {
-                            toast.error(result.error || "فشل الترميز الجغرافي");
+                            toast.error(result.error || (isAr ? "فشل الترميز الجغرافي" : "Geocoding failed"));
                           }
                         } catch (e: any) {
                           toast.error(e.message);
@@ -663,7 +676,7 @@ export default function AdminPropertyEdit() {
                       }}
                     >
                       {geocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin ml-1" /> : <Navigation className="h-3.5 w-3.5 ml-1" />}
-                      ترميز العنوان تلقائياً
+                      {isAr ? "ترميز العنوان تلقائياً" : "Auto-geocode address"}
                     </Button>
                     <Button
                       type="button"
@@ -672,7 +685,7 @@ export default function AdminPropertyEdit() {
                       onClick={() => setShowPinPicker(!showPinPicker)}
                     >
                       <MapPin className="h-3.5 w-3.5 ml-1" />
-                      {showPinPicker ? "إخفاء الخريطة" : "تحديد بالدبوس 📍"}
+                      {showPinPicker ? (isAr ? "إخفاء الخريطة" : "Hide Map") : (isAr ? "تحديد بالدبوس 📍" : "Pick on Map 📍")}
                     </Button>
                   </div>
 
@@ -689,10 +702,10 @@ export default function AdminPropertyEdit() {
                             longitude: lng.toFixed(7),
                             locationSource: "PIN",
                           }));
-                          toast.success("تم تحديد الموقع بالدبوس 📍");
+                          toast.success(isAr ? "تم تحديد الموقع بالدبوس 📍" : "Location pinned 📍");
                         }}
                       />
-                      <p className="text-xs text-muted-foreground mt-1">انقر على الخريطة لتحديد الموقع الدقيق</p>
+                      <p className="text-xs text-muted-foreground mt-1">{isAr ? "انقر على الخريطة لتحديد الموقع الدقيق" : "Click on the map to set the exact location"}</p>
                     </div>
                   )}
                 </div>
@@ -701,7 +714,7 @@ export default function AdminPropertyEdit() {
                 <div>
                   <Label className="flex items-center gap-1.5 mb-2">
                     <Shield className="h-3.5 w-3.5" />
-                    خصوصية الموقع (للزوار)
+                    {isAr ? "خصوصية الموقع (للزوار)" : "Location Privacy (for visitors)"}
                   </Label>
                   <Select
                     value={form.locationVisibility}
@@ -711,9 +724,9 @@ export default function AdminPropertyEdit() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="EXACT">📍 دقيق — يظهر الموقع الحقيقي</SelectItem>
-                      <SelectItem value="APPROXIMATE">🔵 تقريبي — إزاحة عشوائية ~300م</SelectItem>
-                      <SelectItem value="HIDDEN">🚫 مخفي — لا تظهر خريطة</SelectItem>
+                      <SelectItem value="EXACT">{isAr ? "📍 دقيق — يظهر الموقع الحقيقي" : "📍 Exact — shows real location"}</SelectItem>
+                      <SelectItem value="APPROXIMATE">{isAr ? "🔵 تقريبي — إزاحة عشوائية ~300م" : "🔵 Approximate — ~300m offset"}</SelectItem>
+                      <SelectItem value="HIDDEN">{isAr ? "🚫 مخفي — لا تظهر خريطة" : "🚫 Hidden — no map shown"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -723,26 +736,26 @@ export default function AdminPropertyEdit() {
             {/* Details & Pricing */}
             <Card>
               <CardHeader>
-                <CardTitle>التفاصيل والتسعير</CardTitle>
+                <CardTitle>{isAr ? "التفاصيل والتسعير" : "Details & Pricing"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <Label>غرف النوم</Label>
+                    <Label>{isAr ? "غرف النوم" : "Bedrooms"}</Label>
                     <Input type="number" value={form.bedrooms} onChange={e => setForm(p => ({ ...p, bedrooms: Number(e.target.value) }))} />
                   </div>
                   <div>
-                    <Label>الحمامات</Label>
+                    <Label>{isAr ? "الحمامات" : "Bathrooms"}</Label>
                     <Input type="number" value={form.bathrooms} onChange={e => setForm(p => ({ ...p, bathrooms: Number(e.target.value) }))} />
                   </div>
                   <div>
-                    <Label>المساحة (م²)</Label>
+                    <Label>{isAr ? "المساحة (م²)" : "Size (m²)"}</Label>
                     <Input type="number" value={form.sizeSqm} onChange={e => setForm(p => ({ ...p, sizeSqm: Number(e.target.value) }))} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>الإيجار الشهري (ر.س)</Label>
+                    <Label>{isAr ? "الإيجار الشهري (ر.س)" : "Monthly Rent (SAR)"}</Label>
                     <Input
                       value={form.monthlyRent}
                       onChange={e => setForm(p => ({ ...p, monthlyRent: e.target.value }))}
@@ -751,25 +764,25 @@ export default function AdminPropertyEdit() {
                     />
                     {form.pricingSource === "UNIT" && linkedUnit && (
                       <p className="text-xs text-blue-600 mt-1">
-                        السعر من الوحدة: {linkedUnit.monthlyBaseRentSAR || "—"} ر.س/شهر
+                        {isAr ? "السعر من الوحدة" : "Price from unit"}: {linkedUnit.monthlyBaseRentSAR || "—"} {isAr ? "ر.س/شهر" : "SAR/mo"}
                       </p>
                     )}
                     {form.pricingSource === "UNIT" && !linkedUnit && (
-                      <p className="text-xs text-amber-600 mt-1">اربط وحدة أولاً لتحديد السعر</p>
+                      <p className="text-xs text-amber-600 mt-1">{isAr ? "اربط وحدة أولاً لتحديد السعر" : "Link a unit first to set the price"}</p>
                     )}
                   </div>
                   <div>
-                    <Label>مبلغ التأمين (ر.س)</Label>
+                    <Label>{isAr ? "مبلغ التأمين (ر.س)" : "Security Deposit (SAR)"}</Label>
                     <Input value={form.securityDeposit} onChange={e => setForm(p => ({ ...p, securityDeposit: e.target.value }))} placeholder="0.00" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>أقل مدة إقامة (أشهر)</Label>
+                    <Label>{isAr ? "أقل مدة إقامة (أشهر)" : "Min Stay (months)"}</Label>
                     <Input type="number" value={form.minStayMonths} onChange={e => setForm(p => ({ ...p, minStayMonths: Number(e.target.value) }))} />
                   </div>
                   <div>
-                    <Label>أقصى مدة إقامة (أشهر)</Label>
+                    <Label>{isAr ? "أقصى مدة إقامة (أشهر)" : "Max Stay (months)"}</Label>
                     <Input type="number" value={form.maxStayMonths} onChange={e => setForm(p => ({ ...p, maxStayMonths: Number(e.target.value) }))} />
                   </div>
                 </div>
@@ -779,8 +792,8 @@ export default function AdminPropertyEdit() {
             {/* Photos with Drag & Drop */}
             <Card>
               <CardHeader>
-                <CardTitle>الصور</CardTitle>
-                <CardDescription>الصورة الأولى هي صورة الغلاف. اسحب لإعادة الترتيب.</CardDescription>
+                <CardTitle>{isAr ? "الصور" : "Photos"}</CardTitle>
+                <CardDescription>{isAr ? "الصورة الأولى هي صورة الغلاف. اسحب لإعادة الترتيب." : "First photo is the cover. Drag to reorder."}</CardDescription>
               </CardHeader>
               <CardContent>
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -794,6 +807,7 @@ export default function AdminPropertyEdit() {
                           index={i}
                           onRemove={() => removePhoto(i)}
                           onSetCover={() => setCoverPhoto(i)}
+                          isAr={isAr}
                         />
                       ))}
                       {/* Upload button */}
@@ -807,7 +821,7 @@ export default function AdminPropertyEdit() {
                         ) : (
                           <>
                             <Upload className="h-6 w-6 mb-1" />
-                            <span className="text-xs">رفع صور</span>
+                            <span className="text-xs">{isAr ? "رفع صور" : "Upload"}</span>
                           </>
                         )}
                       </button>
@@ -832,31 +846,46 @@ export default function AdminPropertyEdit() {
             {!isNew && (
               <Card>
                 <CardHeader>
-                  <CardTitle>الحالة والإجراءات</CardTitle>
+                  <CardTitle>{isAr ? "الحالة والإجراءات" : "Status & Actions"}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">الحالة الحالية:</span>
+                    <span className="text-sm">{isAr ? "الحالة الحالية:" : "Current Status:"}</span>
                     <Badge className={STATUS_COLORS[currentStatus]}>
                       {STATUS_LABELS[currentStatus] || currentStatus}
                     </Badge>
                   </div>
                   <div className="space-y-2">
                     {currentStatus !== "published" && (
-                      <Button
-                        className="w-full"
-                        onClick={handlePublish}
-                        disabled={publishing || !readiness?.ready}
-                      >
-                        {publishing ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Globe className="h-4 w-4 ml-1" />}
-                        نشر على الموقع
-                      </Button>
+                      <div className="space-y-1">
+                        <Button
+                          className="w-full"
+                          onClick={handlePublish}
+                          disabled={publishing || !readiness?.ready}
+                        >
+                          {publishing ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Globe className="h-4 w-4 ml-1" />}
+                          {isAr ? "نشر على الموقع" : "Publish to Site"}
+                        </Button>
+                        {!readiness?.ready && readiness?.checks && (
+                          <p className="text-xs text-red-500 text-center">
+                            {(() => {
+                              const failedRequired = readiness.checks.filter((c: any) => c.required !== false && !c.passed);
+                              if (failedRequired.length > 0) {
+                                return isAr
+                                  ? `يجب إكمال: ${failedRequired.map((c: any) => c.labelAr).join('، ')}`
+                                  : `Complete: ${failedRequired.map((c: any) => c.labelEn || c.labelAr).join(', ')}`;
+                              }
+                              return isAr ? 'يرجى إكمال المتطلبات أدناه' : 'Please complete the requirements below';
+                            })()}
+                          </p>
+                        )}
+                      </div>
                     )}
                     {currentStatus === "published" && (
                       <>
                         <Button variant="outline" className="w-full" asChild>
                           <a href={`/property/${propertyId}`} target="_blank" rel="noopener noreferrer">
-                            <Eye className="h-4 w-4 ml-1" /> معاينة عامة
+                            <Eye className="h-4 w-4 ml-1" /> {isAr ? "معاينة عامة" : "Public Preview"}
                           </a>
                         </Button>
                         <Button
@@ -864,7 +893,7 @@ export default function AdminPropertyEdit() {
                           className="w-full"
                           onClick={() => unpublishMutation.mutate({ id: propertyId! })}
                         >
-                          <EyeOff className="h-4 w-4 ml-1" /> إلغاء النشر
+                          <EyeOff className="h-4 w-4 ml-1" /> {isAr ? "إلغاء النشر" : "Unpublish"}
                         </Button>
                       </>
                     )}
@@ -874,7 +903,7 @@ export default function AdminPropertyEdit() {
                         className="w-full text-red-600 hover:text-red-700"
                         onClick={() => archiveMutation.mutate({ id: propertyId! })}
                       >
-                        <Archive className="h-4 w-4 ml-1" /> أرشفة
+                        <Archive className="h-4 w-4 ml-1" /> {isAr ? "أرشفة" : "Archive"}
                       </Button>
                     )}
                   </div>
@@ -892,10 +921,10 @@ export default function AdminPropertyEdit() {
                     ) : (
                       <AlertTriangle className="h-5 w-5 text-amber-500" />
                     )}
-                    جاهزية النشر
+                    {isAr ? "جاهزية النشر" : "Publish Readiness"}
                   </CardTitle>
                   <CardDescription>
-                    مصدر التسعير: {readiness.pricingSource === "PROPERTY" ? "تسعير العقار" : "تسعير الوحدة"}
+                    {isAr ? "مصدر التسعير" : "Pricing source"}: {readiness.pricingSource === "PROPERTY" ? (isAr ? "تسعير العقار" : "Property pricing") : (isAr ? "تسعير الوحدة" : "Unit pricing")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -904,10 +933,15 @@ export default function AdminPropertyEdit() {
                       <div key={i} className="flex items-center gap-2 text-sm">
                         {check.passed ? (
                           <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                        ) : check.required === false ? (
+                          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
                         ) : (
                           <XCircle className="h-4 w-4 text-red-500 shrink-0" />
                         )}
-                        <span>{check.labelAr}</span>
+                        <span className={!check.passed && check.required === false ? 'text-amber-600' : ''}>
+                          {isAr ? check.labelAr : (check.labelEn || check.labelAr)}
+                          {check.required === false && !check.passed && (isAr ? ' (اختياري)' : ' (optional)')}
+                        </span>
                         {check.detail && (
                           <span className="text-xs text-muted-foreground mr-auto">{check.detail}</span>
                         )}

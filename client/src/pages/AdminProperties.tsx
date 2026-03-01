@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { normalizeImageUrl, handleImageError, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import { Link, useLocation } from "wouter";
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 
 /* ─── Admin Thumbnail ───────────────────────────────────────────── */
-function AdminPropertyThumbnail({ photos, propertyType }: { photos?: string[] | null; propertyType?: string }) {
+function AdminPropertyThumbnail({ photos, propertyType, isAr = true }: { photos?: string[] | null; propertyType?: string; isAr?: boolean }) {
   const hasPhotos = Array.isArray(photos) && photos.length > 0;
   const primaryUrl = hasPhotos ? normalizeImageUrl(photos![0]) : null;
   const photoCount = hasPhotos ? photos!.length : 0;
@@ -31,7 +32,7 @@ function AdminPropertyThumbnail({ photos, propertyType }: { photos?: string[] | 
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted gap-1">
         <Building2 className="h-6 w-6 text-muted-foreground/40" />
-        <span className="text-[10px] text-muted-foreground/60">لا توجد صور</span>
+        <span className="text-[10px] text-muted-foreground/60">{isAr ? "لا توجد صور" : "No photos"}</span>
       </div>
     );
   }
@@ -42,7 +43,7 @@ function AdminPropertyThumbnail({ photos, propertyType }: { photos?: string[] | 
         className="absolute inset-0 w-full h-full object-cover" />
       <div style={{ display: 'none' }} className="absolute inset-0 flex-col items-center justify-center bg-amber-950/30 gap-1 p-1">
         <ImageOff className="h-5 w-5 text-amber-400" />
-        <span className="text-[9px] text-amber-300 text-center leading-tight">{photoCount} صور موجودة - فشل التحميل</span>
+        <span className="text-[9px] text-amber-300 text-center leading-tight">{photoCount} {isAr ? "صور موجودة - فشل التحميل" : "photos exist - load failed"}</span>
       </div>
       {photoCount > 1 && (
         <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded z-10">+{photoCount - 1}</div>
@@ -60,27 +61,46 @@ const statusColors: Record<string, string> = {
   inactive: "bg-red-500/10 text-red-600 border-red-200",
   rejected: "bg-red-500/10 text-red-600 border-red-200",
 };
-const statusLabels: Record<string, string> = {
+const statusLabelsAr: Record<string, string> = {
   active: "نشط", published: "منشور", pending: "قيد المراجعة", draft: "مسودة", inactive: "غير نشط", rejected: "مرفوض",
 };
-const propertyTypeLabels: Record<string, string> = {
+const statusLabelsEn: Record<string, string> = {
+  active: "Active", published: "Published", pending: "Pending", draft: "Draft", inactive: "Inactive", rejected: "Rejected",
+};
+const propertyTypeLabelsAr: Record<string, string> = {
   apartment: "شقة", villa: "فيلا", studio: "استوديو", duplex: "دوبلكس",
   furnished_room: "غرفة مفروشة", compound: "مجمع سكني", hotel_apartment: "شقة فندقية",
 };
+const propertyTypeLabelsEn: Record<string, string> = {
+  apartment: "Apartment", villa: "Villa", studio: "Studio", duplex: "Duplex",
+  furnished_room: "Furnished Room", compound: "Compound", hotel_apartment: "Hotel Apartment",
+};
 
 /* ─── Wizard Steps ───────────────────────────────────────────────── */
-const WIZARD_STEPS = [
+const WIZARD_STEPS_AR = [
   { id: 1, label: "المعلومات الأساسية", icon: "📝" },
   { id: 2, label: "الموقع", icon: "📍" },
   { id: 3, label: "المواصفات والتسعير", icon: "💰" },
   { id: 4, label: "الصور", icon: "📸" },
   { id: 5, label: "المراجعة والنشر", icon: "🚀" },
 ];
+const WIZARD_STEPS_EN = [
+  { id: 1, label: "Basic Info", icon: "📝" },
+  { id: 2, label: "Location", icon: "📍" },
+  { id: 3, label: "Specs & Pricing", icon: "💰" },
+  { id: 4, label: "Photos", icon: "📸" },
+  { id: 5, label: "Review & Publish", icon: "🚀" },
+];
 
 /* ═══════════════════════════════════════════════════════════════════
    Main Admin Properties Page
    ═══════════════════════════════════════════════════════════════════ */
 export default function AdminProperties() {
+  const { lang, dir } = useI18n();
+  const isAr = lang === "ar";
+  const statusLabels = isAr ? statusLabelsAr : statusLabelsEn;
+  const propertyTypeLabels = isAr ? propertyTypeLabelsAr : propertyTypeLabelsEn;
+  const WIZARD_STEPS = isAr ? WIZARD_STEPS_AR : WIZARD_STEPS_EN;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
@@ -97,11 +117,11 @@ export default function AdminProperties() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">إدارة العقارات</h1>
-            <p className="text-muted-foreground text-sm mt-1">إنشاء وتعديل وإدارة العقارات</p>
+            <h1 className="text-2xl font-bold tracking-tight">{isAr ? "إدارة العقارات" : "Property Management"}</h1>
+            <p className="text-muted-foreground text-sm mt-1">{isAr ? "إنشاء وتعديل وإدارة العقارات" : "Create, edit and manage properties"}</p>
           </div>
           <Button onClick={() => { setEditId(null); setShowWizard(true); }} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6]">
-            <Plus className="h-4 w-4 me-2" /> إضافة عقار جديد
+            <Plus className="h-4 w-4 me-2" /> {isAr ? isAr ? "إضافة عقار جديد" : "Add New Property" : "Add New Property"}
           </Button>
         </div>
 
@@ -109,17 +129,17 @@ export default function AdminProperties() {
         <div className="flex gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="بحث بالعنوان أو المدينة..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="ps-9" />
+            <Input placeholder={isAr ? "بحث بالعنوان أو المدينة..." : "Search by title or city..."} value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="ps-9" />
           </div>
           <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="الحالة" /></SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder={isAr ? "الحالة" : "Status"} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">جميع الحالات</SelectItem>
-              <SelectItem value="active">نشط</SelectItem>
-              <SelectItem value="published">منشور</SelectItem>
-              <SelectItem value="pending">قيد المراجعة</SelectItem>
-              <SelectItem value="draft">مسودة</SelectItem>
-              <SelectItem value="inactive">غير نشط</SelectItem>
+              <SelectItem value="all">{isAr ? "جميع الحالات" : "All Statuses"}</SelectItem>
+              <SelectItem value="active">{statusLabels.active}</SelectItem>
+              <SelectItem value="published">{statusLabels.published}</SelectItem>
+              <SelectItem value="pending">{statusLabels.pending}</SelectItem>
+              <SelectItem value="draft">{statusLabels.draft}</SelectItem>
+              <SelectItem value="inactive">{statusLabels.inactive}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -131,9 +151,9 @@ export default function AdminProperties() {
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Building2 className="h-12 w-12 text-muted-foreground/40 mb-4" />
-              <p className="text-muted-foreground">لا توجد عقارات</p>
+              <p className="text-muted-foreground">{isAr ? "لا توجد عقارات" : "No properties"}</p>
               <Button variant="outline" className="mt-4" onClick={() => { setEditId(null); setShowWizard(true); }}>
-                <Plus className="h-4 w-4 me-2" /> إضافة عقار
+                <Plus className="h-4 w-4 me-2" /> {isAr ? "إضافة عقار" : "Add Property"}
               </Button>
             </CardContent>
           </Card>
@@ -162,16 +182,16 @@ export default function AdminProperties() {
                       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {prop.bedrooms}</span>
                         <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" /> {prop.bathrooms}</span>
-                        <span className="flex items-center gap-1"><Ruler className="h-3.5 w-3.5" /> {prop.sizeSqm} م²</span>
-                        <span className="font-medium text-foreground">{prop.monthlyRent} ر.س/شهر</span>
+                        <span className="flex items-center gap-1"><Ruler className="h-3.5 w-3.5" /> {prop.sizeSqm} m²</span>
+                        <span className="font-medium text-foreground">{prop.monthlyRent} {isAr ? "ر.س/شهر" : "SAR/mo"}</span>
                       </div>
                       <div className="flex gap-2 mt-3">
                         <Button size="sm" variant="outline" onClick={() => window.open(`/property/${prop.id}`, "_blank")}>
-                          <Eye className="h-3.5 w-3.5 me-1" /> عرض
+                          <Eye className="h-3.5 w-3.5 me-1" /> {isAr ? "عرض" : "View"}
                         </Button>
                         <Link href={`/admin/properties/${prop.id}/edit`}>
                           <Button size="sm" variant="outline">
-                            <Pencil className="h-3.5 w-3.5 me-1" /> تعديل
+                            <Pencil className="h-3.5 w-3.5 me-1" /> {isAr ? "تعديل" : "Edit"}
                           </Button>
                         </Link>
                       </div>
@@ -187,11 +207,11 @@ export default function AdminProperties() {
         {data && data.total > 20 && (
           <div className="flex items-center justify-center gap-2">
             <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-              <ChevronRight className="h-4 w-4" /> السابق
+              <ChevronRight className="h-4 w-4" /> {isAr ? "السابق" : "Previous"}
             </Button>
-            <span className="text-sm text-muted-foreground">صفحة {page + 1} من {Math.ceil(data.total / 20)}</span>
+            <span className="text-sm text-muted-foreground">{isAr ? "صفحة " : "Page "}{page + 1}{isAr ? " من " : " of "}{Math.ceil(data.total / 20)}</span>
             <Button size="sm" variant="outline" disabled={(page + 1) * 20 >= data.total} onClick={() => setPage(p => p + 1)}>
-              التالي <ChevronLeft className="h-4 w-4" />
+              {isAr ? "التالي" : "Next"} <ChevronLeft className="h-4 w-4" />
             </Button>
           </div>
         )}
@@ -298,9 +318,9 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
         const result = await uploadPhoto.mutateAsync({ base64, filename: file.name, contentType: file.type });
         setForm(prev => ({ ...prev, photos: [...prev.photos, result.url] }));
       }
-      toast.success("تم رفع الصور بنجاح");
+      toast.success("isAr ? "تم رفع الصور بنجاح" : "Photos uploaded successfully"");
     } catch {
-      toast.error("فشل رفع الصورة");
+      toast.error("isAr ? "فشل رفع الصورة" : "Photo upload failed"");
     }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -317,7 +337,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
       if (!createdId) {
         // First save — create property as draft
         if (!form.titleAr && !form.titleEn) {
-          toast.error("يرجى إدخال العنوان — Title is required");
+          toast.error("isAr ? "يرجى إدخال العنوان" : "Title is required"");
           setSaving(false);
           return false;
         }
@@ -332,7 +352,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
           monthlyRent: form.monthlyRent || "0",
         });
         setCreatedId(result.id);
-        toast.success(`تم إنشاء العقار #${result.id} كمسودة`);
+        toast.success(`isAr ? `تم إنشاء العقار #${result.id} كمسودة` : `Property #${result.id} created as draft``);
       } else {
         // Update existing property
         const clean: Record<string, any> = { id: createdId, ...form };
@@ -342,12 +362,12 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
           if (clean[k] === '') clean[k] = undefined;
         }
         await updateProperty.mutateAsync(clean as any);
-        toast.success("تم حفظ التعديلات");
+        toast.success("isAr ? "تم حفظ التعديلات" : "Changes saved"");
       }
       setSaving(false);
       return true;
     } catch (err: any) {
-      toast.error(err?.message || "حدث خطأ أثناء الحفظ");
+      toast.error(err?.message || "isAr ? "حدث خطأ أثناء الحفظ" : "Error saving"");
       setSaving(false);
       return false;
     }
@@ -358,7 +378,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
     // Validate current step
     if (step === 1) {
       if (!form.titleAr && !form.titleEn) {
-        toast.error("يرجى إدخال العنوان — Title is required");
+        toast.error(isAr ? "يرجى إدخال العنوان" : "Title is required");
         return;
       }
     }
@@ -387,11 +407,11 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
     setPublishing(true);
     try {
       await publishMutation.mutateAsync({ id: createdId });
-      toast.success("تم نشر العقار بنجاح على الموقع!");
+      toast.success("isAr ? "تم نشر العقار بنجاح على الموقع!" : "Property published successfully!"");
       onSuccess();
       resetWizard();
     } catch (err: any) {
-      toast.error(err?.message || "فشل النشر");
+      toast.error(err?.message || "isAr ? "فشل النشر" : "Publish failed"");
     }
     setPublishing(false);
   };
@@ -424,10 +444,10 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
         <div className="sticky top-0 z-10 bg-background border-b px-6 pt-6 pb-4">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl">
-              {isEdit ? "تعديل العقار" : createdId ? `تعديل العقار #${createdId}` : "إضافة عقار جديد"}
+              {isEdit ? (isAr ? "تعديل العقار" : "Edit Property") : createdId ? (isAr ? `تعديل العقار #${createdId}` : `Edit Property #${createdId}`) : (isAr ? "إضافة عقار جديد" : "Add New Property")}
             </DialogTitle>
             <DialogDescription>
-              {WIZARD_STEPS[step - 1].label} — الخطوة {step} من {WIZARD_STEPS.length}
+              {WIZARD_STEPS[step - 1].label} — {isAr ? `الخطوة ${step} من ${WIZARD_STEPS.length}` : `Step ${step} of ${WIZARD_STEPS.length}`}
             </DialogDescription>
           </DialogHeader>
 
@@ -469,8 +489,8 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">العنوان (عربي) <span className="text-red-500">*</span></Label>
-                  <Input value={form.titleAr} onChange={e => setForm(p => ({ ...p, titleAr: e.target.value }))} placeholder="شقة فاخرة في حي العليا..." dir="rtl" className="mt-1" />
+                  <Label className="text-sm font-medium">{isAr ? "العنوان (عربي)" : "Title (Arabic)"} <span className="text-red-500">*</span></Label>
+                  <Input value={form.titleAr} onChange={e => setForm(p => ({ ...p, titleAr: e.target.value }))} placeholder={isAr ? "شقة فاخرة في حي العليا..." : "Luxury apartment in Al Olaya..."} dir="rtl" className="mt-1" />
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Title (English)</Label>
@@ -479,7 +499,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">الوصف (عربي)</Label>
+                  <Label className="text-sm font-medium">{isAr ? "الوصف (عربي)" : "Description (Arabic)"}</Label>
                   <Textarea value={form.descriptionAr} onChange={e => setForm(p => ({ ...p, descriptionAr: e.target.value }))} rows={4} dir="rtl" className="mt-1" />
                 </div>
                 <div>
@@ -489,7 +509,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">نوع العقار</Label>
+                  <Label className="text-sm font-medium">{isAr ? "نوع العقار" : "Property Type"}</Label>
                   <Select value={form.propertyType} onValueChange={v => setForm(p => ({ ...p, propertyType: v as any }))}>
                     <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -500,13 +520,13 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">التأثيث</Label>
+                  <Label className="text-sm font-medium">{isAr ? "التأثيث" : "Furnishing"}</Label>
                   <Select value={form.furnishedLevel} onValueChange={v => setForm(p => ({ ...p, furnishedLevel: v as any }))}>
                     <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="unfurnished">غير مفروش</SelectItem>
-                      <SelectItem value="semi_furnished">مفروش جزئياً</SelectItem>
-                      <SelectItem value="fully_furnished">مفروش بالكامل</SelectItem>
+                      <SelectItem value="unfurnished">{isAr ? "غير مفروش" : "Unfurnished"}</SelectItem>
+                      <SelectItem value="semi_furnished">{isAr ? "مفروش جزئياً" : "Semi Furnished"}</SelectItem>
+                      <SelectItem value="fully_furnished">{isAr ? "مفروش بالكامل" : "Fully Furnished"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -519,8 +539,8 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">المدينة (عربي)</Label>
-                  <Input value={form.cityAr} onChange={e => setForm(p => ({ ...p, cityAr: e.target.value }))} dir="rtl" className="mt-1" placeholder="الرياض" />
+                  <Label className="text-sm font-medium">{isAr ? "المدينة (عربي)" : "City (Arabic)"}</Label>
+                  <Input value={form.cityAr} onChange={e => setForm(p => ({ ...p, cityAr: e.target.value }))} dir="rtl" className="mt-1" placeholder={isAr ? "الرياض" : "Riyadh"} />
                 </div>
                 <div>
                   <Label className="text-sm font-medium">City (English)</Label>
@@ -529,8 +549,8 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">الحي (عربي)</Label>
-                  <Input value={form.districtAr} onChange={e => setForm(p => ({ ...p, districtAr: e.target.value }))} dir="rtl" className="mt-1" placeholder="حي العليا" />
+                  <Label className="text-sm font-medium">{isAr ? "الحي (عربي)" : "District (Arabic)"}</Label>
+                  <Input value={form.districtAr} onChange={e => setForm(p => ({ ...p, districtAr: e.target.value }))} dir="rtl" className="mt-1" placeholder={isAr ? "حي العليا" : "Al Olaya"} />
                 </div>
                 <div>
                   <Label className="text-sm font-medium">District (English)</Label>
@@ -539,7 +559,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">العنوان التفصيلي (عربي)</Label>
+                  <Label className="text-sm font-medium">{isAr ? "العنوان التفصيلي (عربي)" : "Detailed Address (Arabic)"}</Label>
                   <Input value={form.addressAr} onChange={e => setForm(p => ({ ...p, addressAr: e.target.value }))} dir="rtl" className="mt-1" />
                 </div>
                 <div>
@@ -548,17 +568,17 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-medium">رابط Google Maps</Label>
+                <Label className="text-sm font-medium">{isAr ? "رابط Google Maps" : "Google Maps Link"}</Label>
                 <Input value={form.googleMapsUrl} onChange={e => setForm(p => ({ ...p, googleMapsUrl: e.target.value }))} dir="ltr" className="mt-1" placeholder="https://maps.google.com/..." />
-                <p className="text-[11px] text-muted-foreground mt-1">الصق رابط الموقع من Google Maps — سيتم استخراج الإحداثيات تلقائياً</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{isAr ? "الصق رابط الموقع من Google Maps — سيتم استخراج الإحداثيات تلقائياً" : "Paste Google Maps link — coordinates will be extracted automatically"}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">خط العرض (Latitude)</Label>
+                  <Label className="text-sm font-medium">{isAr ? "خط العرض" : "Latitude"}</Label>
                   <Input value={form.latitude} onChange={e => setForm(p => ({ ...p, latitude: e.target.value }))} dir="ltr" className="mt-1" placeholder="24.7136" />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">خط الطول (Longitude)</Label>
+                  <Label className="text-sm font-medium">{isAr ? "خط الطول" : "Longitude"}</Label>
                   <Input value={form.longitude} onChange={e => setForm(p => ({ ...p, longitude: e.target.value }))} dir="ltr" className="mt-1" placeholder="46.6753" />
                 </div>
               </div>
@@ -568,40 +588,40 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
           {/* Step 3: Specs & Pricing */}
           {step === 3 && (
             <div className="space-y-5">
-              <h3 className="font-semibold text-sm text-muted-foreground border-b pb-2">المواصفات</h3>
+              <h3 className="font-semibold text-sm text-muted-foreground border-b pb-2">{isAr ? "المواصفات" : "Specifications"}</h3>
               <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">غرف النوم</Label>
+                  <Label className="text-sm font-medium">{isAr ? "غرف النوم" : "Bedrooms"}</Label>
                   <Input type="number" value={form.bedrooms} onChange={e => setForm(p => ({ ...p, bedrooms: +e.target.value }))} min={0} className="mt-1" />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">الحمامات</Label>
+                  <Label className="text-sm font-medium">{isAr ? "الحمامات" : "Bathrooms"}</Label>
                   <Input type="number" value={form.bathrooms} onChange={e => setForm(p => ({ ...p, bathrooms: +e.target.value }))} min={0} className="mt-1" />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">المساحة (م²)</Label>
+                  <Label className="text-sm font-medium">{isAr ? "المساحة (م²)" : "Size (m²)"}</Label>
                   <Input type="number" value={form.sizeSqm} onChange={e => setForm(p => ({ ...p, sizeSqm: +e.target.value }))} min={0} className="mt-1" />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">سنة البناء</Label>
+                  <Label className="text-sm font-medium">{isAr ? "سنة البناء" : "Year Built"}</Label>
                   <Input type="number" value={form.yearBuilt} onChange={e => setForm(p => ({ ...p, yearBuilt: +e.target.value }))} className="mt-1" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">الطابق</Label>
+                  <Label className="text-sm font-medium">{isAr ? "الطابق" : "Floor"}</Label>
                   <Input type="number" value={form.floor} onChange={e => setForm(p => ({ ...p, floor: +e.target.value }))} min={0} className="mt-1" />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">عدد الطوابق</Label>
+                  <Label className="text-sm font-medium">{isAr ? "عدد الطوابق" : "Total Floors"}</Label>
                   <Input type="number" value={form.totalFloors} onChange={e => setForm(p => ({ ...p, totalFloors: +e.target.value }))} min={0} className="mt-1" />
                 </div>
               </div>
 
-              <h3 className="font-semibold text-sm text-muted-foreground border-b pb-2 mt-6">التسعير</h3>
+              <h3 className="font-semibold text-sm text-muted-foreground border-b pb-2 mt-6">{isAr ? "التسعير" : "Pricing"}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">الإيجار الشهري (ر.س) <span className="text-red-500">*</span></Label>
+                  <Label className="text-sm font-medium">{isAr ? "الإيجار الشهري (ر.س)" : "Monthly Rent (SAR)"} <span className="text-red-500">*</span></Label>
                   <Input
                     value={form.monthlyRent}
                     onChange={e => setForm(p => ({ ...p, monthlyRent: e.target.value }))}
@@ -610,26 +630,26 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                     min="1"
                     className={`mt-1 ${!form.monthlyRent || Number(form.monthlyRent) <= 0 ? 'border-amber-500 focus-visible:ring-amber-500' : ''}`}
                   />
-                  <p className="text-[11px] text-muted-foreground mt-1">مطلوب للنشر والدفع</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{isAr ? "مطلوب للنشر والدفع" : "Required for publishing and payment"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">مبلغ التأمين (ر.س)</Label>
+                  <Label className="text-sm font-medium">{isAr ? "مبلغ التأمين (ر.س)" : "Security Deposit (SAR)"}</Label>
                   <Input value={form.securityDeposit} onChange={e => setForm(p => ({ ...p, securityDeposit: e.target.value }))} placeholder="3000" type="number" className="mt-1" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">الحد الأدنى للإقامة (أشهر)</Label>
+                  <Label className="text-sm font-medium">{isAr ? "الحد الأدنى للإقامة (أشهر)" : "Min Stay (months)"}</Label>
                   <Input type="number" value={form.minStayMonths} onChange={e => setForm(p => ({ ...p, minStayMonths: +e.target.value }))} min={1} className="mt-1" />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">الحد الأقصى للإقامة (أشهر)</Label>
+                  <Label className="text-sm font-medium">{isAr ? "الحد الأقصى للإقامة (أشهر)" : "Max Stay (months)"}</Label>
                   <Input type="number" value={form.maxStayMonths} onChange={e => setForm(p => ({ ...p, maxStayMonths: +e.target.value }))} min={1} className="mt-1" />
                 </div>
               </div>
               <div className="flex items-center gap-3 pt-2">
                 <Switch checked={form.instantBook} onCheckedChange={v => setForm(p => ({ ...p, instantBook: v }))} />
-                <Label className="text-sm font-medium">حجز فوري (بدون موافقة مسبقة)</Label>
+                <Label className="text-sm font-medium">{isAr ? "حجز فوري (بدون موافقة مسبقة)" : "Instant Book (no approval needed)"}</Label>
               </div>
             </div>
           )}
@@ -639,9 +659,9 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold">صور العقار</h3>
+                  <h3 className="font-semibold">{isAr ? "صور العقار" : "Property Photos"}</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {form.photos.length === 0 ? "لم يتم رفع أي صور بعد" : `${form.photos.length} صورة`}
+                    {form.photos.length === 0 ? "isAr ? "لم يتم رفع أي صور بعد" : "No photos uploaded yet"" : `${form.photos.length} {isAr ? "صورة" : "photo(s)"}`}
                   </p>
                 </div>
                 <Button
@@ -651,7 +671,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                   className="gap-2"
                 >
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-                  {uploading ? "جاري الرفع..." : "رفع صور"}
+                  {uploading ? "isAr ? "جاري الرفع..." : "Uploading..."" : isAr ? "رفع صور" : "Upload Photos"}
                 </Button>
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
               </div>
@@ -659,8 +679,8 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
               {form.photos.length === 0 ? (
                 <div className="border-2 border-dashed rounded-xl p-12 text-center">
                   <ImagePlus className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-muted-foreground">اضغط "رفع صور" أو اسحب الصور هنا</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">يُنصح برفع 3 صور على الأقل</p>
+                  <p className="text-muted-foreground">{isAr ? 'اضغط "رفع صور" أو اسحب الصور هنا' : "Click Upload or drag photos here"}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{isAr ? "يُنصح برفع 3 صور على الأقل" : "At least 3 photos recommended"}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-3">
@@ -675,7 +695,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                       </button>
                       {i === 0 && (
                         <div className="absolute bottom-0 inset-x-0 bg-[#3ECFC0]/90 text-[#0B1E2D] text-xs text-center py-1 font-medium">
-                          صورة الغلاف
+                          {isAr ? "صورة الغلاف" : "Cover"}
                         </div>
                       )}
                     </div>
@@ -687,7 +707,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                     className="aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center text-muted-foreground hover:border-[#3ECFC0] hover:text-[#3ECFC0] transition-colors"
                   >
                     {uploading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Plus className="h-8 w-8" />}
-                    <span className="text-xs mt-1">{uploading ? "جاري..." : "إضافة"}</span>
+                    <span className="text-xs mt-1">{uploading ? isAr ? "جاري..." : "..." : isAr ? "إضافة" : "Add"}</span>
                   </button>
                 </div>
               )}
@@ -695,7 +715,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
               {form.photos.length > 0 && form.photos.length < 3 && (
                 <div className="flex items-center gap-2 text-amber-600 bg-amber-50 rounded-lg p-3 text-sm">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <span>يُنصح برفع 3 صور على الأقل لتحسين ظهور العقار</span>
+                  <span>{isAr ? "يُنصح برفع 3 صور على الأقل لتحسين ظهور العقار" : "At least 3 photos recommended for better visibility"}</span>
                 </div>
               )}
             </div>
@@ -707,18 +727,18 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
               {/* Summary */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">ملخص العقار</CardTitle>
+                  <CardTitle className="text-base">{isAr ? "ملخص العقار" : "Property Summary"}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">العنوان:</span><span className="font-medium">{form.titleAr || form.titleEn || "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">النوع:</span><span className="font-medium">{propertyTypeLabels[form.propertyType] || form.propertyType}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">المدينة:</span><span className="font-medium">{form.cityAr || form.city || "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">الحي:</span><span className="font-medium">{form.districtAr || form.district || "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">الإيجار:</span><span className="font-medium text-[#3ECFC0]">{form.monthlyRent || "0"} ر.س/شهر</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">الصور:</span><span className="font-medium">{form.photos.length} صورة</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">غرف النوم:</span><span className="font-medium">{form.bedrooms}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">الحمامات:</span><span className="font-medium">{form.bathrooms}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{isAr ? "العنوان:" : "Title:"}</span><span className="font-medium">{form.titleAr || form.titleEn || "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{isAr ? "النوع:" : "Type:"}</span><span className="font-medium">{propertyTypeLabels[form.propertyType] || form.propertyType}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{isAr ? "المدينة:" : "City:"}</span><span className="font-medium">{form.cityAr || form.city || "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{isAr ? "الحي:" : "District:"}</span><span className="font-medium">{form.districtAr || form.district || "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{isAr ? "الإيجار:" : "Rent:"}</span><span className="font-medium text-[#3ECFC0]">{form.monthlyRent || "0"} ر.س/شهر</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{isAr ? "الصور:" : "Photos:"}</span><span className="font-medium">{form.photos.length} صورة</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{isAr ? "غرف النوم:" : "Bedrooms:"}</span><span className="font-medium">{form.bedrooms}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{isAr ? "الحمامات:" : "Bathrooms:"}</span><span className="font-medium">{form.bathrooms}</span></div>
                   </div>
                 </CardContent>
               </Card>
@@ -733,7 +753,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                       ) : (
                         <AlertTriangle className="h-5 w-5 text-amber-500" />
                       )}
-                      جاهزية النشر
+                      {isAr ? "جاهزية النشر" : "Publish Readiness"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -764,12 +784,12 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                   disabled={publishing || !readiness?.ready}
                 >
                   {publishing ? <Loader2 className="h-5 w-5 animate-spin ml-2" /> : <Globe className="h-5 w-5 ml-2" />}
-                  نشر العقار على الموقع
+                  {isAr ? "نشر العقار على الموقع" : "Publish Property"}
                 </Button>
 
                 {!readiness?.ready && (
                   <p className="text-sm text-amber-600 text-center">
-                    يرجى استكمال جميع المتطلبات أعلاه قبل النشر
+                    {isAr ? "يرجى استكمال جميع المتطلبات أعلاه قبل النشر" : "Please complete all requirements above before publishing"}
                   </p>
                 )}
 
@@ -784,7 +804,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                       }}
                     >
                       <ExternalLink className="h-4 w-4 ml-1" />
-                      فتح المحرر المتقدم
+                      {isAr ? "فتح المحرر المتقدم" : "Open Advanced Editor"}
                     </Button>
                     <Button
                       variant="outline"
@@ -795,7 +815,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                       }}
                     >
                       <Save className="h-4 w-4 ml-1" />
-                      حفظ كمسودة والإغلاق
+                      {isAr ? "حفظ كمسودة وال{isAr ? "إغلاق" : "Close"}" : "Save as Draft & Close"}
                     </Button>
                   </div>
                 )}
@@ -808,27 +828,27 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
         <div className="sticky bottom-0 bg-background border-t px-6 py-4 flex items-center justify-between">
           <Button variant="outline" onClick={step === 1 ? handleClose : goBack} className="gap-2">
             {step === 1 ? (
-              <>إلغاء</>
+              <>{isAr ? "إلغاء" : "Cancel"}</>
             ) : (
-              <><ArrowRight className="h-4 w-4" /> السابق</>
+              <><ArrowRight className="h-4 w-4" /> {isAr ? "السابق" : "Previous"}</>
             )}
           </Button>
 
           <div className="flex items-center gap-2">
             {createdId && step < 5 && (
-              <span className="text-xs text-muted-foreground">العقار #{createdId}</span>
+              <span className="text-xs text-muted-foreground">{isAr ? `العقار #${createdId}` : `Property #${createdId}`}</span>
             )}
           </div>
 
           {step < 5 ? (
             <Button onClick={goNext} disabled={saving} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] gap-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {step === 1 && !createdId ? "إنشاء والمتابعة" : "حفظ والمتابعة"}
+              {step === 1 && !createdId ? isAr ? "إنشاء والمتابعة" : "Create & Continue" : isAr ? "حفظ والمتابعة" : "Save & Continue"}
               <ArrowLeft className="h-4 w-4" />
             </Button>
           ) : (
             <Button variant="outline" onClick={handleClose}>
-              إغلاق
+              {isAr ? "إغلاق" : "Close"}
             </Button>
           )}
         </div>
