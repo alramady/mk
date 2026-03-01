@@ -610,12 +610,24 @@ export async function getUnitFinanceDetails(unitId: number) {
   if (!pool) return null;
 
   const [unitRows] = await pool.query<RowDataPacket[]>(
-    `SELECT u.*, b.buildingName, b.buildingNameAr
-     FROM units u LEFT JOIN buildings b ON u.buildingId = b.id
+    `SELECT u.*, b.buildingName, b.buildingNameAr,
+       p.photos as propertyPhotos, p.titleEn as propertyTitleEn, p.titleAr as propertyTitleAr
+     FROM units u
+     LEFT JOIN buildings b ON u.buildingId = b.id
+     LEFT JOIN properties p ON u.propertyId = p.id
      WHERE u.id = ?`, [unitId]
   );
   if (!unitRows[0]) return null;
-  const unit = unitRows[0];
+  const rawUnit = unitRows[0];
+  // Extract coverImageUrl from linked property photos
+  let coverImageUrl: string | null = null;
+  try {
+    const photos = typeof rawUnit.propertyPhotos === 'string' ? JSON.parse(rawUnit.propertyPhotos) : rawUnit.propertyPhotos;
+    if (Array.isArray(photos) && photos.length > 0) {
+      coverImageUrl = photos[0];
+    }
+  } catch {}
+  const unit = { ...rawUnit, coverImageUrl, propertyPhotos: undefined };
 
   // Ledger entries for this unit
   const [ledgerRows] = await pool.query<RowDataPacket[]>(
@@ -656,6 +668,9 @@ export async function getBuildingUnitsWithFinance(buildingId: number) {
 
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT u.*,
+       p.photos as propertyPhotos,
+       p.titleEn as propertyTitleEn,
+       p.titleAr as propertyTitleAr,
        (SELECT COALESCE(SUM(pl.amount), 0) FROM payment_ledger pl
         WHERE pl.unitId = u.id AND pl.status = 'PAID' AND pl.direction = 'IN'
         AND MONTH(pl.paidAt) = MONTH(CURRENT_DATE()) AND YEAR(pl.paidAt) = YEAR(CURRENT_DATE())) as collectedMTD,
@@ -672,11 +687,22 @@ export async function getBuildingUnitsWithFinance(buildingId: number) {
        (SELECT bm.lastSyncStatus FROM beds24_map bm WHERE bm.unitId = u.id LIMIT 1) as beds24SyncStatus,
        (SELECT bm.sourceOfTruth FROM beds24_map bm WHERE bm.unitId = u.id LIMIT 1) as beds24SourceOfTruth
      FROM units u
+     LEFT JOIN properties p ON u.propertyId = p.id
      WHERE u.buildingId = ?
      ORDER BY u.unitNumber ASC`,
     [buildingId]
   );
-  return rows;
+  // Parse propertyPhotos JSON and extract coverImageUrl
+  return rows.map((row: any) => {
+    let coverImageUrl: string | null = null;
+    try {
+      const photos = typeof row.propertyPhotos === 'string' ? JSON.parse(row.propertyPhotos) : row.propertyPhotos;
+      if (Array.isArray(photos) && photos.length > 0) {
+        coverImageUrl = photos[0];
+      }
+    } catch {}
+    return { ...row, coverImageUrl, propertyPhotos: undefined };
+  });
 }
 
 // ─── Payment Method Settings ────────────────────────────────────────

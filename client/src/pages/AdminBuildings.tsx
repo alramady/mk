@@ -20,12 +20,13 @@ import {
 import {
   Building2, ArrowLeft, Loader2, TrendingUp, Users, CreditCard,
   AlertTriangle, Home, ChevronRight, BarChart3, DollarSign, Percent,
-  Wifi, Calendar, Link2, Plus, Pencil, Archive, RotateCcw, Eye
+  Wifi, Calendar, Link2, Plus, Pencil, Archive, RotateCcw, Eye, ImageIcon
 } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { getLoginUrl } from "@/const";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
+import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 
 // ─── Google Maps URL Parser ─────────────────────────────────────────
 function parseGoogleMapsUrl(url: string): { lat: string; lng: string } | null {
@@ -495,6 +496,7 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
+                    <th className="px-3 py-3 text-center font-medium w-16">{isRtl ? "صورة" : "Photo"}</th>
                     <th className="px-4 py-3 text-start font-medium">{isRtl ? "الوحدة" : "Unit"}</th>
                     <th className="px-4 py-3 text-start font-medium">{isRtl ? "الطابق" : "Floor"}</th>
                     <th className="px-4 py-3 text-center font-medium">{isRtl ? "الحالة" : "Status"}</th>
@@ -508,6 +510,20 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
                 <tbody>
                   {units.map((u: any) => (
                     <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.isArchived ? "opacity-50" : ""}`}>
+                      <td className="px-3 py-2 text-center">
+                        {u.coverImageUrl ? (
+                          <img
+                            src={normalizeImageUrl(u.coverImageUrl)}
+                            alt={`Unit ${u.unitNumber}`}
+                            className="w-12 h-10 rounded-md object-cover inline-block border border-border/30"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }}
+                          />
+                        ) : (
+                          <div className="w-12 h-10 rounded-md bg-muted/50 inline-flex items-center justify-center border border-border/20">
+                            <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3 font-mono font-medium">
                         {u.unitNumber}
                         {u.isArchived && <Badge variant="secondary" className="text-xs ml-2">{isRtl ? "مؤرشف" : "Archived"}</Badge>}
@@ -521,7 +537,12 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
                             : u.unitStatus}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-end font-mono">{u.monthlyBaseRentSAR ? `${parseFloat(u.monthlyBaseRentSAR).toLocaleString()}` : "—"}</td>
+                      <td className="px-4 py-3 text-end font-mono">
+                        {u.monthlyBaseRentSAR && parseFloat(u.monthlyBaseRentSAR) > 0
+                          ? `${parseFloat(u.monthlyBaseRentSAR).toLocaleString()}`
+                          : <span className="text-amber-600 flex items-center gap-1 justify-end text-xs"><AlertTriangle className="h-3 w-3" />{isRtl ? "بدون سعر" : "No price"}</span>
+                        }
+                      </td>
                       <td className="px-4 py-3 text-end font-mono">{parseFloat(u.collectedMTD || "0").toLocaleString()}</td>
                       <td className="px-4 py-3 text-center">
                         {u.overdueCount > 0 ? (

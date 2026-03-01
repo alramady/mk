@@ -23,12 +23,13 @@ import {
 import {
   Home, ArrowLeft, Loader2, CreditCard, Calendar, DollarSign,
   AlertTriangle, Bed, Bath, Ruler, Building2, FileText, ExternalLink,
-  Pencil, Archive, RotateCcw, Wifi, Link2, Unlink, Shield, Plus
+  Pencil, Archive, RotateCcw, Wifi, Link2, Unlink, Shield, Plus, ImageIcon
 } from "lucide-react";
 import { Link, useRoute, useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 
 const STATUS_COLORS: Record<string, string> = {
   DUE: "bg-amber-100 text-amber-800 border-amber-200",
@@ -64,6 +65,12 @@ function UnitForm({ unit, buildingId, onSuccess, onCancel, lang }: {
     e.preventDefault();
     if (!form.unitNumber.trim()) {
       toast.error(isRtl ? "رقم الوحدة مطلوب" : "Unit number is required");
+      return;
+    }
+    // P0 Fix: Validate monthly rent is required and > 0
+    const rentValue = parseFloat(form.monthlyBaseRentSAR);
+    if (!form.monthlyBaseRentSAR || isNaN(rentValue) || rentValue <= 0) {
+      toast.error(isRtl ? "الإيجار الشهري مطلوب ويجب أن يكون أكبر من صفر" : "Monthly rent is required and must be greater than 0");
       return;
     }
     setSaving(true);
@@ -120,8 +127,25 @@ function UnitForm({ unit, buildingId, onSuccess, onCancel, lang }: {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>{isRtl ? "الإيجار الشهري (SAR)" : "Monthly Rent (SAR)"}</Label>
-          <Input type="number" step="0.01" value={form.monthlyBaseRentSAR} onChange={e => set("monthlyBaseRentSAR", e.target.value)} placeholder="5000" />
+          <Label className="flex items-center gap-1">
+            {isRtl ? "الإيجار الشهري (SAR)" : "Monthly Rent (SAR)"} <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            type="number"
+            step="0.01"
+            min="1"
+            required
+            value={form.monthlyBaseRentSAR}
+            onChange={e => set("monthlyBaseRentSAR", e.target.value)}
+            placeholder="5000"
+            className={!form.monthlyBaseRentSAR || parseFloat(form.monthlyBaseRentSAR) <= 0 ? "border-amber-400 focus-visible:ring-amber-400" : ""}
+          />
+          {(!form.monthlyBaseRentSAR || parseFloat(form.monthlyBaseRentSAR) <= 0) && (
+            <p className="text-xs text-amber-600 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {isRtl ? "مطلوب لتفعيل الدفع والحجز" : "Required for payment & booking to work"}
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label>{isRtl ? "الطابق" : "Floor"}</Label>
@@ -477,9 +501,18 @@ function UnitDetail({ unitId, lang }: { unitId: number; lang: string }) {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-heading font-bold flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Home className="h-5 w-5 text-primary" />
-                </div>
+                {data.unit.coverImageUrl ? (
+                  <img
+                    src={normalizeImageUrl(data.unit.coverImageUrl)}
+                    alt={`Unit ${data.unit.unitNumber}`}
+                    className="w-14 h-12 rounded-xl object-cover border border-border/30"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }}
+                  />
+                ) : (
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <Home className="h-5 w-5 text-primary" />
+                  </div>
+                )}
                 {isRtl ? `وحدة ${data.unit.unitNumber}` : `Unit ${data.unit.unitNumber}`}
               </h1>
               {data.unit.isArchived && <Badge variant="secondary">{isRtl ? "مؤرشف" : "Archived"}</Badge>}

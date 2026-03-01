@@ -168,6 +168,10 @@ export const financeRouter = router({
         notes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // P0 Fix: Validate monthly rent is provided and > 0
+        if (!input.monthlyBaseRentSAR || Number(input.monthlyBaseRentSAR) <= 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Monthly rent (monthlyBaseRentSAR) is required and must be greater than 0." });
+        }
         // Validate unique unit number within building
         const isUnique = await finance.isUnitNumberUnique(input.buildingId, input.unitNumber);
         if (!isUnique) {
