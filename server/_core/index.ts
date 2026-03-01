@@ -17,8 +17,9 @@ import { compressionMiddleware } from "../middleware/compression";
 import { sitemapHandler } from "../middleware/sitemap";
 import { generateHomepageOG, generatePropertyOG, invalidateCache as invalidateOGCache } from "../og-image";
 import { getDb } from "../db";
-import { properties } from "../../drizzle/schema";
+import { properties, integrationConfigs } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { reloadS3Client } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,6 +38,61 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
     }
   }
   throw new Error(`No available port found starting from ${startPort}`);
+}
+
+/**
+ * Load storage (S3/R2) config from the integration_configs DB table
+ * and inject into process.env so storage.ts picks it up.
+ * This ensures config survives Railway redeployments.
+ */
+async function loadStorageConfigFromDb(): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) {
+      console.log("[Storage] DB not available, skipping config load");
+      return;
+    }
+
+    const [storageRow] = await db
+      .select()
+      .from(integrationConfigs)
+      .where(eq(integrationConfigs.integrationKey, 'storage'))
+      .limit(1);
+
+    if (!storageRow || !storageRow.configJson) {
+      console.log("[Storage] No storage config found in DB");
+      return;
+    }
+
+    let config: Record<string, string>;
+    try {
+      config = JSON.parse(storageRow.configJson as string);
+    } catch {
+      console.error("[Storage] Failed to parse configJson from DB");
+      return;
+    }
+
+    // Only apply if we have the minimum required fields
+    if (!config.bucket || !config.accessKeyId || !config.secretAccessKey) {
+      console.log("[Storage] DB config incomplete (missing bucket/keys), skipping");
+      return;
+    }
+
+    // Inject into process.env (same as integration-routers.ts does on save/test)
+    process.env.S3_ENDPOINT = config.endpoint || '';
+    process.env.S3_BUCKET = config.bucket;
+    process.env.S3_ACCESS_KEY_ID = config.accessKeyId;
+    process.env.S3_SECRET_ACCESS_KEY = config.secretAccessKey;
+    process.env.S3_REGION = config.region || 'auto';
+    if (config.publicBaseUrl) process.env.S3_PUBLIC_BASE_URL = config.publicBaseUrl;
+
+    // Reset the S3 client so it picks up the new env vars
+    reloadS3Client();
+
+    console.log(`[Storage] ✅ Loaded R2/S3 config from DB → bucket: ${config.bucket}, endpoint: ${config.endpoint || 'default'}`);
+  } catch (err) {
+    console.error("[Storage] Error loading config from DB:", err);
+  }
 }
 
 async function startServer() {
@@ -344,6 +400,9 @@ async function startServer() {
   seedAdminUser().catch(err => console.error("[Seed] Failed:", err));
   seedCitiesAndDistricts().catch(err => console.error("[Seed] Cities failed:", err));
   seedDefaultSettings().catch(err => console.error("[Seed] Settings failed:", err));
+
+  // ─── Load integration configs from DB (survives Railway redeploy) ──
+  loadStorageConfigFromDb().catch(err => console.error("[Storage] DB config load failed:", err));
 
   server.listen(port, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${port}/`);
