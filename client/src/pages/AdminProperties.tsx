@@ -54,22 +54,8 @@ function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: str
         alt=""
         className="w-full h-full object-cover"
         loading="lazy"
-        crossOrigin="anonymous"
         onLoad={() => setStatus("loaded")}
-        onError={() => {
-          // Try without crossOrigin as fallback
-          if (src === imgUrl) {
-            // Try the direct URL without normalizeImageUrl
-            const directUrl = coverImageUrl || (Array.isArray(photos) && photos[0]) || "";
-            if (directUrl && directUrl !== src) {
-              setSrc(directUrl);
-            } else {
-              setStatus("error");
-            }
-          } else {
-            setStatus("error");
-          }
-        }}
+        onError={() => setStatus("error")}
       />
     </>
   );
