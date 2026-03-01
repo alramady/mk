@@ -323,6 +323,7 @@ function DashboardLayoutContent({
               </p>
               <p className="text-[9px] text-muted-foreground/40 font-mono">
                 {typeof __APP_GIT_SHA__ !== 'undefined' && __APP_GIT_SHA__ !== 'unknown' ? `SHA: ${__APP_GIT_SHA__}` : ''}
+                {' • monthly-key-app'}
               </p>
             </div>
           </SidebarFooter>

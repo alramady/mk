@@ -422,59 +422,113 @@ export default function AdminSettings() {
                   <p className="text-xs text-muted-foreground">
                     {lang === "ar" ? "اختر قالب موسمي لتطبيقه على الهيرو بضغطة واحدة" : "Choose a seasonal preset to apply to the hero section"}
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" onClick={() => {
-                      updateSetting("hero.titleAr", "رمضان كريم — إيجارك الشهري بأفضل الأسعار");
-                      updateSetting("hero.titleEn", "Ramadan Kareem — Best Monthly Rental Deals");
-                      updateSetting("hero.subtitleAr", "عروض رمضان الحصرية | الرياض");
-                      updateSetting("hero.subtitleEn", "Exclusive Ramadan Offers | Riyadh");
-                      updateSetting("hero.bgType", "image");
-                      updateSetting("hero.bgImage", "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=1600&q=80");
-                      updateSetting("hero.bgVideo", "");
-                      updateSetting("hero.overlayOpacity", "35");
-                      toast.info(lang === "ar" ? "تم تطبيق قالب رمضان — اضغط حفظ" : "Ramadan preset applied — click Save");
-                    }}>
-                      🌙 {lang === "ar" ? "رمضان" : "Ramadan"}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      updateSetting("hero.titleAr", "خبير الإيجار الشهري — الآن في السعودية");
-                      updateSetting("hero.titleEn", "Monthly Rental Expert — Now in Saudi Arabia");
-                      updateSetting("hero.subtitleAr", "إدارة إيجارات شهرية متميزة | الرياض");
-                      updateSetting("hero.subtitleEn", "Premium monthly rental management | Riyadh");
-                      updateSetting("hero.bgType", "image");
-                      updateSetting("hero.bgImage", "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=1600&q=80");
-                      updateSetting("hero.bgVideo", "");
-                      updateSetting("hero.overlayOpacity", "35");
-                      toast.info(lang === "ar" ? "تم تطبيق القالب الافتراضي — اضغط حفظ" : "Default preset applied — click Save");
-                    }}>
-                      🏙️ {lang === "ar" ? "الرياض (افتراضي)" : "Riyadh (Default)"}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      updateSetting("hero.titleAr", "موسم الرياض — احجز إقامتك الشهرية");
-                      updateSetting("hero.titleEn", "Riyadh Season — Book Your Monthly Stay");
-                      updateSetting("hero.subtitleAr", "عروض حصرية لموسم الرياض | شقق وفلل مفروشة");
-                      updateSetting("hero.subtitleEn", "Exclusive Riyadh Season offers | Furnished apartments & villas");
-                      updateSetting("hero.bgType", "image");
-                      updateSetting("hero.bgImage", "https://images.unsplash.com/photo-1663900108404-a05e8bf82cda?w=1600&q=80");
-                      updateSetting("hero.bgVideo", "");
-                      updateSetting("hero.overlayOpacity", "30");
-                      toast.info(lang === "ar" ? "تم تطبيق قالب موسم الرياض — اضغط حفظ" : "Riyadh Season preset applied — click Save");
-                    }}>
-                      🎉 {lang === "ar" ? "موسم الرياض" : "Riyadh Season"}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      updateSetting("hero.titleAr", "عيد فطر مبارك — إقامتك الشهرية بأفضل العروض");
-                      updateSetting("hero.titleEn", "Eid Mubarak — Best Monthly Stay Deals");
-                      updateSetting("hero.subtitleAr", "احتفل بالعيد في أرقى العقارات | الرياض");
-                      updateSetting("hero.subtitleEn", "Celebrate Eid in premium properties | Riyadh");
-                      updateSetting("hero.bgType", "image");
-                      updateSetting("hero.bgImage", "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=1600&q=80");
-                      updateSetting("hero.bgVideo", "");
-                      updateSetting("hero.overlayOpacity", "30");
-                      toast.info(lang === "ar" ? "تم تطبيق قالب عيد الفطر — اضغط حفظ" : "Eid al-Fitr preset applied — click Save");
-                    }}>
-                      ✨ {lang === "ar" ? "عيد الفطر" : "Eid al-Fitr"}
-                    </Button>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      {
+                        id: "ramadan",
+                        emoji: "🌙",
+                        labelAr: "رمضان",
+                        labelEn: "Ramadan",
+                        titleAr: "رمضان كريم — إيجارك الشهري بأفضل الأسعار",
+                        titleEn: "Ramadan Kareem — Best Monthly Rental Deals",
+                        subtitleAr: "عروض رمضان الحصرية | الرياض",
+                        subtitleEn: "Exclusive Ramadan Offers | Riyadh",
+                        bgImage: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=1600&q=80",
+                        overlayOpacity: "35",
+                      },
+                      {
+                        id: "default",
+                        emoji: "🏙️",
+                        labelAr: "الرياض (افتراضي)",
+                        labelEn: "Riyadh (Default)",
+                        titleAr: "خبير الإيجار الشهري — الآن في السعودية",
+                        titleEn: "Monthly Rental Expert — Now in Saudi Arabia",
+                        subtitleAr: "إدارة إيجارات شهرية متميزة | الرياض",
+                        subtitleEn: "Premium monthly rental management | Riyadh",
+                        bgImage: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=1600&q=80",
+                        overlayOpacity: "35",
+                      },
+                      {
+                        id: "riyadh-season",
+                        emoji: "🎉",
+                        labelAr: "موسم الرياض",
+                        labelEn: "Riyadh Season",
+                        titleAr: "موسم الرياض — احجز إقامتك الشهرية",
+                        titleEn: "Riyadh Season — Book Your Monthly Stay",
+                        subtitleAr: "عروض حصرية لموسم الرياض | شقق وفلل مفروشة",
+                        subtitleEn: "Exclusive Riyadh Season offers | Furnished apartments & villas",
+                        bgImage: "https://images.unsplash.com/photo-1663900108404-a05e8bf82cda?w=1600&q=80",
+                        overlayOpacity: "30",
+                      },
+                      {
+                        id: "eid",
+                        emoji: "✨",
+                        labelAr: "عيد الفطر",
+                        labelEn: "Eid al-Fitr",
+                        titleAr: "عيد فطر مبارك — إقامتك الشهرية بأفضل العروض",
+                        titleEn: "Eid Mubarak — Best Monthly Stay Deals",
+                        subtitleAr: "احتفل بالعيد في أرقى العقارات | الرياض",
+                        subtitleEn: "Celebrate Eid in premium properties | Riyadh",
+                        bgImage: "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=1600&q=80",
+                        overlayOpacity: "30",
+                      },
+                    ].map((preset) => {
+                      const isActive = settings["hero.bgImage"] === preset.bgImage
+                        && settings["hero.titleAr"] === preset.titleAr;
+                      return (
+                        <button
+                          key={preset.id}
+                          onClick={() => {
+                            updateSetting("hero.titleAr", preset.titleAr);
+                            updateSetting("hero.titleEn", preset.titleEn);
+                            updateSetting("hero.subtitleAr", preset.subtitleAr);
+                            updateSetting("hero.subtitleEn", preset.subtitleEn);
+                            updateSetting("hero.bgType", "image");
+                            updateSetting("hero.bgImage", preset.bgImage);
+                            updateSetting("hero.bgVideo", "");
+                            updateSetting("hero.overlayOpacity", preset.overlayOpacity);
+                            toast.info(lang === "ar"
+                              ? `تم تطبيق قالب ${preset.labelAr} — اضغط حفظ`
+                              : `${preset.labelEn} preset applied — click Save`);
+                          }}
+                          className={`relative group rounded-lg overflow-hidden border-2 transition-all hover:shadow-lg ${
+                            isActive
+                              ? "border-[#3ECFC0] ring-2 ring-[#3ECFC0]/30"
+                              : "border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          {/* Preview image */}
+                          <div className="relative h-28 w-full">
+                            <img
+                              src={`/api/img-proxy?url=${encodeURIComponent(preset.bgImage)}`}
+                              alt={lang === "ar" ? preset.labelAr : preset.labelEn}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${Number(preset.overlayOpacity) / 100})` }} />
+                            {/* Preview text overlay */}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-2">
+                              <p className="text-[10px] font-bold text-center leading-tight line-clamp-2 drop-shadow-md">
+                                {lang === "ar" ? preset.titleAr : preset.titleEn}
+                              </p>
+                              <p className="text-[8px] text-white/70 mt-0.5 text-center line-clamp-1">
+                                {lang === "ar" ? preset.subtitleAr : preset.subtitleEn}
+                              </p>
+                            </div>
+                            {/* Active badge */}
+                            {isActive && (
+                              <div className="absolute top-1.5 end-1.5 bg-[#3ECFC0] text-[#0B1E2D] text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                {lang === "ar" ? "نشط" : "Active"}
+                              </div>
+                            )}
+                          </div>
+                          {/* Label bar */}
+                          <div className="px-2 py-1.5 bg-card text-card-foreground text-xs font-medium text-center">
+                            {preset.emoji} {lang === "ar" ? preset.labelAr : preset.labelEn}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

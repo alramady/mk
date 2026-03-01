@@ -172,6 +172,12 @@ export default function Footer() {
             <Link href="/privacy" className="hover:text-[#3ECFC0] transition-colors">{t("footer.privacy")}</Link>
             <span className="text-white/20">|</span>
             <Link href="/terms" className="hover:text-[#3ECFC0] transition-colors">{t("footer.terms")}</Link>
+            <span className="text-white/20">|</span>
+            <span className="font-mono text-white/25" title={`Full build: ${typeof __APP_BUILD_DATE__ !== 'undefined' ? __APP_BUILD_DATE__ : ''}`}>
+              Build {typeof __APP_BUILD_VERSION__ !== 'undefined' ? __APP_BUILD_VERSION__ : 'dev'}
+              {typeof __APP_GIT_SHA__ !== 'undefined' && __APP_GIT_SHA__ !== 'unknown' ? ` • SHA: ${__APP_GIT_SHA__}` : ''}
+              {' • monthly-key-app'}
+            </span>
           </div>
         </div>
       </div>
