@@ -270,7 +270,7 @@ export default function PropertyDetail() {
                 }}
               />
               {/* Photo count badge */}
-              <div className="absolute bottom-3 end-3 text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 z-10" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', color: '#ffffff' }}>
+              <div dir="ltr" className="absolute bottom-3 end-3 text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 z-10" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', color: '#ffffff' }}>
                 <Eye className="h-3 w-3" />
                 {currentPhoto + 1} / {photos.length}
               </div>

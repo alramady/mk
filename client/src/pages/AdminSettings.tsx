@@ -445,7 +445,7 @@ export default function AdminSettings() {
                         titleEn: "Monthly Rental Expert — Now in Saudi Arabia",
                         subtitleAr: "إدارة إيجارات شهرية متميزة | الرياض",
                         subtitleEn: "Premium monthly rental management | Riyadh",
-                        bgImage: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=1600&q=80",
+                        bgImage: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=1600&q=80",
                         overlayOpacity: "35",
                       },
                       {

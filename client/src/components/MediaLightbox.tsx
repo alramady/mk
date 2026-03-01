@@ -62,7 +62,7 @@ export function MediaLightbox({ items, initialIndex = 0, open, onClose }: MediaL
 
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-10">
-        <span className="text-white/70 text-sm font-medium">
+        <span dir="ltr" className="text-white/70 text-sm font-medium">
           {currentIndex + 1} / {items.length}
         </span>
         <div className="flex items-center gap-2">
