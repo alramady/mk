@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import { Link } from "wouter";
@@ -18,6 +18,62 @@ import {
   Plus, Search, Loader2, ImagePlus, X, Eye, Pencil, Trash2,
   Building2, MapPin, BedDouble, Bath, Ruler, ChevronLeft, ChevronRight
 } from "lucide-react";
+
+// Robust thumbnail component with state-based image loading (matches PropertyCard pattern)
+function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: string; photos?: string[] | null }) {
+  const imgUrl = coverImageUrl || (Array.isArray(photos) && photos.length > 0 ? normalizeImageUrl(photos[0]) : "");
+  const [src, setSrc] = useState(imgUrl);
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">(imgUrl ? "loading" : "error");
+
+  // Reset when data changes
+  useEffect(() => {
+    const newUrl = coverImageUrl || (Array.isArray(photos) && photos.length > 0 ? normalizeImageUrl(photos[0]) : "");
+    if (newUrl && newUrl !== src) {
+      setSrc(newUrl);
+      setStatus("loading");
+    } else if (!newUrl) {
+      setStatus("error");
+    }
+  }, [coverImageUrl, photos]);
+
+  if (status === "error" || !src) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-muted">
+        <Building2 className="h-8 w-8 text-muted-foreground/30" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {status === "loading" && (
+        <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/70 to-muted" />
+      )}
+      <img
+        src={src}
+        alt=""
+        className="w-full h-full object-cover"
+        loading="lazy"
+        crossOrigin="anonymous"
+        onLoad={() => setStatus("loaded")}
+        onError={() => {
+          // Try without crossOrigin as fallback
+          if (src === imgUrl) {
+            // Try the direct URL without normalizeImageUrl
+            const directUrl = coverImageUrl || (Array.isArray(photos) && photos[0]) || "";
+            if (directUrl && directUrl !== src) {
+              setSrc(directUrl);
+            } else {
+              setStatus("error");
+            }
+          } else {
+            setStatus("error");
+          }
+        }}
+      />
+    </>
+  );
+}
 
 const statusColors: Record<string, string> = {
   active: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
@@ -100,13 +156,10 @@ export default function AdminProperties() {
                   <div className="flex gap-4">
                     {/* Thumbnail */}
                     <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0">
-                      {prop.photos?.[0] ? (
-                        <img src={normalizeImageUrl(prop.photos[0])} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Building2 className="h-8 w-8 text-muted-foreground/30" />
-                        </div>
-                      )}
+                      <AdminPropertyThumbnail
+                        coverImageUrl={prop.coverImageUrl}
+                        photos={prop.photos}
+                      />
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">

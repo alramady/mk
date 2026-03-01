@@ -1007,7 +1007,22 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const items = await db.getAllProperties(input.limit, input.offset, input.status, input.search);
         const total = await db.getPropertyCount(input.status);
-        return { items, total };
+        // Add server-computed coverImageUrl for reliable image display
+        const s3Base = (process.env.S3_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+        const enriched = items.map((item: any) => {
+          let coverImageUrl = "";
+          const photos = item.photos;
+          if (Array.isArray(photos) && photos.length > 0) {
+            const first = typeof photos[0] === "string" ? photos[0] : (photos[0] as any)?.url || "";
+            if (first) {
+              coverImageUrl = first.startsWith("http") ? first
+                : s3Base ? `${s3Base}/${first.replace(/^\/+/, "")}`
+                : first;
+            }
+          }
+          return { ...item, coverImageUrl };
+        });
+        return { items: enriched, total };
       }),
 
     approveProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)

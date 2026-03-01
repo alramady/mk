@@ -166,7 +166,14 @@ async function startServer() {
           dbStatus = `error: ${e.message}`;
         }
       }
-      res.json({ status: "ok", dbStatus, version: "1.0.0" });
+      res.json({
+        status: "ok",
+        dbStatus,
+        version: "1.0.0",
+        commitSha: process.env.RAILWAY_GIT_COMMIT_SHA || "unknown",
+        buildTime: process.env.BUILD_TIME || "unknown",
+        envName: process.env.RAILWAY_ENVIRONMENT_NAME || process.env.NODE_ENV || "unknown",
+      });
     } catch (e: any) {
       res.json({ status: "error", error: e.message });
     }
@@ -267,6 +274,60 @@ async function startServer() {
           allStatusesConsistent: amountMatching.every(m => m.statusWorkflow.ledgerConsistent),
         },
       });
+    } catch (e: any) {
+      res.json({ error: e.message });
+    }
+  });
+
+  // ─── Backfill coordinates for properties missing lat/lng ──────────
+  app.get("/api/backfill-coordinates", async (_req, res) => {
+    try {
+      const { getPool } = await import("../db");
+      const pool = getPool();
+      if (!pool) return res.json({ error: "no pool" });
+
+      // Riyadh district coordinates lookup
+      const districtCoords: Record<string, { lat: string; lng: string }> = {
+        "olaya": { lat: "24.6900", lng: "46.6850" },
+        "العليا": { lat: "24.6900", lng: "46.6850" },
+        "al olaya": { lat: "24.6900", lng: "46.6850" },
+        "nakheel": { lat: "24.7700", lng: "46.6400" },
+        "النخيل": { lat: "24.7700", lng: "46.6400" },
+        "al nakheel": { lat: "24.7700", lng: "46.6400" },
+        "malqa": { lat: "24.7900", lng: "46.6300" },
+        "الملقا": { lat: "24.7900", lng: "46.6300" },
+        "hittin": { lat: "24.7600", lng: "46.6200" },
+        "حطين": { lat: "24.7600", lng: "46.6200" },
+        "sulaimaniyah": { lat: "24.7000", lng: "46.7000" },
+        "السليمانية": { lat: "24.7000", lng: "46.7000" },
+        "al yasmin": { lat: "24.8200", lng: "46.6400" },
+        "الياسمين": { lat: "24.8200", lng: "46.6400" },
+      };
+      // Default Riyadh center
+      const defaultCoords = { lat: "24.7136", lng: "46.6753" };
+
+      const [rows] = await pool.query(
+        `SELECT id, district, districtAr FROM properties WHERE (latitude IS NULL OR latitude = '' OR latitude = '0') AND status != 'archived'`
+      );
+
+      const updated: any[] = [];
+      for (const row of rows as any[]) {
+        const d = (row.district || "").toLowerCase().trim();
+        const dAr = (row.districtAr || "").trim();
+        const coords = districtCoords[d] || districtCoords[dAr] || defaultCoords;
+        // Add small random offset to avoid exact same pin
+        const latOffset = (Math.random() - 0.5) * 0.01;
+        const lngOffset = (Math.random() - 0.5) * 0.01;
+        const lat = (parseFloat(coords.lat) + latOffset).toFixed(7);
+        const lng = (parseFloat(coords.lng) + lngOffset).toFixed(7);
+        await pool.query(
+          `UPDATE properties SET latitude = ?, longitude = ? WHERE id = ?`,
+          [lat, lng, row.id]
+        );
+        updated.push({ id: row.id, district: row.district, lat, lng });
+      }
+
+      res.json({ backfilled: updated.length, properties: updated });
     } catch (e: any) {
       res.json({ error: e.message });
     }
