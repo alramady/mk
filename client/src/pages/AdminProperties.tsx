@@ -19,40 +19,49 @@ import {
   Building2, MapPin, BedDouble, Bath, Ruler, ChevronLeft, ChevronRight
 } from "lucide-react";
 
-// Admin property thumbnail - same pattern as PropertyCard (which works on public site)
+// Reliable fallback images by property type (same as PropertyCard)
+const ADMIN_FALLBACK_IMAGES: Record<string, string> = {
+  apartment: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80",
+  villa: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&q=80",
+  studio: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80",
+  duplex: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80",
+  default: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80",
+};
+
+// Admin property thumbnail with Unsplash fallback (same pattern as working PropertyCard)
 function AdminPropertyThumbnail({ photos, propertyType }: { photos?: string[] | null; propertyType?: string }) {
   const raw = Array.isArray(photos) && photos.length > 0 ? photos[0] : null;
-  const imgUrl = raw ? normalizeImageUrl(raw) : null;
-  const [status, setStatus] = useState<'loading'|'loaded'|'error'>('loading');
-  const [src, setSrc] = useState(imgUrl || '');
+  const primaryUrl = raw ? normalizeImageUrl(raw) : null;
+  const fallbackUrl = ADMIN_FALLBACK_IMAGES[propertyType || ''] || ADMIN_FALLBACK_IMAGES.default;
+  
+  const [imgSrc, setImgSrc] = useState(primaryUrl || fallbackUrl);
+  const [loaded, setLoaded] = useState(false);
 
   // Reset when photos change
   useEffect(() => {
-    const newUrl = raw ? normalizeImageUrl(raw) : '';
-    setSrc(newUrl);
-    setStatus(newUrl ? 'loading' : 'error');
-  }, [raw]);
-
-  if (!src || status === 'error') {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-muted">
-        <Building2 className="h-8 w-8 text-muted-foreground/30" />
-      </div>
-    );
-  }
+    const newPrimary = raw ? normalizeImageUrl(raw) : null;
+    setImgSrc(newPrimary || fallbackUrl);
+    setLoaded(false);
+  }, [raw, fallbackUrl]);
 
   return (
     <>
-      {status === 'loading' && (
+      {!loaded && (
         <div className="absolute inset-0 animate-pulse bg-muted" />
       )}
       <img
-        src={src}
+        src={imgSrc}
         alt=""
         loading="lazy"
-        onLoad={() => setStatus('loaded')}
-        onError={() => setStatus('error')}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          // If primary failed, try fallback; if fallback also failed, give up
+          if (imgSrc !== fallbackUrl) {
+            setImgSrc(fallbackUrl);
+            setLoaded(false);
+          }
+        }}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity ${loaded ? 'opacity-100' : 'opacity-0'}`}
       />
     </>
   );
@@ -139,7 +148,7 @@ export default function AdminProperties() {
                   <div className="flex gap-4">
                     {/* Thumbnail */}
                     <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0 relative">
-                      <AdminPropertyThumbnail photos={prop.photos} />
+                      <AdminPropertyThumbnail photos={prop.photos} propertyType={prop.propertyType} />
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
