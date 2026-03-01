@@ -821,7 +821,7 @@ export default function PropertyDetail() {
                   <CardContent className="p-5">
                     <div className="flex items-center gap-4 mb-3">
                       {(prop as any).manager.photoUrl ? (
-                        <img src={(prop as any).manager.photoUrl} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#3ECFC0]/30" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                        <img src={(() => { const u = (prop as any).manager.photoUrl; if (!u || u.startsWith('/') || u.startsWith('data:')) return u; return `/api/img-proxy?url=${encodeURIComponent(u)}`; })()} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#3ECFC0]/30" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
                       ) : null}
                       <div className={`w-14 h-14 rounded-full bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center text-white font-bold text-lg select-none ${(prop as any).manager.photoUrl ? 'hidden' : ''}`}>
                         {((prop as any).manager.name || '').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || 'PM'}

@@ -119,7 +119,21 @@ async function startServer() {
     etag: true,
     lastModified: true,
   }));
-  console.log(`[Storage] Serving uploads from: ${uploadDir}`);
+  // Fallback: if local file not found and S3 is configured, redirect to R2 public URL
+  app.use("/uploads", (req, res, next) => {
+    const s3PublicBase = (process.env.S3_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+    if (s3PublicBase) {
+      // Strip leading slash from req.path, redirect to R2
+      const objectKey = req.path.replace(/^\/+/, "");
+      const r2Url = `${s3PublicBase}/${objectKey}`;
+      console.log(`[Storage] Local miss → redirecting to R2: ${r2Url}`);
+      res.redirect(301, r2Url);
+    } else {
+      // No S3 configured — return 404
+      res.status(404).json({ error: "File not found" });
+    }
+  });
+  console.log(`[Storage] Serving uploads from: ${uploadDir} (with R2 fallback)`);
 
   // ─── Service Worker (MUST be before static middleware to bypass CDN cache) ──
   app.get("/sw.js", (_req, res) => {

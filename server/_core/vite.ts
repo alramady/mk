@@ -112,9 +112,15 @@ export function serveStatic(app: Express) {
     },
   }));
 
-  // Return proper 404 for missing uploaded files (prevents SPA HTML being served as images)
-  app.use("/uploads/*", (_req, res) => {
-    res.status(404).json({ error: "File not found" });
+  // Redirect missing uploads to R2 when S3 is configured, else 404
+  app.use("/uploads/*", (req, res) => {
+    const s3PublicBase = (process.env.S3_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+    if (s3PublicBase) {
+      const objectKey = req.path.replace(/^\/uploads\//, "");
+      res.redirect(301, `${s3PublicBase}/${objectKey}`);
+    } else {
+      res.status(404).json({ error: "File not found" });
+    }
   });
 
   // SPA fallback: serve index.html for all non-file requests

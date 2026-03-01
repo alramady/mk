@@ -20,29 +20,36 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useScrollAnimation, useParallax } from "@/hooks/useScrollAnimation";
 
-/* ─── City Fallback Images (CDN) ─── */
+/* ─── City Fallback Images (CDN via img-proxy to avoid Unsplash hotlink blocking) ─── */
+function proxyCityImg(url: string): string {
+  return `/api/img-proxy?url=${encodeURIComponent(url)}`;
+}
 const CITY_FALLBACK_IMAGES: Record<string, string> = {
-  riyadh: "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80",
-  jeddah: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80",
-  madinah: "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80",
-  makkah: "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80",
-  dammam: "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80",
-  khobar: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
-  tabuk: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80",
-  abha: "https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80",
-  "الرياض": "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80",
-  "جدة": "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80",
-  "المدينة المنورة": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80",
-  "مكة المكرمة": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80",
-  "الدمام": "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80",
-  "الخبر": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
-  "تبوك": "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80",
-  "أبها": "https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80",
+  riyadh: proxyCityImg("https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80"),
+  jeddah: proxyCityImg("https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80"),
+  madinah: proxyCityImg("https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80"),
+  makkah: proxyCityImg("https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80"),
+  dammam: proxyCityImg("https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80"),
+  khobar: proxyCityImg("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80"),
+  tabuk: proxyCityImg("https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80"),
+  abha: proxyCityImg("https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80"),
+  "الرياض": proxyCityImg("https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80"),
+  "جدة": proxyCityImg("https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80"),
+  "المدينة المنورة": proxyCityImg("https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80"),
+  "مكة المكرمة": proxyCityImg("https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80"),
+  "الدمام": proxyCityImg("https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80"),
+  "الخبر": proxyCityImg("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80"),
+  "تبوك": proxyCityImg("https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80"),
+  "أبها": proxyCityImg("https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80"),
 };
 
 /** Get city image: DB imageUrl > fallback by name > gradient placeholder */
 function getCityImage(city: { imageUrl?: string | null; nameEn?: string; nameAr?: string }): string | null {
-  if (city.imageUrl) return city.imageUrl;
+  if (city.imageUrl) {
+    // DB image: proxy external URLs to avoid hotlink blocking, keep relative paths as-is
+    if (city.imageUrl.startsWith("/") || city.imageUrl.startsWith("data:")) return city.imageUrl;
+    return proxyCityImg(city.imageUrl);
+  }
   const key = city.nameEn?.toLowerCase();
   if (key && CITY_FALLBACK_IMAGES[key]) return CITY_FALLBACK_IMAGES[key];
   if (city.nameAr && CITY_FALLBACK_IMAGES[city.nameAr]) return CITY_FALLBACK_IMAGES[city.nameAr];

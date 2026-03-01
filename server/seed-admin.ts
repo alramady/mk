@@ -106,7 +106,7 @@ async function seedDemoPropertyManager() {
       titleAr: "مدير عقارات أول",
       bio: "Experienced property manager with over 8 years in the Saudi real estate market. Specialized in premium residential properties in Riyadh.",
       bioAr: "مدير عقارات ذو خبرة تتجاوز 8 سنوات في سوق العقارات السعودي. متخصص في العقارات السكنية المميزة في الرياض.",
-      photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
+      photoUrl: "/api/img-proxy?url=" + encodeURIComponent("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80"),
       isActive: true,
       editToken,
     } as any);
