@@ -19,12 +19,11 @@ import {
   Building2, MapPin, BedDouble, Bath, Ruler, ChevronLeft, ChevronRight
 } from "lucide-react";
 
-// Simple thumbnail component - renders cover image or fallback
+// Thumbnail using CSS background-image to avoid img onError issues
 function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: string; photos?: string[] | null }) {
   const imgUrl = coverImageUrl || (Array.isArray(photos) && photos.length > 0 ? normalizeImageUrl(photos[0]) : "");
-  const [failed, setFailed] = useState(false);
 
-  if (!imgUrl || failed) {
+  if (!imgUrl) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-muted">
         <Building2 className="h-8 w-8 text-muted-foreground/30" />
@@ -33,12 +32,9 @@ function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: str
   }
 
   return (
-    <img
-      src={imgUrl}
-      alt=""
-      className="w-full h-full object-cover"
-      loading="lazy"
-      onError={() => setFailed(true)}
+    <div
+      className="w-full h-full bg-cover bg-center bg-muted"
+      style={{ backgroundImage: `url(${imgUrl})` }}
     />
   );
 }
