@@ -277,6 +277,7 @@ export const submissionRouter = router({
       bathrooms: z.number().optional(),
       sizeSqm: z.number().optional(),
       floor: z.number().optional(),
+      totalFloors: z.number().optional(),
       yearBuilt: z.number().optional(),
       furnishedLevel: z.enum(["unfurnished", "semi_furnished", "fully_furnished"]).optional(),
       monthlyRent: z.string(),
@@ -292,10 +293,25 @@ export const submissionRouter = router({
       videoUrl: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // Sanitize: convert empty strings to null for decimal/optional DB columns
+      const clean: Record<string, any> = { ...input };
+      const optionalStringFields = [
+        'descriptionEn','descriptionAr','city','cityAr','district','districtAr',
+        'address','addressAr','googleMapsUrl','latitude','longitude',
+        'securityDeposit','houseRules','houseRulesAr','videoUrl',
+      ];
+      for (const k of optionalStringFields) {
+        if (clean[k] === '' || clean[k] === undefined) clean[k] = null;
+      }
+      // Ensure numeric 0 doesn't go into optional int columns as falsy
+      if (clean.sizeSqm === 0) clean.sizeSqm = null;
+      if (clean.floor === 0) clean.floor = null;
+      if (clean.totalFloors === 0) clean.totalFloors = null;
       const id = await db.createProperty({
-        ...input,
+        ...clean,
         landlordId: ctx.user!.id,
         status: input.status || "draft",
+        pricingSource: 'PROPERTY',
       } as any);
       cache.invalidatePrefix("property:");
       cache.invalidatePrefix("search:");

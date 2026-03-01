@@ -189,42 +189,6 @@ async function startServer() {
     });
   });
 
-  // Debug photos endpoint - check what admin.properties returns
-  app.get("/api/debug-photos", async (_req, res) => {
-    try {
-      const dbMod = await import("../db");
-      const items = await dbMod.getAllProperties(3, 0);
-      const s3Base = (process.env.S3_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
-      const debug = items.map((item: any) => {
-        const photos = item.photos;
-        let coverImageUrl = "";
-        if (Array.isArray(photos) && photos.length > 0) {
-          const first = typeof photos[0] === "string" ? photos[0] : (photos[0] as any)?.url || "";
-          if (first) {
-            coverImageUrl = first.startsWith("http") ? first
-              : s3Base ? `${s3Base}/${first.replace(/^\/+/, "")}`
-              : first;
-          }
-        }
-        return {
-          id: item.id,
-          titleAr: item.titleAr,
-          photosType: typeof photos,
-          photosIsArray: Array.isArray(photos),
-          photosLength: Array.isArray(photos) ? photos.length : 'N/A',
-          photosRaw: JSON.stringify(photos)?.slice(0, 200),
-          firstPhoto: Array.isArray(photos) ? photos[0] : null,
-          firstPhotoType: Array.isArray(photos) && photos[0] ? typeof photos[0] : 'N/A',
-          coverImageUrl,
-          s3Base,
-        };
-      });
-      res.json({ debug });
-    } catch (e: any) {
-      res.json({ error: e.message });
-    }
-  });
-
   // ─── Debug Proof Endpoint (acceptance testing) ─────────────────────
   app.get("/api/debug-proof", async (req, res) => {
     try {

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
-import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
+import { normalizeImageUrl, handleImageError } from "@/lib/image-utils";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -19,37 +19,42 @@ import {
   Building2, MapPin, BedDouble, Bath, Ruler, ChevronLeft, ChevronRight
 } from "lucide-react";
 
-// Simple thumbnail: plain img tag (confirmed working without crossOrigin)
-function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: string; photos?: string[] | null }) {
-  const imgUrl = coverImageUrl || (Array.isArray(photos) && photos.length > 0 ? normalizeImageUrl(photos[0]) : "");
+// Admin property thumbnail - same pattern as PropertyCard (which works on public site)
+function AdminPropertyThumbnail({ photos, propertyType }: { photos?: string[] | null; propertyType?: string }) {
+  const raw = Array.isArray(photos) && photos.length > 0 ? photos[0] : null;
+  const imgUrl = raw ? normalizeImageUrl(raw) : null;
+  const [status, setStatus] = useState<'loading'|'loaded'|'error'>('loading');
+  const [src, setSrc] = useState(imgUrl || '');
 
-  if (!imgUrl) {
+  // Reset when photos change
+  useEffect(() => {
+    const newUrl = raw ? normalizeImageUrl(raw) : '';
+    setSrc(newUrl);
+    setStatus(newUrl ? 'loading' : 'error');
+  }, [raw]);
+
+  if (!src || status === 'error') {
     return (
-      <div className="flex items-center justify-center bg-muted" style={{ width: 96, height: 96 }}>
+      <div className="absolute inset-0 flex items-center justify-center bg-muted">
         <Building2 className="h-8 w-8 text-muted-foreground/30" />
       </div>
     );
   }
 
   return (
-    <img
-      src={imgUrl}
-      alt="property"
-      style={{
-        width: 96,
-        height: 96,
-        objectFit: 'cover',
-        display: 'block',
-      }}
-      onError={(e) => {
-        const target = e.currentTarget;
-        target.style.display = 'none';
-        const fallback = document.createElement('div');
-        fallback.style.cssText = 'width:96px;height:96px;display:flex;align-items:center;justify-content:center;background:#1e293b';
-        fallback.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><path d="M3 21h18M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7H3l2-4h14l2 4M5 21V10.85M19 21V10.85"/></svg>';
-        target.parentElement?.appendChild(fallback);
-      }}
-    />
+    <>
+      {status === 'loading' && (
+        <div className="absolute inset-0 animate-pulse bg-muted" />
+      )}
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        onLoad={() => setStatus('loaded')}
+        onError={() => setStatus('error')}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+      />
+    </>
   );
 }
 
@@ -134,16 +139,7 @@ export default function AdminProperties() {
                   <div className="flex gap-4">
                     {/* Thumbnail */}
                     <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0 relative">
-                      <AdminPropertyThumbnail
-                        coverImageUrl={prop.coverImageUrl}
-                        photos={prop.photos}
-                      />
-                      {/* DEBUG: show photo data status + URL */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-[8px] text-white p-0.5 leading-tight" style={{wordBreak:'break-all'}}>
-                        c:{prop.coverImageUrl ? '✓' : '✗'} p:{Array.isArray(prop.photos) ? prop.photos.length : 'null'}
-                        <br/>
-                        url:{(prop.coverImageUrl || (prop.photos?.[0]) || 'NONE').slice(0, 60)}
-                      </div>
+                      <AdminPropertyThumbnail photos={prop.photos} />
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
