@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
-import { normalizeImageUrl, handleImageError } from "@/lib/image-utils";
+import { normalizeImageUrl, handleImageError, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -16,53 +16,67 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Plus, Search, Loader2, ImagePlus, X, Eye, Pencil, Trash2,
-  Building2, MapPin, BedDouble, Bath, Ruler, ChevronLeft, ChevronRight
+  Building2, MapPin, BedDouble, Bath, Ruler, ChevronLeft, ChevronRight,
+  AlertTriangle, ImageOff
 } from "lucide-react";
 
-// Reliable fallback images by property type (same as PropertyCard)
-const ADMIN_FALLBACK_IMAGES: Record<string, string> = {
-  apartment: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80",
-  villa: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&q=80",
-  studio: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80",
-  duplex: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80",
-  default: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80",
-};
-
-// Admin property thumbnail with Unsplash fallback (same pattern as working PropertyCard)
+// Admin property thumbnail: shows real photo, or CORS warning if photos exist but fail, or placeholder if no photos
 function AdminPropertyThumbnail({ photos, propertyType }: { photos?: string[] | null; propertyType?: string }) {
-  const raw = Array.isArray(photos) && photos.length > 0 ? photos[0] : null;
+  const hasPhotos = Array.isArray(photos) && photos.length > 0;
+  const raw = hasPhotos ? photos[0] : null;
   const primaryUrl = raw ? normalizeImageUrl(raw) : null;
-  const fallbackUrl = ADMIN_FALLBACK_IMAGES[propertyType || ''] || ADMIN_FALLBACK_IMAGES.default;
-  
-  const [imgSrc, setImgSrc] = useState(primaryUrl || fallbackUrl);
-  const [loaded, setLoaded] = useState(false);
+  const photoCount = hasPhotos ? photos!.length : 0;
+
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
   // Reset when photos change
   useEffect(() => {
-    const newPrimary = raw ? normalizeImageUrl(raw) : null;
-    setImgSrc(newPrimary || fallbackUrl);
-    setLoaded(false);
-  }, [raw, fallbackUrl]);
+    setStatus(primaryUrl ? 'loading' : 'error');
+  }, [primaryUrl]);
+
+  // No photos at all — show placeholder
+  if (!hasPhotos || !primaryUrl) {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted gap-1">
+        <Building2 className="h-6 w-6 text-muted-foreground/40" />
+        <span className="text-[10px] text-muted-foreground/60">لا توجد صور</span>
+      </div>
+    );
+  }
+
+  // Photos exist but failed to load — show CORS warning
+  if (status === 'error') {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-amber-950/30 gap-1 p-1">
+        <ImageOff className="h-5 w-5 text-amber-400" />
+        <span className="text-[9px] text-amber-300 text-center leading-tight">
+          {photoCount} صور موجودة
+        </span>
+        <span className="text-[8px] text-amber-400/70 text-center leading-tight">
+          فشل التحميل (CORS)
+        </span>
+      </div>
+    );
+  }
 
   return (
     <>
-      {!loaded && (
+      {status === 'loading' && (
         <div className="absolute inset-0 animate-pulse bg-muted" />
       )}
       <img
-        src={imgSrc}
+        src={primaryUrl}
         alt=""
         loading="lazy"
-        onLoad={() => setLoaded(true)}
-        onError={() => {
-          // If primary failed, try fallback; if fallback also failed, give up
-          if (imgSrc !== fallbackUrl) {
-            setImgSrc(fallbackUrl);
-            setLoaded(false);
-          }
-        }}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setStatus('loaded')}
+        onError={() => setStatus('error')}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
       />
+      {status === 'loaded' && photoCount > 1 && (
+        <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+          +{photoCount - 1}
+        </div>
+      )}
     </>
   );
 }
@@ -307,8 +321,13 @@ function PropertyFormDialog({ open, onClose, editId, onSuccess }: {
   };
 
   const handleSubmit = async () => {
-    if (!form.titleAr || !form.monthlyRent) {
-      toast.error("يرجى ملء العنوان والإيجار الشهري على الأقل");
+    if (!form.titleAr) {
+      toast.error("يرجى إدخال العنوان بالعربي");
+      return;
+    }
+    const rent = Number(form.monthlyRent);
+    if (!form.monthlyRent || isNaN(rent) || rent <= 0) {
+      toast.error("الإيجار الشهري مطلوب ويجب أن يكون أكبر من صفر — Monthly rent is required and must be > 0");
       return;
     }
     setSaving(true);
@@ -438,7 +457,18 @@ function PropertyFormDialog({ open, onClose, editId, onSuccess }: {
           <div className="space-y-4">
             <h3 className="font-semibold text-sm text-muted-foreground">التسعير</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>الإيجار الشهري (ر.س) *</Label><Input value={form.monthlyRent} onChange={e => setForm(p => ({ ...p, monthlyRent: e.target.value }))} placeholder="3000" /></div>
+              <div>
+                <Label>الإيجار الشهري (ر.س) <span className="text-red-500">*</span></Label>
+                <Input
+                  value={form.monthlyRent}
+                  onChange={e => setForm(p => ({ ...p, monthlyRent: e.target.value }))}
+                  placeholder="3000"
+                  type="number"
+                  min="1"
+                  className={!form.monthlyRent || Number(form.monthlyRent) <= 0 ? 'border-amber-500' : ''}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">مطلوب للنشر والدفع — Required for publish & checkout</p>
+              </div>
               <div><Label>مبلغ التأمين (ر.س)</Label><Input value={form.securityDeposit} onChange={e => setForm(p => ({ ...p, securityDeposit: e.target.value }))} placeholder="3000" /></div>
             </div>
             <div className="flex items-center gap-3">
