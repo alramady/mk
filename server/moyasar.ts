@@ -398,14 +398,25 @@ export async function handleMoyasarWebhookVerified(req: Request, res: Response) 
       webhookVerified: true,
     });
     
-    // If payment succeeded, update booking status
+    // If payment succeeded, update booking status (with booking-level idempotency)
     if (newStatus === "PAID") {
       const bookingId = ledgerEntry.bookingId || metadata?.bookingId;
       if (bookingId) {
-        await pool.query(
-          `UPDATE bookings SET paymentStatus = 'paid', status = 'active', updatedAt = NOW() WHERE id = ? AND status = 'approved'`,
+        // Booking-level idempotency: only update if not already paid/active
+        const [bookingRows] = await pool.query<RowDataPacket[]>(
+          "SELECT id, status, paymentStatus FROM bookings WHERE id = ?",
           [bookingId]
         );
+        const booking = bookingRows[0];
+        if (booking && booking.paymentStatus === 'paid') {
+          console.log(`[Moyasar Webhook] Booking #${bookingId} already paid — idempotent skip`);
+        } else {
+          await pool.query(
+            `UPDATE bookings SET paymentStatus = 'paid', status = 'active', updatedAt = NOW() WHERE id = ? AND status = 'approved'`,
+            [bookingId]
+          );
+          console.log(`[Moyasar Webhook] Booking #${bookingId} updated to paid/active`);
+        }
       }
       
       // If this was a renewal payment, activate the extension
