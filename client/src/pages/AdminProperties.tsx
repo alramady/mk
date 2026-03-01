@@ -19,27 +19,35 @@ import {
   Building2, MapPin, BedDouble, Bath, Ruler, ChevronLeft, ChevronRight
 } from "lucide-react";
 
-// Thumbnail using CSS background-image to avoid img onError issues
+// Simple thumbnail: plain img tag (confirmed working without crossOrigin)
 function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: string; photos?: string[] | null }) {
   const imgUrl = coverImageUrl || (Array.isArray(photos) && photos.length > 0 ? normalizeImageUrl(photos[0]) : "");
 
   if (!imgUrl) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-muted">
+      <div className="flex items-center justify-center bg-muted" style={{ width: 96, height: 96 }}>
         <Building2 className="h-8 w-8 text-muted-foreground/30" />
       </div>
     );
   }
 
   return (
-    <div
+    <img
+      src={imgUrl}
+      alt="property"
       style={{
-        width: '100%',
-        height: '100%',
-        backgroundImage: `url(${imgUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundColor: '#1e293b',
+        width: 96,
+        height: 96,
+        objectFit: 'cover',
+        display: 'block',
+      }}
+      onError={(e) => {
+        const target = e.currentTarget;
+        target.style.display = 'none';
+        const fallback = document.createElement('div');
+        fallback.style.cssText = 'width:96px;height:96px;display:flex;align-items:center;justify-content:center;background:#1e293b';
+        fallback.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><path d="M3 21h18M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7H3l2-4h14l2 4M5 21V10.85M19 21V10.85"/></svg>';
+        target.parentElement?.appendChild(fallback);
       }}
     />
   );
