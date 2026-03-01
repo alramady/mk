@@ -166,13 +166,22 @@ async function startServer() {
           dbStatus = `error: ${e.message}`;
         }
       }
+      // Storage health
+      let storageStatus = "unknown";
+      try {
+        storageStatus = getStorageMode();
+      } catch { storageStatus = "error"; }
+
       res.json({
         status: "ok",
         dbStatus,
+        storageMode: storageStatus,
         version: "1.0.0",
         commitSha: process.env.RAILWAY_GIT_COMMIT_SHA || "unknown",
         buildTime: process.env.BUILD_TIME || "unknown",
         envName: process.env.RAILWAY_ENVIRONMENT_NAME || process.env.NODE_ENV || "unknown",
+        uptimeSeconds: Math.floor(process.uptime()),
+        memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
       });
     } catch (e: any) {
       res.json({ status: "error", error: e.message });
@@ -488,6 +497,22 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      onError: ({ path, error, type }) => {
+        // Structured error logging for tRPC — only log server errors (not client errors like BAD_REQUEST)
+        const isServerError = !['BAD_REQUEST', 'UNAUTHORIZED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'TOO_MANY_REQUESTS'].includes(error.code);
+        if (isServerError) {
+          const entry = {
+            ts: new Date().toISOString(),
+            level: 'error',
+            component: 'trpc',
+            msg: `tRPC ${type} error on ${path}`,
+            code: error.code,
+            error: error.message,
+            stack: error.stack?.split('\n').slice(0, 5).join(' | '),
+          };
+          process.stderr.write(JSON.stringify(entry) + '\n');
+        }
+      },
     })
   );
   // development mode uses Vite, production mode uses static files

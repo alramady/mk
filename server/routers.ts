@@ -453,7 +453,7 @@ export const appRouter = router({
             notesAr: `حجز #${id}: إيجار ${calc.baseRentTotal} + تأمين ${calc.insuranceAmount} + رسوم خدمة ${calc.serviceFeeAmount} + ضريبة ${calc.vatAmount} = إجمالي ${calc.grandTotal} ر.س`,
           });
         } catch (e) {
-          console.error('[Ledger] Failed to auto-create ledger entry for booking', id, e);
+          process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: 'error', component: 'ledger', msg: 'Failed to auto-create ledger entry', bookingId: id, error: (e as Error).message }) + '\n');
         }
 
         // Create notification for landlord
@@ -491,6 +491,22 @@ export const appRouter = router({
             }
           } catch { /* email is best-effort */ }
         }
+        // Structured log for booking creation (observability)
+        const logEntry = {
+          ts: new Date().toISOString(),
+          level: 'info',
+          component: 'booking',
+          msg: 'Booking created',
+          bookingId: id,
+          propertyId: input.propertyId,
+          tenantId: ctx.user.id,
+          durationMonths: input.durationMonths,
+          monthlyRent: monthlyRentNum,
+          grandTotal: calc.grandTotal,
+          status: prop.instantBook ? 'approved' : 'pending',
+        };
+        process.stdout.write(JSON.stringify(logEntry) + '\n');
+
         return {
           id,
           status: prop.instantBook ? "approved" : "pending",
@@ -1120,6 +1136,12 @@ export const appRouter = router({
           entityLabel: prop.titleEn || prop.titleAr,
         });
         cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
+        // Structured log for property publish
+        process.stdout.write(JSON.stringify({
+          ts: new Date().toISOString(), level: 'info', component: 'publish',
+          msg: 'Property published', propertyId: input.id, adminId: ctx.user?.id,
+          title: prop.titleEn || prop.titleAr, pricingSource: (prop as any).pricingSource || 'PROPERTY',
+        }) + '\n');
         return { success: true };
       }),
 
@@ -1381,7 +1403,7 @@ export const appRouter = router({
           const { voidLedgerByBookingId } = await import('./finance-registry.js');
           const voided = await voidLedgerByBookingId(input.id, input.rejectionReason);
           console.log(`[Ledger] Voided ${voided} entries for rejected booking #${input.id}`);
-        } catch (e) { console.error('[Ledger] Failed to void entries on rejection', e); }
+        } catch (e) { process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: 'error', component: 'ledger', msg: 'Failed to void entries on rejection', error: (e as Error).message }) + '\n'); }
         await db.createNotification({
           userId: booking.tenantId,
           type: 'booking_rejected',
@@ -1457,7 +1479,7 @@ export const appRouter = router({
               ledgerIds.push(le.id);
             }
           }
-        } catch (e) { console.error('[Ledger] Failed to mark ledger PAID on payment confirmation', e); }
+        } catch (e) { process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: 'error', component: 'ledger', msg: 'Failed to mark ledger PAID on payment confirmation', error: (e as Error).message }) + '\n'); }
         
         // ── AUDIT LOG: Record the manual override ──
         try {
