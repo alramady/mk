@@ -208,7 +208,8 @@ export default function PropertyDetail() {
   const locData = locationQuery.data;
   const lat = locData?.showMap ? locData.lat : (prop.latitude ? Number(prop.latitude) : 24.7136);
   const lng = locData?.showMap ? locData.lng : (prop.longitude ? Number(prop.longitude) : 46.6753);
-  const showMap = locData?.showMap !== false; // default to show if query hasn't loaded yet
+  // Only show map when we have confirmed data from the server (don't flash map before query loads)
+  const showMap = locData?.showMap === true;
   const isApproximate = locData?.visibility === "APPROXIMATE";
 
   const BackArrow = dir === "rtl" ? ArrowRight : ArrowLeft;

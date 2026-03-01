@@ -291,9 +291,9 @@ export async function getMapProperties(filters?: {
   if (filters?.maxPrice) conditions.push(lte(properties.monthlyRent, String(filters.maxPrice)));
   if (filters?.bedrooms) conditions.push(eq(properties.bedrooms, filters.bedrooms));
   if (filters?.furnishedLevel) conditions.push(eq(properties.furnishedLevel, filters.furnishedLevel as any));
-  // Only return properties with coordinates, select minimal fields for performance
-  conditions.push(sql`${properties.latitude} IS NOT NULL`);
-  conditions.push(sql`${properties.longitude} IS NOT NULL`);
+  // Only return properties with valid coordinates (not null, not empty, not zero)
+  conditions.push(sql`${properties.latitude} IS NOT NULL AND ${properties.latitude} != '' AND ${properties.latitude} != '0'`);
+  conditions.push(sql`${properties.longitude} IS NOT NULL AND ${properties.longitude} != '' AND ${properties.longitude} != '0'`);
   const where = and(...conditions);
   return db.select({
     id: properties.id,
