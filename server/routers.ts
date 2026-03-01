@@ -1224,6 +1224,12 @@ export const appRouter = router({
         address: z.string().optional(),
         addressAr: z.string().optional(),
         googleMapsUrl: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
+        locationSource: z.enum(["MANUAL", "GEOCODE", "PIN"]).optional(),
+        locationVisibility: z.enum(["EXACT", "APPROXIMATE", "HIDDEN"]).optional(),
+        placeId: z.string().optional(),
+        geocodeProvider: z.string().optional(),
         bedrooms: z.number().optional(),
         bathrooms: z.number().optional(),
         sizeSqm: z.number().optional(),
@@ -1242,6 +1248,7 @@ export const appRouter = router({
           landlordId: ctx.user.id,
           status: 'draft',
           pricingSource: input.pricingSource || 'PROPERTY',
+          locationSource: input.locationSource || 'MANUAL',
         } as any);
         await sharedDb.insert(auditLog).values({
           userId: ctx.user.id,

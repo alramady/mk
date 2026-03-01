@@ -268,16 +268,29 @@ export default function AdminPropertyEdit() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Sanitize enum fields: coerce empty/invalid strings to undefined so Zod .optional() accepts them
+      const validLocationSources = ["MANUAL", "GEOCODE", "PIN"] as const;
+      const validLocationVisibilities = ["EXACT", "APPROXIMATE", "HIDDEN"] as const;
+      const sanitized = {
+        ...form,
+        pricingSource: (form.pricingSource || undefined) as "PROPERTY" | "UNIT" | undefined,
+        locationSource: validLocationSources.includes(form.locationSource as any)
+          ? (form.locationSource as "MANUAL" | "GEOCODE" | "PIN")
+          : undefined,
+        locationVisibility: validLocationVisibilities.includes(form.locationVisibility as any)
+          ? (form.locationVisibility as "EXACT" | "APPROXIMATE" | "HIDDEN")
+          : undefined,
+        latitude: form.latitude || undefined,
+        longitude: form.longitude || undefined,
+        placeId: form.placeId || undefined,
+        geocodeProvider: form.geocodeProvider || undefined,
+      };
       if (isNew) {
-        await adminCreate.mutateAsync({
-          ...form,
-          pricingSource: form.pricingSource as "PROPERTY" | "UNIT",
-        });
+        await adminCreate.mutateAsync(sanitized);
       } else {
         await adminUpdate.mutateAsync({
           id: propertyId!,
-          ...form,
-          pricingSource: form.pricingSource as "PROPERTY" | "UNIT",
+          ...sanitized,
         });
       }
     } finally {
@@ -573,11 +586,19 @@ export default function AdminPropertyEdit() {
                       <Crosshair className="h-4 w-4" />
                       الإحداثيات
                     </h4>
-                    {form.locationSource && (
-                      <Badge variant="outline" className="text-xs">
-                        {form.locationSource === "PIN" ? "📍 دبوس" : form.locationSource === "GEOCODE" ? "🔍 ترميز" : "✏️ يدوي"}
-                      </Badge>
-                    )}
+                    <Select
+                      value={form.locationSource || "MANUAL"}
+                      onValueChange={(val) => setForm(p => ({ ...p, locationSource: val }))}
+                    >
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue placeholder="مصدر الموقع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MANUAL">✏️ يدوي (Manual)</SelectItem>
+                        <SelectItem value="GEOCODE">🔍 ترميز (Geocode)</SelectItem>
+                        <SelectItem value="PIN">📍 دبوس (Pin)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
