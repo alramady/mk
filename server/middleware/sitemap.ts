@@ -11,7 +11,7 @@ import { getDb } from "../db";
 import { properties, cities } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 
-const BASE_URL = process.env.PUBLIC_URL || "https://monthlykey.com";
+const BASE_URL = "https://monthlykey.com";
 
 export async function sitemapHandler(req: Request, res: Response): Promise<void> {
   try {
