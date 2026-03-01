@@ -138,9 +138,11 @@ export default function AdminProperties() {
                         coverImageUrl={prop.coverImageUrl}
                         photos={prop.photos}
                       />
-                      {/* DEBUG: show photo data status */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-[8px] text-white p-0.5 leading-tight">
+                      {/* DEBUG: show photo data status + URL */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-[8px] text-white p-0.5 leading-tight" style={{wordBreak:'break-all'}}>
                         c:{prop.coverImageUrl ? '✓' : '✗'} p:{Array.isArray(prop.photos) ? prop.photos.length : 'null'}
+                        <br/>
+                        url:{(prop.coverImageUrl || (prop.photos?.[0]) || 'NONE').slice(0, 60)}
                       </div>
                     </div>
                     {/* Info */}
