@@ -33,8 +33,14 @@ function AdminPropertyThumbnail({ coverImageUrl, photos }: { coverImageUrl?: str
 
   return (
     <div
-      className="w-full h-full bg-cover bg-center bg-muted"
-      style={{ backgroundImage: `url(${imgUrl})` }}
+      style={{
+        width: '100%',
+        height: '100%',
+        backgroundImage: `url(${imgUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundColor: '#1e293b',
+      }}
     />
   );
 }
