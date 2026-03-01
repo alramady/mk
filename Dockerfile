@@ -16,6 +16,8 @@ RUN pnpm install --frozen-lockfile
 
 # Build
 FROM base AS build
+ARG RAILWAY_GIT_COMMIT_SHA
+ENV RAILWAY_GIT_COMMIT_SHA=${RAILWAY_GIT_COMMIT_SHA}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
