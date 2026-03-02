@@ -237,6 +237,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
   const { lang } = useI18n();
   const isAr = lang === "ar";
   const propertyTypeLabels = isAr ? propertyTypeLabelsAr : propertyTypeLabelsEn;
+  const WIZARD_STEPS = isAr ? WIZARD_STEPS_AR : WIZARD_STEPS_EN;
   const [, navigate] = useLocation();
   const isEdit = editId !== null;
   const fileInputRef = useRef<HTMLInputElement>(null);
