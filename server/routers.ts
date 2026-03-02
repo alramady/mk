@@ -1357,14 +1357,49 @@ export const appRouter = router({
           });
         }
 
-        // Clean empty strings → null for decimal/numeric columns to avoid MySQL errors
-        const numericFields = ['monthlyRent', 'securityDeposit', 'latitude', 'longitude', 'sizeSqm'];
+        // ── Location Contract: sanitize + validate ──
         const cleaned: any = { ...data };
+
+        // 1. Clean empty strings → null for numeric/URL columns
+        const nullableFields = ['monthlyRent', 'securityDeposit', 'latitude', 'longitude', 'sizeSqm', 'googleMapsUrl', 'placeId', 'geocodeProvider', 'address', 'addressAr'];
         for (const key of Object.keys(cleaned)) {
-          if (cleaned[key] === '' && numericFields.includes(key)) {
+          if (cleaned[key] === '' && nullableFields.includes(key)) {
             cleaned[key] = null;
           }
         }
+
+        // 2. Validate lat/lng are valid decimals when present
+        if (cleaned.latitude != null) {
+          const lat = parseFloat(String(cleaned.latitude));
+          if (isNaN(lat) || lat < -90 || lat > 90) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid latitude (must be -90 to 90) / \u062e\u0637 \u0627\u0644\u0639\u0631\u0636 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d' });
+          }
+        }
+        if (cleaned.longitude != null) {
+          const lng = parseFloat(String(cleaned.longitude));
+          if (isNaN(lng) || lng < -180 || lng > 180) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid longitude (must be -180 to 180) / \u062e\u0637 \u0627\u0644\u0637\u0648\u0644 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d' });
+          }
+        }
+
+        // 3. Validate googleMapsUrl is a valid URL when present
+        if (cleaned.googleMapsUrl && typeof cleaned.googleMapsUrl === 'string') {
+          try {
+            const url = new URL(cleaned.googleMapsUrl);
+            if (!['http:', 'https:'].includes(url.protocol)) throw new Error('bad protocol');
+          } catch {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid Google Maps URL / \u0631\u0627\u0628\u0637 \u062e\u0631\u0627\u0626\u0637 \u062c\u0648\u062c\u0644 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d' });
+          }
+        }
+
+        // 4. Log location changes for audit trail
+        const locationChanged = ['latitude', 'longitude', 'googleMapsUrl', 'locationSource', 'locationVisibility'].some(
+          k => cleaned[k] !== undefined
+        );
+        if (locationChanged) {
+          console.log(`[Location] Property ${id} update: source=${cleaned.locationSource || 'unchanged'}, visibility=${cleaned.locationVisibility || 'unchanged'}, lat=${cleaned.latitude || 'unchanged'}, lng=${cleaned.longitude || 'unchanged'}`);
+        }
+
         await db.updateProperty(id, cleaned as any);
         cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
         return { success: true };

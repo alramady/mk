@@ -787,8 +787,221 @@ export default function AdminAnalytics() {
             </Card>
           </>
         )}
+
+        {/* ── GA4 Analytics Section ── */}
+        <GA4Section lang={lang} isAr={lang === "ar"} />
       </div>
 </div>
     </DashboardLayout>
+  );
+}
+
+// ── GA4 Analytics Section Component ──
+function GA4Section({ lang, isAr }: { lang: string; isAr: boolean }) {
+  const [days, setDays] = useState(30);
+  const ga4Config = trpc.finance.ga4.isConfigured.useQuery();
+  const ga4Data = trpc.finance.ga4.dashboard.useQuery(
+    { days },
+    { enabled: ga4Config.data?.configured === true, refetchInterval: 5 * 60 * 1000 }
+  );
+  const testMutation = trpc.finance.ga4.testConnection.useMutation();
+
+  if (ga4Config.isLoading) return null;
+  if (!ga4Config.data?.configured) {
+    return (
+      <Card className="border-dashed border-2 border-muted-foreground/20">
+        <CardContent className="py-8 text-center">
+          <BarChart3 className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-muted-foreground font-medium">
+            {isAr ? "تحليلات Google Analytics (GA4) غير مفع\u0651\u0644\u0629" : "Google Analytics (GA4) not configured"}
+          </p>
+          <p className="text-sm text-muted-foreground/60 mt-1">
+            {isAr ? "فع\u0651\u0644 GA4 من صفح\u0629 ا\u0644\u062a\u0643\u0627\u0645\u0644\u0627\u062a ل\u0631\u0624\u064a\u0629 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0632\u0648\u0627\u0631" : "Enable GA4 in Integrations to see visitor analytics"}
+          </p>
+          <Link href="/admin/integrations">
+            <Button variant="outline" size="sm" className="mt-4">
+              {isAr ? "إع\u062f\u0627\u062f GA4" : "Setup GA4"}
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const data = ga4Data.data?.data;
+  const isLoading = ga4Data.isLoading;
+
+  return (
+    <>
+      {/* GA4 Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          {isAr ? "تح\u0644\u064a\u0644\u0627\u062a \u0627\u0644\u0632\u0648\u0627\u0631 (GA4)" : "Visitor Analytics (GA4)"}
+        </h2>
+        <div className="flex items-center gap-2">
+          {[7, 30, 90].map(d => (
+            <Button
+              key={d}
+              variant={days === d ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDays(d)}
+            >
+              {d}{isAr ? " \u064a\u0648\u0645" : "d"}
+            </Button>
+          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => testMutation.mutate()}
+            disabled={testMutation.isPending}
+          >
+            {testMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : isAr ? "ا\u062e\u062a\u0628\u0627\u0631" : "Test"}
+          </Button>
+        </div>
+      </div>
+
+      {testMutation.data && (
+        <div className={`text-sm px-3 py-2 rounded-lg ${testMutation.data.success ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+          {testMutation.data.message}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+      ) : data ? (
+        <>
+          {/* GA4 KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <div className="text-xs text-muted-foreground">{isAr ? "ا\u0644\u062c\u0644\u0633\u0627\u062a" : "Sessions"}</div>
+                <div className="text-2xl font-bold mt-1">{data.overview.sessions.toLocaleString()}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <div className="text-xs text-muted-foreground">{isAr ? "ا\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u0648\u0646" : "Users"}</div>
+                <div className="text-2xl font-bold mt-1">{data.overview.users.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {data.overview.newUsers.toLocaleString()} {isAr ? "\u062c\u062f\u064a\u062f" : "new"}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <div className="text-xs text-muted-foreground">{isAr ? "م\u0634\u0627\u0647\u062f\u0627\u062a \u0627\u0644\u0635\u0641\u062d\u0627\u062a" : "Pageviews"}</div>
+                <div className="text-2xl font-bold mt-1">{data.overview.pageviews.toLocaleString()}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <div className="text-xs text-muted-foreground">{isAr ? "\u0645\u0639\u062f\u0644 \u0627\u0644\u0627\u0631\u062a\u062f\u0627\u062f" : "Bounce Rate"}</div>
+                <div className="text-2xl font-bold mt-1">{(data.overview.bounceRate * 100).toFixed(1)}%</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* GA4 Charts Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Top Pages */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-primary" />
+                  {isAr ? "\u0623\u0643\u062b\u0631 \u0627\u0644\u0635\u0641\u062d\u0627\u062a \u0632\u064a\u0627\u0631\u0629" : "Top Pages"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {data.topPages.length > 0 ? (
+                  <div className="space-y-2">
+                    {data.topPages.slice(0, 8).map((page, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <span className="truncate max-w-[200px] text-muted-foreground" title={page.path}>
+                          {page.path}
+                        </span>
+                        <Badge variant="secondary" className="tabular-nums">
+                          {page.pageviews.toLocaleString()}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState icon={Eye} text={isAr ? "\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a" : "No data"} />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Device Breakdown */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <PieChartIcon className="h-4 w-4 text-primary" />
+                  {isAr ? "\u0627\u0644\u0623\u062c\u0647\u0632\u0629" : "Devices"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {data.devices.length > 0 ? (
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={data.devices}
+                          dataKey="sessions"
+                          nameKey="category"
+                          cx="50%" cy="50%"
+                          outerRadius={70}
+                          label={({ category, percentage }) => `${category} ${percentage}%`}
+                        >
+                          {data.devices.map((_, i) => (
+                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyState icon={PieChartIcon} text={isAr ? "\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a" : "No data"} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Traffic Sources */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                {isAr ? "\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0632\u064a\u0627\u0631\u0627\u062a" : "Traffic Sources"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {data.trafficSources.length > 0 ? (
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.trafficSources.slice(0, 8)} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                      <XAxis type="number" />
+                      <YAxis type="category" dataKey="source" width={120} tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="sessions" fill="#3ECFC0" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <EmptyState icon={TrendingUp} text={isAr ? "\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a" : "No data"} />
+              )}
+            </CardContent>
+          </Card>
+
+          <p className="text-xs text-muted-foreground text-center">
+            {isAr ? `\u0622\u062e\u0631 \u062a\u062d\u062f\u064a\u062b: ${new Date(data.fetchedAt).toLocaleString('ar-SA')}` : `Last updated: ${new Date(data.fetchedAt).toLocaleString()}`}
+          </p>
+        </>
+      ) : null}
+    </>
   );
 }

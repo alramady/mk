@@ -21,6 +21,7 @@ const DEFAULT_INTEGRATIONS = [
   { integrationKey: 'maps', displayName: 'Google Maps', displayNameAr: 'خرائط جوجل' },
   { integrationKey: 'whatsapp', displayName: 'WhatsApp Cloud API', displayNameAr: 'واتساب كلاود API' },
   { integrationKey: 'storage', displayName: 'File Storage (S3/R2)', displayNameAr: 'تخزين الملفات (S3/R2)' },
+  { integrationKey: 'ga4', displayName: 'Google Analytics (GA4)', displayNameAr: 'تحليلات جوجل (GA4)' },
 ];
 
 // Mask a secret string: show first 4 and last 4 chars
@@ -113,6 +114,12 @@ function getConfigFields(key: string): { name: string; label: string; labelAr: s
         { name: 'secretAccessKey', label: 'Secret Access Key', labelAr: 'مفتاح الوصول السري', isSecret: true },
         { name: 'region', label: 'Region (default: auto)', labelAr: 'المنطقة', isSecret: false },
         { name: 'publicBaseUrl', label: 'Public/CDN Base URL', labelAr: 'رابط CDN العام', isSecret: false },
+      ];
+    case 'ga4':
+      return [
+        { name: 'measurementId', label: 'Measurement ID (G-XXXXXXX)', labelAr: 'معرف القياس (G-XXXXXXX)', isSecret: false },
+        { name: 'propertyId', label: 'GA4 Property ID (numeric)', labelAr: 'معرف الموقع (GA4)', isSecret: false },
+        { name: 'serviceAccountJson', label: 'Service Account JSON (full key)', labelAr: 'مفتاح حساب الخدمة (JSON)', isSecret: true },
       ];
     default:
       return [];

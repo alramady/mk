@@ -748,4 +748,31 @@ export const financeRouter = router({
         };
       }),
   }),
+
+  // ── GA4 Analytics ──
+  ga4: router({
+    // Test GA4 connection
+    testConnection: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .mutation(async () => {
+        const { testGA4Connection } = await import('./ga4-analytics.js');
+        return testGA4Connection();
+      }),
+
+    // Fetch GA4 dashboard data
+    dashboard: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
+      .input(z.object({ days: z.number().min(1).max(365).default(30) }))
+      .query(async ({ input }) => {
+        const { fetchGA4Dashboard } = await import('./ga4-analytics.js');
+        const data = await fetchGA4Dashboard(input.days);
+        if (!data) return { configured: false as const, data: null };
+        return { configured: true as const, data };
+      }),
+
+    // Check if GA4 is configured
+    isConfigured: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
+      .query(async () => {
+        const { isGA4Configured } = await import('./ga4-analytics.js');
+        return { configured: await isGA4Configured() };
+      }),
+  }),
 });

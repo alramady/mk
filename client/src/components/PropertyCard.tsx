@@ -11,10 +11,10 @@ import { normalizeImageUrl } from "@/lib/image-utils";
 /**
  * PropertyCard — public listing card.
  *
- * P0 FIX: Added strong bottom gradient scrim (45% height, 80% opacity)
- * that is ALWAYS visible regardless of image brightness.
+ * P0 FIX (v2): Strong bottom gradient scrim covering lower 55% of image.
+ * Mobile (<640px): even stronger scrim (90% opacity at bottom) for readability.
  * Text uses text-shadow for extra legibility. All text/badges sit at z-10
- * above the scrim (z-[5]).
+ * above the scrim (z-[5]). No text is ever "behind" the image.
  */
 
 interface PropertyCardProps {
@@ -120,18 +120,18 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           )}
 
           {/* ── SCRIM OVERLAY — always visible, not dependent on hover ── */}
-          {/* Bottom gradient: covers lower 50% of image, strong enough for any brightness */}
+          {/* Bottom gradient: covers lower 60% of image, extra strong on mobile */}
           <div
-            className="absolute inset-x-0 bottom-0 h-[55%] pointer-events-none z-[5]"
+            className="absolute inset-x-0 bottom-0 h-[60%] sm:h-[55%] pointer-events-none z-[5]"
             style={{
-              background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.15) 75%, transparent 100%)",
+              background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0.3) 65%, transparent 100%)",
             }}
           />
-          {/* Top subtle vignette for top badges */}
+          {/* Top vignette for top badges */}
           <div
-            className="absolute inset-x-0 top-0 h-[30%] pointer-events-none z-[5]"
+            className="absolute inset-x-0 top-0 h-[35%] sm:h-[30%] pointer-events-none z-[5]"
             style={{
-              background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)",
+              background: "linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)",
             }}
           />
 
@@ -180,7 +180,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           {/* ── Photo count badge — z-10 ── */}
           {property.photos && property.photos.length > 1 && (
             <div
-              className="absolute bottom-3 end-3 z-10 bg-black/70 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 shadow-md"
+              className="absolute bottom-3 end-3 z-10 bg-black/80 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 shadow-md"
               style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
@@ -188,10 +188,10 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             </div>
           )}
 
-          {/* ── Price tag — z-10, strong contrast ── */}
+          {/* ── Price tag — z-10, solid background for guaranteed contrast ── */}
           <div
-            className="absolute bottom-3 start-3 z-10 bg-[#0B1E2D]/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg group-hover:shadow-[#3ECFC0]/20 group-hover:shadow-xl transition-all duration-500"
-            style={{ textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}
+            className="absolute bottom-3 start-3 z-10 bg-[#0B1E2D] rounded-lg px-3 py-1.5 shadow-lg group-hover:shadow-[#3ECFC0]/20 group-hover:shadow-xl transition-all duration-500"
+            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
           >
             <span className="font-bold text-[#3ECFC0] text-base sm:text-lg tracking-tight">
               {Number(property.monthlyRent).toLocaleString()} {t("payment.sar")}
