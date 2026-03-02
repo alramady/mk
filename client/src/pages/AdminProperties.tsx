@@ -164,7 +164,7 @@ export default function AdminProperties() {
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     <div className="w-28 h-28 rounded-lg bg-muted overflow-hidden shrink-0 relative border border-border">
-                      <AdminPropertyThumbnail photos={prop.photos} propertyType={prop.propertyType} />
+                      <AdminPropertyThumbnail photos={prop.photos} propertyType={prop.propertyType} isAr={isAr} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -234,6 +234,9 @@ export default function AdminProperties() {
 function PropertyWizard({ open, onClose, editId, onSuccess }: {
   open: boolean; onClose: () => void; editId: number | null; onSuccess: () => void;
 }) {
+  const { lang } = useI18n();
+  const isAr = lang === "ar";
+  const propertyTypeLabels = isAr ? propertyTypeLabelsAr : propertyTypeLabelsEn;
   const [, navigate] = useLocation();
   const isEdit = editId !== null;
   const fileInputRef = useRef<HTMLInputElement>(null);
