@@ -260,14 +260,14 @@ export default function AdminBookings() {
                           <td className="p-3">
                             {ledgerStatus ? (
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${ledgerStatus.color}`}>
-                                {ledgerStatus.labelAr}
+                                {isAr ? ledgerStatus.labelAr : ledgerStatus.label}
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
                             )}
                           </td>
                           <td className="p-3">
-                            <Badge variant={status.variant} className="text-xs whitespace-nowrap">{status.labelAr}</Badge>
+                            <Badge variant={status.variant} className="text-xs whitespace-nowrap">{isAr ? status.labelAr : status.label}</Badge>
                           </td>
                           <td className="p-3" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-1.5">
@@ -356,7 +356,7 @@ export default function AdminBookings() {
                                           <div key={le.id} className="text-xs p-2 border rounded space-y-1">
                                             <div className="flex items-center justify-between">
                                               <span className="font-mono font-medium">{le.invoiceNumber}</span>
-                                              <span className={`px-2 py-0.5 rounded-full border text-xs ${ls.color}`}>{ls.labelAr} | {ls.label}</span>
+                                              <span className={`px-2 py-0.5 rounded-full border text-xs ${ls.color}`}>{isAr ? ls.labelAr : ls.label}</span>
                                             </div>
                                             <div><span className="text-muted-foreground">{isAr ? "المبلغ:" : "Amount:"}</span> {Number(le.amount).toLocaleString()} {le.currency}</div>
                                             <div><span className="text-muted-foreground">{isAr ? "النوع:" : "Type:"}</span> {le.type}</div>
