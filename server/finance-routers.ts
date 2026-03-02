@@ -671,10 +671,19 @@ export const financeRouter = router({
         const pc = await isPaymentConfigured();
         if (!pc.configured) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Payment provider not configured' });
         
+        // Validate: ledger amount must match booking snapshot grandTotal
+        const snapshot = (booking as any).priceBreakdown;
+        if (snapshot?.snapshotVersion && snapshot.grandTotal) {
+          const snapshotTotal = Number(snapshot.grandTotal);
+          const ledgerTotal = Number(ledger.amount);
+          if (Math.abs(snapshotTotal - ledgerTotal) > 0.01) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: `Amount mismatch: ledger=${ledgerTotal} vs snapshot=${snapshotTotal}. Reconcile before paying. / عدم تطابق المبلغ: دفتر=${ledgerTotal} مقابل لقطة=${snapshotTotal}` });
+          }
+        }
         const { createMoyasarPayment } = await import("./moyasar");
         return createMoyasarPayment({
           bookingId: booking.id,
-          amount: Number(ledger.amount), // Ledger amount is the source of truth
+          amount: Number(ledger.amount), // Ledger amount is the source of truth (validated against snapshot)
           description: `Rent payment for booking #${booking.id} - Invoice ${ledger.invoiceNumber}`,
           callbackUrl: input.callbackUrl,
           source: {

@@ -415,8 +415,11 @@ export const appRouter = router({
             subtotal: calc.subtotal,
             vatAmount: calc.vatAmount,
             grandTotal: calc.grandTotal,
+            amountHalalah: calc.amountHalalah,
+            roundingRule: calc.roundingRule,
             appliedRates: calc.appliedRates,
             currency: calc.currency,
+            snapshotVersion: 2,
           },
         });
 
@@ -517,8 +520,11 @@ export const appRouter = router({
             subtotal: calc.subtotal,
             vatAmount: calc.vatAmount,
             grandTotal: calc.grandTotal,
+            amountHalalah: calc.amountHalalah,
+            roundingRule: calc.roundingRule,
             appliedRates: calc.appliedRates,
             currency: calc.currency,
+            snapshotVersion: 2,
           },
         };
       }),
@@ -1140,19 +1146,29 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const prop = await db.getPropertyById(input.id);
         if (!prop) throw new TRPCError({ code: 'NOT_FOUND', message: 'Property not found' });
-        const errors: string[] = [];
+        const errors: { en: string; ar: string }[] = [];
+        // 1. Title check
+        if (!prop.titleEn && !prop.titleAr) errors.push({ en: 'Property must have at least one title', ar: 'يجب أن يكون للعقار عنوان واحد على الأقل' });
+        // 2. Pricing check
         if ((prop as any).pricingSource === 'PROPERTY' || !(prop as any).pricingSource) {
-          if (!prop.monthlyRent || Number(prop.monthlyRent) <= 0) errors.push('monthlyRent must be > 0 for PROPERTY pricing');
+          if (!prop.monthlyRent || Number(prop.monthlyRent) <= 0) errors.push({ en: 'Monthly rent must be greater than 0', ar: 'الإيجار الشهري يجب أن يكون أكبر من 0' });
         } else if ((prop as any).pricingSource === 'UNIT') {
           const linkedUnits = await sharedDb.select().from(units).where(eqDrizzle(units.propertyId, input.id));
           const validUnits = linkedUnits.filter(u => u.unitStatus !== 'BLOCKED' && u.unitStatus !== 'MAINTENANCE');
-          if (validUnits.length !== 1) errors.push('UNIT pricing requires exactly one linked unit (not BLOCKED/MAINTENANCE)');
-          else if (!validUnits[0].monthlyBaseRentSAR || Number(validUnits[0].monthlyBaseRentSAR) <= 0) errors.push('Linked unit must have monthlyBaseRentSAR > 0');
+          if (validUnits.length !== 1) errors.push({ en: `UNIT pricing requires exactly one linked unit (found ${validUnits.length})`, ar: `تسعير الوحدة يتطلب وحدة واحدة مرتبطة (وجدت ${validUnits.length})` });
+          else if (!validUnits[0].monthlyBaseRentSAR || Number(validUnits[0].monthlyBaseRentSAR) <= 0) errors.push({ en: 'Linked unit must have rent > 0', ar: 'الوحدة المرتبطة يجب أن يكون إيجارها أكبر من 0' });
         }
-        if (!prop.titleEn && !prop.titleAr) errors.push('Property must have at least one title / يجب أن يكون للعقار عنوان');
+        // 3. Photos check
         const hasPhotos = prop.photos && (prop.photos as string[]).length > 0;
-        if (!hasPhotos) errors.push('Property must have at least one photo / يجب أن يكون للعقار صورة واحدة على الأقل');
-        if (errors.length > 0) throw new TRPCError({ code: 'BAD_REQUEST', message: `Publish guard failed: ${errors.join('; ')}` });
+        if (!hasPhotos) errors.push({ en: 'Property must have at least one photo', ar: 'يجب أن يكون للعقار صورة واحدة على الأقل' });
+        // 4. Cover photo check
+        if (hasPhotos && !(prop as any).coverPhoto) errors.push({ en: 'Cover photo must be set', ar: 'يجب تعيين صورة الغلاف' });
+        // 5. Location check
+        if (!prop.city && !prop.cityAr) errors.push({ en: 'Property must have a city/location', ar: 'يجب تحديد مدينة/موقع العقار' });
+        if (errors.length > 0) {
+          const combined = errors.map(e => `${e.en} / ${e.ar}`).join('; ');
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Publish guard failed: ${combined}` });
+        }
         await db.updateProperty(input.id, { status: 'published' });
         await sharedDb.insert(auditLog).values({
           userId: ctx.user?.id ?? null,

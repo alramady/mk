@@ -51,6 +51,9 @@ export interface CalcResult {
 
   currency: string;
   hideInsuranceFromTenant: boolean;
+  // Halalah precision for payment gateway (Moyasar expects amount in halalah)
+  amountHalalah: number;       // grandTotal × 100 (integer, no fractions)
+  roundingRule: string;        // e.g. "Math.round" — frozen at snapshot time
 }
 
 // ─── Pure Calculation ────────────────────────────────────────────────
@@ -118,6 +121,8 @@ export function calculateBookingTotal(
     },
     currency,
     hideInsuranceFromTenant,
+    amountHalalah: grandTotal * 100,
+    roundingRule: 'Math.round',
   };
 }
 

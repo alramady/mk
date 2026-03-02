@@ -11,7 +11,7 @@ import {
   BarChart3, TrendingUp, Users, Building2, Calendar, CreditCard,
   Loader2, Shield, ArrowLeft, Activity, PieChart as PieChartIcon,
   Home, Wrench, AlertTriangle, DollarSign, Eye, Clock,
-  ChevronUp, ChevronDown, MapPin, Percent, FileText
+  ChevronUp, ChevronDown, MapPin, Percent, FileText, Info
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -174,6 +174,7 @@ export default function AdminAnalytics() {
       color: "#10b981",
       bgClass: "from-[#10b981]/15 via-[#10b981]/5 to-transparent",
       suffix: "",
+      explain: lang === "ar" ? "مجموع المدفوعات بحالة completed أو paid (من Moyasar). لا يشمل حجوزات Beds24 الخارجية." : "Sum of payments with status completed or paid (from Moyasar). Excludes external Beds24 bookings.",
     },
   ];
 
@@ -184,6 +185,7 @@ export default function AdminAnalytics() {
       label: lang === "ar" ? `نسبة الإشغال (${stats.data?.bookedDays ?? 0} يوم محجوز)` : `Occupancy (${stats.data?.bookedDays ?? 0} booked days)`,
       color: "#3ECFC0",
       suffix: "%",
+      explain: lang === "ar" ? `محسوبة من جدول availability_blocks فقط (آخر 30 يوم). الأيام المحجوزة = BOOKING + BEDS24_IMPORT. المقام = عدد العقارات المنشورة × 30.` : `Computed from availability_blocks table only (last 30 days). Booked days = BOOKING + BEDS24_IMPORT blocks. Denominator = published properties × 30.`,
     },
     {
       icon: Clock,
@@ -275,6 +277,12 @@ export default function AdminAnalytics() {
                       <AnimatedNumber value={kpi.value} suffix={kpi.suffix} />
                     </p>
                     <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
+                    {(kpi as any).explain && (
+                      <div className="mt-2 flex items-start gap-1.5 p-2 rounded-lg bg-muted/40 border border-border/30">
+                        <Info className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">{(kpi as any).explain}</p>
+                      </div>
+                    )}
                   </CardContent>
                   {/* Decorative corner */}
                   <div className="absolute -top-6 -end-6 w-20 h-20 rounded-full opacity-[0.07]" style={{ backgroundColor: kpi.color }} />
@@ -295,6 +303,9 @@ export default function AdminAnalytics() {
                         {kpi.value.toLocaleString()}{kpi.suffix || ""}
                       </p>
                       <p className="text-[11px] text-muted-foreground leading-tight">{kpi.label}</p>
+                      {(kpi as any).explain && (
+                        <p className="text-[9px] text-muted-foreground/70 leading-tight mt-0.5 italic">{(kpi as any).explain}</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
