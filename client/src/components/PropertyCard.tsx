@@ -11,9 +11,10 @@ import { normalizeImageUrl } from "@/lib/image-utils";
 /**
  * PropertyCard — public listing card.
  *
- * FIX (Phase 1 P0): Removed opacity-0/opacity-100 state machine + 8-second
- * timeout that caused loaded R2 images to stay invisible and then be replaced
- * by Unsplash fallbacks.  Now uses a simple <img> with onError fallback.
+ * P0 FIX: Added strong bottom gradient scrim (45% height, 80% opacity)
+ * that is ALWAYS visible regardless of image brightness.
+ * Text uses text-shadow for extra legibility. All text/badges sit at z-10
+ * above the scrim (z-[5]).
  */
 
 interface PropertyCardProps {
@@ -62,7 +63,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
   const district = lang === "ar" ? property.districtAr : property.district;
   const typeKey = `type.${property.propertyType}` as any;
 
-  // Simple image: use R2 photo if available, no state machine, no Unsplash fallback
+  // Simple image: use R2 photo if available
   const originalPhoto = property.photos?.[0];
   const imgSrc = originalPhoto ? normalizeImageUrl(originalPhoto) : "";
 
@@ -79,7 +80,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
   return (
     <Link href={`/property/${property.id}`}>
       <Card className="property-card group overflow-hidden cursor-pointer border-border/40 py-0 gap-0 bg-white dark:bg-card rounded-xl">
-        {/* Image Container */}
+        {/* ── Image Container ── */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl bg-muted">
           {/* No-photo placeholder */}
           {!imgSrc && (
@@ -90,14 +91,14 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
               </span>
             </div>
           )}
-          {/* Direct img — visible immediately, no opacity tricks */}
+
+          {/* Direct img — visible immediately */}
           {imgSrc && (
             <img
               src={imgSrc}
               alt={title}
               loading="eager"
               onError={(e) => {
-                // Hide broken img, show fallback sibling + log failure
                 const target = e.currentTarget;
                 target.style.display = "none";
                 const fallback = target.nextElementSibling as HTMLElement | null;
@@ -107,7 +108,8 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
               className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
           )}
-          {/* Error fallback (hidden by default, shown on img error) */}
+
+          {/* Error fallback (hidden by default) */}
           {imgSrc && (
             <div style={{ display: "none" }} className="absolute inset-0 flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/20">
               <Building2 className="h-10 w-10 text-amber-500/60 mb-1" />
@@ -116,28 +118,42 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
               </span>
             </div>
           )}
-          {/* Gradient overlay on hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-70 transition-opacity duration-500 pointer-events-none" />
 
-          {/* Badges */}
-          <div className="absolute top-3 start-3 flex gap-1.5">
+          {/* ── SCRIM OVERLAY — always visible, not dependent on hover ── */}
+          {/* Bottom gradient: covers lower 50% of image, strong enough for any brightness */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-[55%] pointer-events-none z-[5]"
+            style={{
+              background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.15) 75%, transparent 100%)",
+            }}
+          />
+          {/* Top subtle vignette for top badges */}
+          <div
+            className="absolute inset-x-0 top-0 h-[30%] pointer-events-none z-[5]"
+            style={{
+              background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)",
+            }}
+          />
+
+          {/* ── Top Badges — z-10 above scrim ── */}
+          <div className="absolute top-3 start-3 flex gap-1.5 z-10">
             {property.isVerified && (
-              <Badge className="bg-[#3ECFC0] text-[#0B1E2D] text-[10px] gap-1 border-0 shadow-sm">
+              <Badge className="bg-[#3ECFC0] text-[#0B1E2D] text-[10px] gap-1 border-0 shadow-md font-semibold">
                 <CheckCircle className="h-3 w-3" />
                 {t("property.verified")}
               </Badge>
             )}
             {property.isFeatured && (
-              <Badge className="bg-[#C9A96E] text-[#0B1E2D] text-[10px] border-0 shadow-sm">
+              <Badge className="bg-[#C9A96E] text-[#0B1E2D] text-[10px] border-0 shadow-md font-semibold">
                 {t("property.featured")}
               </Badge>
             )}
           </div>
 
-          {/* Favorite */}
+          {/* ── Favorite button — z-10 ── */}
           <button
             onClick={handleFavorite}
-            className="absolute top-3 end-3 h-9 w-9 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-90 transition-all duration-300 shadow-sm"
+            className="absolute top-3 end-3 z-10 h-9 w-9 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-90 transition-all duration-300 shadow-md"
           >
             <Heart
               className={`h-4 w-4 transition-all duration-300 ${
@@ -146,9 +162,9 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             />
           </button>
 
-          {/* Manager overlay */}
+          {/* ── Manager overlay — z-10 ── */}
           {property.managerName && (
-            <div className="absolute top-3 end-14 flex items-center gap-1.5 bg-white/90 dark:bg-black/60 backdrop-blur-sm rounded-full ps-2 pe-1 py-0.5 shadow-sm">
+            <div className="absolute top-3 end-14 z-10 flex items-center gap-1.5 bg-white/90 dark:bg-black/60 backdrop-blur-sm rounded-full ps-2 pe-1 py-0.5 shadow-md">
               <span className="text-[10px] font-medium text-[#0B1E2D] dark:text-white max-w-[80px] truncate">
                 {lang === "ar" ? (property.managerNameAr || property.managerName) : property.managerName}
               </span>
@@ -161,24 +177,30 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             </div>
           )}
 
-          {/* Photo count badge */}
+          {/* ── Photo count badge — z-10 ── */}
           {property.photos && property.photos.length > 1 && (
-            <div className="absolute bottom-3 end-3 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded-md text-xs font-medium flex items-center gap-1">
+            <div
+              className="absolute bottom-3 end-3 z-10 bg-black/70 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 shadow-md"
+              style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
+            >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
               <span>+{property.photos.length}</span>
             </div>
           )}
 
-          {/* Price tag */}
-          <div className="absolute bottom-3 start-3 bg-[#0B1E2D]/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg group-hover:shadow-[#3ECFC0]/20 group-hover:shadow-xl transition-all duration-500">
+          {/* ── Price tag — z-10, strong contrast ── */}
+          <div
+            className="absolute bottom-3 start-3 z-10 bg-[#0B1E2D]/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg group-hover:shadow-[#3ECFC0]/20 group-hover:shadow-xl transition-all duration-500"
+            style={{ textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}
+          >
             <span className="font-bold text-[#3ECFC0] text-base sm:text-lg tracking-tight">
               {Number(property.monthlyRent).toLocaleString()} {t("payment.sar")}
             </span>
-            <span className="text-white/80 text-xs ms-1">{t("property.perMonth")}</span>
+            <span className="text-white text-xs ms-1 font-medium">{t("property.perMonth")}</span>
           </div>
         </div>
 
-        {/* Content */}
+        {/* ── Content below image ── */}
         <CardContent className="p-3.5 sm:p-4">
           <div className="mb-2">
             <Badge variant="secondary" className="text-[10px] mb-2 bg-[#3ECFC0]/10 text-[#3ECFC0] border-0 dark:bg-[#3ECFC0]/20">
