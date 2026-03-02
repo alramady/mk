@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n";
-import { Shield, Clock } from "lucide-react";
+import { Shield } from "lucide-react";
 
 interface PaymentMethodsBadgesProps {
   variant: "footer" | "property";
@@ -9,10 +9,10 @@ interface PaymentMethodsBadgesProps {
 /**
  * Shared component that displays payment method logos/badges.
  * Single source of truth: uses finance.moyasarPayment.getEnabledBadges tRPC endpoint.
- * 
- * ALWAYS shows core Saudi payment methods (mada, Apple Pay, Google Pay) as trust badges.
- * If Moyasar keys are not yet configured, shows "قريباً / Coming Soon" label.
- * Checkout buttons on PaymentPage remain disabled until keys are configured.
+ *
+ * IMPORTANT: Only shows payment logos when the payment gateway is fully configured
+ * and live. If any method has comingSoon=true (meaning Moyasar keys are not configured),
+ * the entire component is hidden to avoid misleading users.
  */
 export default function PaymentMethodsBadges({ variant }: PaymentMethodsBadgesProps) {
   const { lang } = useI18n();
@@ -21,12 +21,15 @@ export default function PaymentMethodsBadges({ variant }: PaymentMethodsBadgesPr
     { staleTime: 60_000, refetchOnWindowFocus: false }
   );
 
-  // Hide entirely if loading or error
+  // Hide entirely if loading, error, or no methods
   if (isLoading || !methods || methods.length === 0) return null;
 
-  // Check if any method has comingSoon flag
+  // CRITICAL: Do NOT show payment logos if gateway is not fully live
+  // This prevents misleading users with logos for non-functional payment methods
   const hasComingSoon = methods.some((m: any) => m.comingSoon);
+  if (hasComingSoon) return null;
 
+  // Only live, fully-functional payment methods reach here
   if (variant === "footer") {
     return (
       <div className="border-t border-white/10 pt-6 mt-6">
@@ -38,24 +41,18 @@ export default function PaymentMethodsBadges({ variant }: PaymentMethodsBadgesPr
             {methods.map((m: any) => (
               <div
                 key={m.key}
-                className="bg-white/10 backdrop-blur-sm rounded-md px-3 py-1.5 flex items-center gap-2 hover:bg-white/15 transition-colors relative"
+                className="bg-white/10 backdrop-blur-sm rounded-md px-3 py-1.5 flex items-center gap-2 hover:bg-white/15 transition-colors"
                 title={lang === "ar" ? m.labelAr : m.label}
               >
                 <img
                   src={m.logoPath}
                   alt={lang === "ar" ? m.labelAr : m.label}
-                  className={`h-6 w-auto object-contain ${m.comingSoon ? "opacity-70" : ""}`}
+                  className="h-6 w-auto object-contain"
                   loading="lazy"
                 />
               </div>
             ))}
           </div>
-          {hasComingSoon && (
-            <div className="flex items-center gap-1.5 text-[10px] text-white/40">
-              <Clock className="h-3 w-3" />
-              <span>{lang === "ar" ? "الدفع الإلكتروني قريباً" : "Online payment coming soon"}</span>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -74,24 +71,18 @@ export default function PaymentMethodsBadges({ variant }: PaymentMethodsBadgesPr
         {methods.map((m: any) => (
           <div
             key={m.key}
-            className="bg-background border border-border/60 rounded-md px-3 py-1.5 flex items-center gap-2 shadow-sm hover:shadow-md transition-shadow relative"
+            className="bg-background border border-border/60 rounded-md px-3 py-1.5 flex items-center gap-2 shadow-sm hover:shadow-md transition-shadow"
             title={lang === "ar" ? m.labelAr : m.label}
           >
             <img
               src={m.logoPath}
               alt={lang === "ar" ? m.labelAr : m.label}
-              className={`h-6 w-auto object-contain ${m.comingSoon ? "opacity-70" : ""}`}
+              className="h-6 w-auto object-contain"
               loading="lazy"
             />
           </div>
         ))}
       </div>
-      {hasComingSoon && (
-        <div className="flex items-center gap-1.5 mt-2.5 text-[10px] text-muted-foreground/60">
-          <Clock className="h-3 w-3" />
-          <span>{lang === "ar" ? "الدفع الإلكتروني قريباً" : "Online payment coming soon"}</span>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 # المفتاح الشهري - Monthly Key
-# https://mk-production-7730.up.railway.app
+# https://monthlykey.com
 
 User-agent: *
 Allow: /
@@ -36,4 +36,4 @@ Crawl-delay: 10
 User-agent: MJ12bot
 Crawl-delay: 10
 
-Sitemap: https://mk-production-7730.up.railway.app/sitemap.xml
+Sitemap: https://monthlykey.com/sitemap.xml

@@ -456,7 +456,7 @@ export default function PropertyDetail() {
               {prop.floor != null && (
                 <Card><CardContent className="p-4 flex items-center gap-3">
                   <Building className="h-5 w-5 text-primary" />
-                  <div><div className="text-sm text-muted-foreground">{t("property.floor")}</div><div className="font-semibold text-foreground">{prop.floor}</div></div>
+                  <div><div className="text-sm text-muted-foreground">{t("property.floor")}</div><div className="font-semibold text-foreground">{prop.floor === 0 ? (lang === "ar" ? "الطابق الأرضي" : "Ground Floor") : prop.floor}</div></div>
                 </CardContent></Card>
               )}
             </div>

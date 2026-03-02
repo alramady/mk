@@ -365,7 +365,7 @@ export function MapView({
       )}
       {!loading && providerUsed === "leaflet" && !USE_GOOGLE_MAPS && (
         <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm text-xs text-muted-foreground px-2 py-1 rounded z-[1000]">
-          OpenStreetMap • لتفعيل Google Maps أضف VITE_GOOGLE_MAPS_API_KEY
+          OpenStreetMap • Google Maps غير مُفعّل حالياً
         </div>
       )}
     </div>

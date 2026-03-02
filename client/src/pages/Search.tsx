@@ -32,6 +32,7 @@ export default function Search() {
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<string>("newest");
   const [page, setPage] = useState(0);
   const debouncedSearchText = useDebounce(searchText, 300);
   const filterPanelRef = useRef<HTMLDivElement>(null);
@@ -158,6 +159,17 @@ export default function Search() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Sort dropdown */}
+            <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setPage(0); }}>
+              <SelectTrigger className="w-[140px] sm:w-[160px] h-9 text-xs sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">{lang === "ar" ? "الأحدث" : "Newest"}</SelectItem>
+                <SelectItem value="price_asc">{lang === "ar" ? "السعر: الأقل" : "Price: Low"}</SelectItem>
+                <SelectItem value="price_desc">{lang === "ar" ? "السعر: الأعلى" : "Price: High"}</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               variant="outline"
               size="sm"
@@ -562,7 +574,12 @@ export default function Search() {
             ) : results.data && results.data.items.length > 0 ? (
               <>
                 <div className={`grid gap-4 sm:gap-6 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
-                  {results.data.items.map((prop) => (
+                  {[...results.data.items].sort((a: any, b: any) => {
+                    if (sortBy === "price_asc") return (a.monthlyPrice || 0) - (b.monthlyPrice || 0);
+                    if (sortBy === "price_desc") return (b.monthlyPrice || 0) - (a.monthlyPrice || 0);
+                    // newest — sort by id descending (higher id = newer)
+                    return (b.id || 0) - (a.id || 0);
+                  }).map((prop) => (
                     <PropertyCard key={prop.id} property={prop} />
                   ))}
                 </div>

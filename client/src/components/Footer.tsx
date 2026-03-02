@@ -172,12 +172,7 @@ export default function Footer() {
             <Link href="/privacy" className="hover:text-[#3ECFC0] transition-colors">{t("footer.privacy")}</Link>
             <span className="text-white/20">|</span>
             <Link href="/terms" className="hover:text-[#3ECFC0] transition-colors">{t("footer.terms")}</Link>
-            <span className="text-white/20">|</span>
-            <span className="font-mono text-white/25" title={`Full build: ${typeof __APP_BUILD_DATE__ !== 'undefined' ? __APP_BUILD_DATE__ : ''}`}>
-              Build {typeof __APP_BUILD_VERSION__ !== 'undefined' ? __APP_BUILD_VERSION__ : 'dev'}
-              {typeof __APP_GIT_SHA__ !== 'undefined' && __APP_GIT_SHA__ !== 'unknown' ? ` • SHA: ${__APP_GIT_SHA__}` : ''}
-              {' • monthly-key-app'}
-            </span>
+
           </div>
         </div>
       </div>
@@ -190,7 +185,7 @@ function FooterCities({ lang }: { lang: string }) {
   const citiesQuery = trpc.cities.all.useQuery({ activeOnly: false });
   const allCities = citiesQuery.data || [];
   const activeCities = allCities.filter((c: any) => c.isActive !== false);
-  const comingSoonCities = allCities.filter((c: any) => c.isActive === false);
+  // Only show active cities — hide "Coming Soon" cities to avoid misleading users
 
   return (
     <div>
@@ -206,15 +201,6 @@ function FooterCities({ lang }: { lang: string }) {
             >
               {lang === "ar" ? city.nameAr : city.nameEn}
             </Link>
-          </li>
-        ))}
-        {comingSoonCities.map((city: any) => (
-          <li key={city.id} className="flex items-center gap-1.5 text-white/40">
-            <span>{lang === "ar" ? city.nameAr : city.nameEn}</span>
-            <span className="inline-flex items-center gap-0.5 bg-[#C9A96E]/20 text-[#C9A96E] text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-              <Clock className="h-2.5 w-2.5" />
-              {lang === "ar" ? "قريباً" : "Soon"}
-            </span>
           </li>
         ))}
       </ul>

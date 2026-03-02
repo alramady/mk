@@ -15,12 +15,10 @@ import { Loader2 } from "lucide-react";
 import { usePageTracking } from "./hooks/usePageTracking";
 import MaintenanceMode from "./pages/MaintenanceMode";
 
-// Eager load critical pages
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-
-// Lazy load other pages
+// Lazy load all pages for code-splitting
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
 const Search = lazy(() => import("./pages/Search"));
 const PropertyDetail = lazy(() => import("./pages/PropertyDetail"));
 const CreateProperty = lazy(() => import("./pages/CreateProperty"));
