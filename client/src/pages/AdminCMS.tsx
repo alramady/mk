@@ -204,6 +204,32 @@ export default function AdminCMS() {
   const mediaDeleteMutation = trpc.cms.mediaDelete.useMutation({
     onSuccess: () => { toast.success(isRtl ? "تم الحذف" : "Deleted"); mediaQuery.refetch(); },
   });
+  const seedDefaultsMutation = trpc.cms.seedDefaults.useMutation({
+    onSuccess: (d) => {
+      if (d.seeded > 0) {
+        toast.success(isRtl ? `تم تحميل ${d.seeded} قيمة افتراضية` : `Seeded ${d.seeded} default values`);
+        inventoryQuery.refetch();
+      } else {
+        toast.info(isRtl ? "جميع القيم موجودة بالفعل" : "All values already exist");
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Auto-seed missing defaults on first load
+  const [hasAutoSeeded, setHasAutoSeeded] = useState(false);
+  useEffect(() => {
+    if (!hasAutoSeeded && inventoryQuery.data && !inventoryQuery.isLoading) {
+      const keys = inventoryQuery.data.keys ?? {};
+      // Check if any CMS key is missing from the database
+      const allCmsKeys = CMS_SECTIONS.flatMap(s => s.keys.map(k => k.key));
+      const missingCount = allCmsKeys.filter(k => keys[k] === undefined || keys[k] === null).length;
+      if (missingCount > 0) {
+        seedDefaultsMutation.mutate();
+      }
+      setHasAutoSeeded(true);
+    }
+  }, [hasAutoSeeded, inventoryQuery.data, inventoryQuery.isLoading]);
 
   // Local state
   const [activeTab, setActiveTab] = useState("content");
@@ -331,6 +357,16 @@ export default function AdminCMS() {
                     {isRtl ? `نشر الكل (${pendingDrafts.length})` : `Publish All (${pendingDrafts.length})`}
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => seedDefaultsMutation.mutate()}
+                  disabled={seedDefaultsMutation.isPending}
+                  className="gap-1"
+                >
+                  <RotateCcw className={`h-3.5 w-3.5 ${seedDefaultsMutation.isPending ? 'animate-spin' : ''}`} />
+                  {isRtl ? "تحميل القيم الافتراضية" : "Load Defaults"}
+                </Button>
                 <Badge variant="outline" className="text-xs">
                   {Object.keys(liveSettings).length} {isRtl ? "حقل" : "fields"}
                 </Badge>

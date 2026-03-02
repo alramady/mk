@@ -1149,6 +1149,24 @@ export async function bulkSetSettings(settings: Record<string, string>) {
   }
 }
 
+// Seed only MISSING keys — does NOT overwrite existing values
+export async function seedMissingSettings(defaults: Record<string, string>) {
+  const db = await getDb();
+  if (!db) return { seeded: 0, skipped: 0 };
+  const existing = await getAllSettings();
+  let seeded = 0, skipped = 0;
+  for (const [key, value] of Object.entries(defaults)) {
+    if (existing[key] !== undefined && existing[key] !== '') {
+      skipped++;
+      continue;
+    }
+    await db.insert(platformSettings).values({ settingKey: key, settingValue: value })
+      .onDuplicateKeyUpdate({ set: { settingValue: value } });
+    seeded++;
+  }
+  return { seeded, skipped };
+}
+
 // ─── Local Auth ─────────────────────────────────────────────────────
 export async function getUserByUserId(userId: string) {
   const db = await getDb();
