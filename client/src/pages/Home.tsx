@@ -21,24 +21,24 @@ import { useLocation } from "wouter";
 import { useScrollAnimation, useParallax } from "@/hooks/useScrollAnimation";
 import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 
-/* ─── City Fallback Images (CDN via img-proxy to avoid Unsplash hotlink blocking) ─── */
+/* ─── City Fallback Images — Authentic Saudi city photos ─── */
 const CITY_FALLBACK_IMAGES: Record<string, string> = {
-  riyadh: normalizeImageUrl("https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80"),
-  jeddah: normalizeImageUrl("https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80"),
-  madinah: normalizeImageUrl("https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80"),
-  makkah: normalizeImageUrl("https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80"),
-  dammam: normalizeImageUrl("https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80"),
-  khobar: normalizeImageUrl("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80"),
-  tabuk: normalizeImageUrl("https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80"),
-  abha: normalizeImageUrl("https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80"),
-  "الرياض": normalizeImageUrl("https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80"),
-  "جدة": normalizeImageUrl("https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80"),
-  "المدينة المنورة": normalizeImageUrl("https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80"),
-  "مكة المكرمة": normalizeImageUrl("https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80"),
-  "الدمام": normalizeImageUrl("https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80"),
-  "الخبر": normalizeImageUrl("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80"),
-  "تبوك": normalizeImageUrl("https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80"),
-  "أبها": normalizeImageUrl("https://images.unsplash.com/photo-1590076215667-875d4ef2d7de?w=800&q=80"),
+  riyadh: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-riyadh-gBvDvbaArHxRTAuez5dnXn.webp",
+  jeddah: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-jeddah-WFGmiJYKMNRSNaTnzq8qXt.webp",
+  madinah: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-madinah-hxt4voaJVbMTWzXoSdVsd6.webp",
+  makkah: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-makkah-oGPYddxbBFYkcXSUWcLYDB.webp",
+  dammam: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-dammam-bZJNfjyoKPkeXDTR8RNW6z.webp",
+  khobar: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-khobar-cjrqkEFq6b9jxdXNb7BmKx.webp",
+  tabuk: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-tabuk-Ui8CmcjahN2oxD3bKY99z5.webp",
+  abha: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-abha-TGsfEcdWqSoDPJ5Q6Ng78X.webp",
+  "الرياض": "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-riyadh-gBvDvbaArHxRTAuez5dnXn.webp",
+  "جدة": "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-jeddah-WFGmiJYKMNRSNaTnzq8qXt.webp",
+  "المدينة المنورة": "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-madinah-hxt4voaJVbMTWzXoSdVsd6.webp",
+  "مكة المكرمة": "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-makkah-oGPYddxbBFYkcXSUWcLYDB.webp",
+  "الدمام": "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-dammam-bZJNfjyoKPkeXDTR8RNW6z.webp",
+  "الخبر": "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-khobar-cjrqkEFq6b9jxdXNb7BmKx.webp",
+  "تبوك": "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-tabuk-Ui8CmcjahN2oxD3bKY99z5.webp",
+  "أبها": "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-abha-TGsfEcdWqSoDPJ5Q6Ng78X.webp",
 };
 
 /** Get city image: DB imageUrl > fallback by name > gradient placeholder */
