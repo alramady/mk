@@ -655,8 +655,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                 <div>
                   <h3 className="font-semibold">{isAr ? "صور العقار" : "Property Photos"}</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {form.photos.length === 0 ? "isAr ? "لم يتم رفع أي صور بعد" : "No photos uploaded yet"" : `${form.photos.length} {isAr ? "صورة" : "photo(s)"}`}
-                  </p>
+                  {form.photos.length === 0 ? (isAr ? "لم يتم رفع أي صور بعد" : "No photos uploaded yet") : `${form.photos.length} ${isAr ? "صورة" : "photo(s)"}`}                 </p>
                 </div>
                 <Button
                   variant="outline"
@@ -665,7 +664,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                   className="gap-2"
                 >
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-                  {uploading ? "isAr ? "جاري الرفع..." : "Uploading..."" : isAr ? "رفع صور" : "Upload Photos"}
+              {uploading ? (isAr ? "جاري الرفع..." : "Uploading...") : (isAr ? "رفع صور" : "Upload Photos")}
                 </Button>
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
               </div>
