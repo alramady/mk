@@ -808,7 +808,7 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
                       }}
                     >
                       <Save className="h-4 w-4 ml-1" />
-                      {isAr ? "حفظ كمسودة وال{isAr ? "إغلاق" : "Close"}" : "Save as Draft & Close"}
+                      {isAr ? "حفظ كمسودة والإغلاق" : "Save as Draft & Close"}
                     </Button>
                   </div>
                 )}
