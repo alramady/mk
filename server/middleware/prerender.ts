@@ -387,7 +387,7 @@ function generateMetaTags(path: string, data?: any): string {
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="المفتاح الشهري - Monthly Key" />
     <meta property="og:locale" content="ar_SA" />
-    <meta property="og:locale:alternate" content="en_US" />
+
     <meta property="og:image" content="${ogImage}" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
@@ -433,7 +433,7 @@ function generateMetaTags(path: string, data?: any): string {
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="المفتاح الشهري - Monthly Key" />
     <meta property="og:locale" content="ar_SA" />
-    <meta property="og:locale:alternate" content="en_US" />
+
     <meta property="og:image" content="${ogImage}" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
