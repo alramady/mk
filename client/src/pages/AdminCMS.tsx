@@ -128,6 +128,8 @@ const CMS_SECTIONS = [
       { key: "site.nameEn", labelAr: "اسم الموقع (إنجليزي)", labelEn: "Site Name (English)", type: "text" },
       { key: "site.descriptionAr", labelAr: "وصف الموقع (عربي)", labelEn: "Site Description (Arabic)", type: "textarea" },
       { key: "site.descriptionEn", labelAr: "وصف الموقع (إنجليزي)", labelEn: "Site Description (English)", type: "textarea" },
+      { key: "site.logoUrl", labelAr: "الشعار", labelEn: "Logo", type: "image" },
+      { key: "site.faviconUrl", labelAr: "أيقونة الموقع", labelEn: "Favicon", type: "image" },
       { key: "site.primaryColor", labelAr: "اللون الأساسي", labelEn: "Primary Color", type: "color" },
       { key: "site.accentColor", labelAr: "اللون الثانوي", labelEn: "Accent Color", type: "color" },
     ],
@@ -168,6 +170,33 @@ export default function AdminCMS() {
     onSuccess: (d) => { toast.success(isRtl ? `تم نشر ${d.published} تغيير` : `Published ${d.published} changes`); inventoryQuery.refetch(); pendingDraftsQuery.refetch(); },
     onError: (e) => toast.error(e.message),
   });
+  const imageUploadMutation = trpc.siteSettings.uploadAsset.useMutation({
+    onSuccess: (data) => {
+      setEditValue(data.url);
+      toast.success(isRtl ? "تم رفع الصورة" : "Image uploaded");
+      inventoryQuery.refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleImageUpload = (purpose: string) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) { toast.error(isRtl ? "الحد الأقصى 5MB" : "Max 5MB"); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        imageUploadMutation.mutate({ base64, filename: file.name, contentType: file.type, purpose });
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
   const mediaUploadMutation = trpc.cms.mediaUpload.useMutation({
     onSuccess: () => { toast.success(isRtl ? "تم رفع الملف" : "File uploaded"); mediaQuery.refetch(); },
     onError: (e) => toast.error(e.message),
@@ -469,13 +498,27 @@ export default function AdminCMS() {
                                       </div>
                                     ) : keyDef.type === "image" ? (
                                       <div className="space-y-2">
-                                        <Input
-                                          value={editValue}
-                                          onChange={(e) => setEditValue(e.target.value)}
-                                          placeholder="https://..."
-                                        />
+                                        <div className="flex gap-2">
+                                          <Input
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            placeholder="https://..."
+                                            className="flex-1"
+                                          />
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="shrink-0 gap-1.5"
+                                            disabled={imageUploadMutation.isPending}
+                                            onClick={() => handleImageUpload(keyDef.key)}
+                                          >
+                                            <Upload className="h-4 w-4" />
+                                            {imageUploadMutation.isPending ? (isRtl ? "جاري الرفع..." : "Uploading...") : (isRtl ? "رفع صورة" : "Upload")}
+                                          </Button>
+                                        </div>
                                         {editValue && (
-                                          <img src={editValue} alt="" className="max-h-32 rounded border object-cover" />
+                                          <img src={editValue.startsWith('/') ? `https://monthlykey.com${editValue}` : editValue} alt="" className="max-h-32 rounded border object-cover" />
                                         )}
                                       </div>
                                     ) : keyDef.type === "select" ? (
@@ -524,7 +567,10 @@ export default function AdminCMS() {
                                 ) : (
                                   <div className="space-y-1">
                                     {keyDef.type === "image" && liveValue ? (
-                                      <img src={liveValue} alt="" className="max-h-24 rounded border object-cover" />
+                                      <div className="flex items-center gap-3">
+                                        <img src={liveValue.startsWith('/') ? `https://monthlykey.com${liveValue}` : liveValue} alt="" className="max-h-24 rounded border object-cover" />
+                                        <code className="text-[10px] text-muted-foreground break-all max-w-xs">{liveValue.length > 60 ? liveValue.substring(0, 60) + '...' : liveValue}</code>
+                                      </div>
                                     ) : keyDef.type === "color" && liveValue ? (
                                       <div className="flex items-center gap-2">
                                         <div className="w-6 h-6 rounded border" style={{ backgroundColor: liveValue }} />
