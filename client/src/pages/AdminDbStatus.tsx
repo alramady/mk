@@ -9,6 +9,7 @@ import {
   XCircle, AlertTriangle, HardDrive, Layers, GitBranch
 } from "lucide-react";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 function formatUptime(seconds: number): string {
   if (seconds <= 0) return "—";
@@ -23,6 +24,11 @@ function formatUptime(seconds: number): string {
 }
 
 export default function AdminDbStatus() {
+  const { lang, t } = useI18n();
+  const isAr = lang === "ar";
+  const locale = isAr ? "ar-SA" : "en-US";
+  const textAlign = isAr ? "text-right" : "text-left";
+
   const [refetchKey, setRefetchKey] = useState(0);
   const dbStatus = trpc.admin.dbStatus.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -38,6 +44,56 @@ export default function AdminDbStatus() {
   const isLoading = dbStatus.isLoading;
   const isError = dbStatus.isError;
 
+  const txt = {
+    title: isAr ? "حالة قاعدة البيانات" : "Database Status",
+    subtitle: isAr
+      ? "مراقبة اتصال قاعدة البيانات والهجرات والبيئة النشطة"
+      : "Monitor database connection, migrations, and active environment",
+    refresh: isAr ? "تحديث" : "Refresh",
+    fetchError: isAr ? "فشل في جلب حالة قاعدة البيانات" : "Failed to fetch database status",
+    fetchErrorHint: isAr
+      ? "تأكد من أنك مسجل دخول كمسؤول ولديك صلاحية manage_settings"
+      : "Make sure you are logged in as an admin with manage_settings permission",
+    connected: isAr ? "قاعدة البيانات متصلة" : "Database Connected",
+    disconnected: isAr ? "قاعدة البيانات غير متصلة" : "Database Disconnected",
+    lastCheck: isAr ? "آخر فحص" : "Last checked",
+    envProduction: isAr ? "إنتاج" : "Production",
+    envStaging: isAr ? "تجريبي" : "Staging",
+    envDevelopment: isAr ? "تطوير" : "Development",
+    preview: isAr ? "معاينة" : "Preview",
+    host: isAr ? "المضيف (Host)" : "Host",
+    dbName: isAr ? "اسم قاعدة البيانات" : "Database Name",
+    port: isAr ? "المنفذ (Port)" : "Port",
+    mysqlVersion: isAr ? "إصدار MySQL" : "MySQL Version",
+    tableCount: isAr ? "عدد الجداول" : "Table Count",
+    migrationStatus: isAr ? "حالة الهجرات" : "Migration Status",
+    serverUptime: isAr ? "وقت تشغيل الخادم" : "Server Uptime",
+    environment: isAr ? "البيئة" : "Environment",
+    envBadgeProduction: isAr ? "🔴 إنتاج (Production)" : "🔴 Production",
+    envBadgeStaging: isAr ? "🟡 تجريبي (Staging)" : "🟡 Staging",
+    envBadgeDevelopment: isAr ? "🟢 تطوير (Development)" : "🟢 Development",
+    recentMigrations: isAr ? "آخر الهجرات المطبقة" : "Recent Applied Migrations",
+    colNumber: "#",
+    colHash: "Hash",
+    colAppliedAt: isAr ? "تاريخ التطبيق" : "Applied At",
+    securityTitle: isAr ? "ملاحظة أمنية" : "Security Notice",
+    securityBody: isAr
+      ? "عنوان المضيف معروض بشكل مقنّع (masked) لأسباب أمنية. هذه الصفحة متاحة فقط للمسؤولين الذين يملكون صلاحية manage_settings. لا يتم عرض كلمات المرور أو سلاسل الاتصال الكاملة أبداً."
+      : "The host address is masked for security reasons. This page is only accessible to admins with manage_settings permission. Passwords and full connection strings are never displayed.",
+  };
+
+  const envLabel = (env: string | undefined) => {
+    if (env === "production") return txt.envProduction;
+    if (env === "staging") return txt.envStaging;
+    return txt.envDevelopment;
+  };
+
+  const envBadgeLabel = (env: string | undefined) => {
+    if (env === "production") return txt.envBadgeProduction;
+    if (env === "staging") return txt.envBadgeStaging;
+    return txt.envBadgeDevelopment;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -46,10 +102,10 @@ export default function AdminDbStatus() {
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Database className="h-7 w-7 text-[#3ECFC0]" />
-              حالة قاعدة البيانات
+              {txt.title}
             </h1>
             <p className="text-muted-foreground mt-1">
-              مراقبة اتصال قاعدة البيانات والهجرات والبيئة النشطة
+              {txt.subtitle}
             </p>
           </div>
           <Button
@@ -60,7 +116,7 @@ export default function AdminDbStatus() {
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            تحديث
+            {txt.refresh}
           </Button>
         </div>
 
@@ -70,9 +126,9 @@ export default function AdminDbStatus() {
             <CardContent className="p-6 flex items-center gap-3">
               <XCircle className="h-6 w-6 text-red-500" />
               <div>
-                <p className="font-semibold text-red-500">فشل في جلب حالة قاعدة البيانات</p>
+                <p className="font-semibold text-red-500">{txt.fetchError}</p>
                 <p className="text-sm text-muted-foreground">
-                  تأكد من أنك مسجل دخول كمسؤول ولديك صلاحية manage_settings
+                  {txt.fetchErrorHint}
                 </p>
               </div>
             </CardContent>
@@ -95,21 +151,21 @@ export default function AdminDbStatus() {
                 )}
                 <div>
                   <h2 className="text-lg font-bold">
-                    {data.connected ? "قاعدة البيانات متصلة" : "قاعدة البيانات غير متصلة"}
+                    {data.connected ? txt.connected : txt.disconnected}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    آخر فحص: {new Date(data.checkedAt).toLocaleString("ar-SA")}
+                    {txt.lastCheck}: {new Date(data.checkedAt).toLocaleString(locale)}
                   </p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Badge variant={data.environment === "production" ? "destructive" : data.environment === "staging" ? "secondary" : "outline"}>
-                  {data.environment === "production" ? "إنتاج" : data.environment === "staging" ? "تجريبي" : "تطوير"}
+                  {envLabel(data.environment)}
                 </Badge>
                 {data.isPreviewDeploy && (
                   <Badge variant="secondary" className="bg-amber-500/20 text-amber-600">
                     <AlertTriangle className="h-3 w-3 ml-1" />
-                    معاينة
+                    {txt.preview}
                   </Badge>
                 )}
               </div>
@@ -124,7 +180,7 @@ export default function AdminDbStatus() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Server className="h-4 w-4" />
-                المضيف (Host)
+                {txt.host}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -141,7 +197,7 @@ export default function AdminDbStatus() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <HardDrive className="h-4 w-4" />
-                اسم قاعدة البيانات
+                {txt.dbName}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -158,7 +214,7 @@ export default function AdminDbStatus() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                المنفذ (Port)
+                {txt.port}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -175,7 +231,7 @@ export default function AdminDbStatus() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Database className="h-4 w-4" />
-                إصدار MySQL
+                {txt.mysqlVersion}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -192,7 +248,7 @@ export default function AdminDbStatus() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Layers className="h-4 w-4" />
-                عدد الجداول
+                {txt.tableCount}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -209,7 +265,7 @@ export default function AdminDbStatus() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <GitBranch className="h-4 w-4" />
-                حالة الهجرات
+                {txt.migrationStatus}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -226,7 +282,7 @@ export default function AdminDbStatus() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                وقت تشغيل الخادم
+                {txt.serverUptime}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -245,7 +301,7 @@ export default function AdminDbStatus() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                البيئة
+                {txt.environment}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -257,9 +313,7 @@ export default function AdminDbStatus() {
                     variant={data?.environment === "production" ? "destructive" : "secondary"}
                     className="text-base px-3 py-1"
                   >
-                    {data?.environment === "production" ? "🔴 إنتاج (Production)" :
-                     data?.environment === "staging" ? "🟡 تجريبي (Staging)" :
-                     "🟢 تطوير (Development)"}
+                    {envBadgeLabel(data?.environment)}
                   </Badge>
                 </div>
               )}
@@ -273,7 +327,7 @@ export default function AdminDbStatus() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <GitBranch className="h-5 w-5 text-[#3ECFC0]" />
-                آخر الهجرات المطبقة
+                {txt.recentMigrations}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -281,9 +335,9 @@ export default function AdminDbStatus() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">#</th>
-                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">Hash</th>
-                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">تاريخ التطبيق</th>
+                      <th className={`${textAlign} py-2 px-3 font-medium text-muted-foreground`}>{txt.colNumber}</th>
+                      <th className={`${textAlign} py-2 px-3 font-medium text-muted-foreground`}>{txt.colHash}</th>
+                      <th className={`${textAlign} py-2 px-3 font-medium text-muted-foreground`}>{txt.colAppliedAt}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -292,7 +346,7 @@ export default function AdminDbStatus() {
                         <td className="py-2 px-3 font-mono text-muted-foreground">{i + 1}</td>
                         <td className="py-2 px-3 font-mono">{m.hash}</td>
                         <td className="py-2 px-3 text-muted-foreground">
-                          {m.appliedAt !== "unknown" ? new Date(m.appliedAt).toLocaleString("ar-SA") : "—"}
+                          {m.appliedAt !== "unknown" ? new Date(m.appliedAt).toLocaleString(locale) : "—"}
                         </td>
                       </tr>
                     ))}
@@ -308,11 +362,9 @@ export default function AdminDbStatus() {
           <CardContent className="p-4 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
             <div className="text-sm">
-              <p className="font-semibold text-amber-600 dark:text-amber-400">ملاحظة أمنية</p>
+              <p className="font-semibold text-amber-600 dark:text-amber-400">{txt.securityTitle}</p>
               <p className="text-muted-foreground mt-1">
-                عنوان المضيف معروض بشكل مقنّع (masked) لأسباب أمنية. هذه الصفحة متاحة فقط
-                للمسؤولين الذين يملكون صلاحية <code className="bg-muted px-1 rounded">manage_settings</code>.
-                لا يتم عرض كلمات المرور أو سلاسل الاتصال الكاملة أبداً.
+                {txt.securityBody}
               </p>
             </div>
           </CardContent>
