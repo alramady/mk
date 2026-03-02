@@ -520,6 +520,48 @@ export const financeRouter = router({
       .mutation(async () => {
         return occupancy.syncAllICalUnits();
       }),
+    /** Inbound sync: Beds24 → MK (API connections only) */
+    syncInbound: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        modifiedFrom: z.string().optional(),
+        propertyId: z.number().optional(),
+        fullSync: z.boolean().optional(),
+      }).optional())
+      .mutation(async ({ input }) => {
+        const { syncInbound } = await import('./beds24-sync.js');
+        return syncInbound(input || undefined);
+      }),
+    /** Reconciliation: compare Beds24 vs MK */
+    reconcile: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        propertyId: z.number().optional(),
+        daysAhead: z.number().optional(),
+      }).optional())
+      .mutation(async ({ input }) => {
+        const { reconcile } = await import('./beds24-sync.js');
+        return reconcile(input || undefined);
+      }),
+    /** Get booking source breakdown for analytics */
+    sourceBreakdown: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
+      .input(z.object({ days: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        const { getBookingSourceBreakdown } = await import('./beds24-sync.js');
+        return getBookingSourceBreakdown(input?.days);
+      }),
+  }),
+  // ─── Integration Logs ────────────────────────────────────────────────
+  integrationLogs: router({
+    list: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
+      .input(z.object({
+        direction: z.enum(['INBOUND','OUTBOUND','RECONCILE']).optional(),
+        status: z.enum(['SUCCESS','FAILED','SKIPPED']).optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const { getIntegrationLogs } = await import('./beds24-sync.js');
+        return getIntegrationLogs(input || undefined);
+      }),
   }),
 
   // ─── Audit Log ────────────────────────────────────────────────────

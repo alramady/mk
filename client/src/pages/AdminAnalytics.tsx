@@ -457,6 +457,32 @@ export default function AdminAnalytics() {
               </Card>
             </div>
 
+            {/* Booking Source Breakdown */}
+            {data?.bookingSourceBreakdown && data.bookingSourceBreakdown.total > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                {[
+                  { key: "local", label: lang === "ar" ? "حجوزات محلية (MK)" : "Local (MK)", value: data.bookingSourceBreakdown.local, color: "#3ECFC0" },
+                  { key: "beds24", label: "Beds24", value: data.bookingSourceBreakdown.beds24, color: "#C9A96E" },
+                  { key: "ical", label: "iCal", value: data.bookingSourceBreakdown.ical, color: "#6366f1" },
+                ].map((src) => (
+                  <Card key={src.key} className="border border-border/40 shadow-none rounded-2xl">
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className="w-3 h-10 rounded-full" style={{ backgroundColor: src.color }} />
+                      <div>
+                        <p className="text-xs text-muted-foreground">{src.label}</p>
+                        <p className="text-2xl font-bold" style={{ color: src.color }}>{src.value}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {data.bookingSourceBreakdown.total > 0
+                            ? `${Math.round((src.value / data.bookingSourceBreakdown.total) * 100)}%`
+                            : "0%"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
             {/* Charts Row 3: Properties by Type & City */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <Card className="border border-border/40 shadow-none rounded-2xl">

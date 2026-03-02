@@ -341,6 +341,38 @@ export async function getDb() {
           console.warn(`[Database] beds24_map table note:`, e?.message?.substring(0, 120));
         }
       }
+      // Auto-migrate: ensure integration_logs table exists (for Beds24 sync logging)
+      try {
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS integration_logs (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          integrationKey varchar(50) NOT NULL DEFAULT 'beds24',
+          direction ENUM('INBOUND','OUTBOUND','RECONCILE') NOT NULL,
+          action varchar(100) NOT NULL,
+          entityType varchar(50) DEFAULT NULL,
+          entityId varchar(100) DEFAULT NULL,
+          requestPayload JSON DEFAULT NULL,
+          responsePayload JSON DEFAULT NULL,
+          status ENUM('SUCCESS','FAILED','SKIPPED') NOT NULL DEFAULT 'SUCCESS',
+          errorMessage text DEFAULT NULL,
+          durationMs int DEFAULT NULL,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_il_key (integrationKey),
+          INDEX idx_il_direction (direction),
+          INDEX idx_il_status (status),
+          INDEX idx_il_created (createdAt)
+        )`);
+      } catch (e: any) {
+        if (!e?.message?.includes('already exists')) {
+          console.warn(`[Database] integration_logs table note:`, e?.message?.substring(0, 120));
+        }
+      }
+      // Auto-migrate: add externalReservationId to bookings
+      const beds24BookingMigrations = [
+        "ALTER TABLE `bookings` ADD COLUMN `externalReservationId` varchar(255) DEFAULT NULL",
+      ];
+      for (const mig of beds24BookingMigrations) {
+        try { await _pool.execute(mig); } catch (e: any) { /* column already exists */ }
+      }
       // Auto-migrate: extend audit_log ENUMs for WhatsApp
       const auditMigrations = [
         `ALTER TABLE audit_log MODIFY COLUMN action ENUM('CREATE','UPDATE','ARCHIVE','RESTORE','DELETE','LINK_BEDS24','UNLINK_BEDS24','PUBLISH','UNPUBLISH','CONVERT','TEST','ENABLE','DISABLE','SEND') NOT NULL`,

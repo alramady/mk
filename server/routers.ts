@@ -580,6 +580,11 @@ export const appRouter = router({
             const { cancelBookingBlock } = await import('./availability-blocks.js');
             await cancelBookingBlock(input.id, `Status changed to ${input.status}`);
           } catch { /* block may not exist */ }
+          // Outbound Beds24 sync: cancel in Beds24 if applicable
+          try {
+            const { cancelBookingInBeds24 } = await import('./beds24-sync.js');
+            await cancelBookingInBeds24(input.id);
+          } catch { /* best effort */ }
         }
         return { success: true };
       }),
@@ -1441,6 +1446,11 @@ export const appRouter = router({
           const { cancelBookingBlock } = await import('./availability-blocks.js');
           await cancelBookingBlock(input.id, `Rejected: ${input.rejectionReason}`);
         } catch { /* block may not exist for pending bookings */ }
+        // Outbound Beds24 sync: cancel in Beds24 if applicable
+        try {
+          const { cancelBookingInBeds24 } = await import('./beds24-sync.js');
+          await cancelBookingInBeds24(input.id);
+        } catch { /* best effort */ }
         await db.createNotification({
           userId: booking.tenantId,
           type: 'booking_rejected',
@@ -1561,6 +1571,12 @@ export const appRouter = router({
           }
         } catch (e) { process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: 'error', component: 'availability', msg: 'Failed to create availability block', error: (e as Error).message }) + '\n'); }
         
+        // ── Outbound Beds24 sync: push booking to Beds24 if unit is LOCAL-controlled ──
+        try {
+          const { pushBookingToBeds24 } = await import('./beds24-sync.js');
+          await pushBookingToBeds24(input.bookingId);
+        } catch (e) { process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: 'error', component: 'beds24-sync', msg: 'Failed to push booking to Beds24', error: (e as Error).message }) + '\n'); }
+        
         // Notify tenant: payment confirmed (outside tx — best-effort)
         await db.createNotification({
           userId: booking.tenantId,
@@ -1618,6 +1634,12 @@ export const appRouter = router({
       .input(z.object({ months: z.number().optional() }).optional())
       .query(async ({ input }) => {
         const months = input?.months ?? 12;
+        // Import source breakdown (best-effort)
+        let bookingSourceBreakdown = { local: 0, beds24: 0, ical: 0, total: 0 };
+        try {
+          const { getBookingSourceBreakdown } = await import('./beds24-sync.js');
+          bookingSourceBreakdown = await getBookingSourceBreakdown(months * 30);
+        } catch { /* beds24-sync not available */ }
         const [
           bookingsByMonth, revenueByMonth, userRegistrations,
           propertiesByType, propertiesByCity, bookingStatusDist,
@@ -1642,6 +1664,7 @@ export const appRouter = router({
           propertiesByType, propertiesByCity, bookingStatusDist,
           revenueByMethod, topProperties, serviceRequests,
           maintenanceSummary, occupancy, recentActivity,
+          bookingSourceBreakdown,
         };
       }),
   }),
