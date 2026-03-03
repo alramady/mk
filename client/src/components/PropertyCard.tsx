@@ -203,16 +203,16 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
         {/* ── Content below image ── */}
         <CardContent className="p-3.5 sm:p-4">
           <div className="mb-2">
-            <Badge variant="secondary" className="text-[10px] mb-2 bg-[#3ECFC0]/10 text-[#3ECFC0] border-0 dark:bg-[#3ECFC0]/20">
+            <Badge variant="secondary" className="text-[10px] mb-2 bg-[#3ECFC0]/10 text-[#3ECFC0] border-0 dark:bg-[#3ECFC0]/20 font-semibold">
               {t(typeKey)}
             </Badge>
-            <h3 className="font-heading font-semibold text-sm line-clamp-1 group-hover:text-[#3ECFC0] transition-colors duration-300">
+            <h3 className="font-heading font-bold text-sm line-clamp-1 text-gray-900 dark:text-white group-hover:text-[#3ECFC0] transition-colors duration-300">
               {title}
             </h3>
           </div>
 
           {(city || district) && (
-            <div className="flex items-center gap-1 text-muted-foreground text-xs mb-3">
+            <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300 text-xs mb-3">
               <MapPin className="h-3 w-3 shrink-0 text-[#C9A96E]" />
               <span className="line-clamp-1">
                 {district && `${district}، `}{city}
@@ -221,23 +221,23 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           )}
 
           {!compact && (
-            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-3 border-t border-border/30">
+            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-border/30">
               {property.bedrooms != null && (
                 <span className="flex items-center gap-1.5 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   <BedDouble className="h-3.5 w-3.5" />
-                  <span className="font-medium">{property.bedrooms}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">{property.bedrooms}</span>
                 </span>
               )}
               {property.bathrooms != null && (
                 <span className="flex items-center gap-1.5 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   <Bath className="h-3.5 w-3.5" />
-                  <span className="font-medium">{property.bathrooms}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">{property.bathrooms}</span>
                 </span>
               )}
               {property.sizeSqm != null && (
                 <span className="flex items-center gap-1.5 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   <Maximize2 className="h-3.5 w-3.5" />
-                  <span className="font-medium">{property.sizeSqm} {t("property.sqm")}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">{property.sizeSqm} {t("property.sqm")}</span>
                 </span>
               )}
             </div>
