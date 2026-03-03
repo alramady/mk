@@ -562,61 +562,145 @@
   animation: ripple 0.6s linear;
 }
 
-/* ═══ Customer Dashboard RTL Fixes ═══ */
-/* Timeline arrows flip in RTL */
-[dir="rtl"] .timeline-arrow {
-  transform: scaleX(-1);
+/* ═══ Comprehensive RTL Support ═══ */
+
+/* ── Force RTL direction on the entire document when dir=rtl ── */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
 }
-/* Ensure flex gaps work correctly in RTL */
-[dir="rtl"] .flex {
-  /* Tailwind 4 handles gap in RTL natively */
-}
-/* Fix badge/icon alignment in RTL */
-[dir="rtl"] .badge-row {
+
+/* ── Tenant dashboard: force all row-flex containers to reverse ── */
+[dir="rtl"] .rtl-row {
   flex-direction: row-reverse;
 }
-/* Customer tabs: horizontal scroll for RTL */
+
+/* ── Tabs: reverse tab order and icon position ── */
 [dir="rtl"] [data-slot="tabs-list"] {
   direction: rtl;
 }
-/* Invoice codes always LTR */
+[dir="rtl"] [data-slot="tabs-trigger"] {
+  flex-direction: row-reverse;
+}
+
+/* ── Invoice codes always LTR (INV-2026-XXXX) ── */
 .font-mono, .invoice-code {
   direction: ltr;
   unicode-bidi: embed;
 }
-/* Numbers and currency: keep LTR for readability */
+
+/* ── Numbers and currency: keep LTR for readability ── */
 .currency-amount {
   direction: ltr;
   unicode-bidi: embed;
   display: inline-block;
 }
-/* RTL-aware card layouts */
-[dir="rtl"] .card-row {
-  flex-direction: row-reverse;
-}
-/* Fix select dropdowns in RTL */
+
+/* ── Select dropdowns in RTL ── */
 [dir="rtl"] [data-slot="select-trigger"] {
   text-align: right;
 }
 [dir="rtl"] [data-slot="select-content"] {
   text-align: right;
 }
-/* Fix dialog/modal alignment in RTL */
+
+/* ── Dialog/modal alignment in RTL ── */
 [dir="rtl"] [role="dialog"] {
   text-align: right;
 }
-/* Progress bar direction */
+
+/* ── Progress bar direction ── */
 [dir="rtl"] .progress-bar-fill {
   margin-left: auto;
   margin-right: 0;
 }
-/* Tab trigger icon+text gap fix for RTL */
-[dir="rtl"] [data-slot="tabs-trigger"] {
-  flex-direction: row-reverse;
-}
-/* Ensure toast notifications respect RTL */
+
+/* ── Toast notifications ── */
 [dir="rtl"] [data-sonner-toaster] {
   direction: rtl;
+}
+
+/* ── Chevron/arrow icons that imply direction ── */
+[dir="rtl"] .rtl-flip-icon {
+  transform: scaleX(-1);
+}
+
+/* ── Ensure text inputs with LTR content stay LTR ── */
+[dir="rtl"] input[dir="ltr"],
+[dir="rtl"] .ltr-input {
+  direction: ltr;
+  text-align: left;
+}
+
+/* ── Card header row: booking info + amount ── */
+[dir="rtl"] .booking-header-row {
+  flex-direction: row-reverse;
+}
+[dir="rtl"] .booking-header-row .booking-amount {
+  text-align: left;
+}
+[dir="rtl"] .booking-header-row .booking-info {
+  text-align: right;
+}
+
+/* ── Payment row: info + amount ── */
+[dir="rtl"] .payment-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Invoice row: code + amount ── */
+[dir="rtl"] .invoice-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Maintenance row: title + priority ── */
+[dir="rtl"] .maintenance-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Notification row: dot + content ── */
+[dir="rtl"] .notification-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Service row: info + price ── */
+[dir="rtl"] .service-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Emergency row: info + badges ── */
+[dir="rtl"] .emergency-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Alert/CTA rows with icon + text ── */
+[dir="rtl"] .alert-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Badge/tag rows ── */
+[dir="rtl"] .badge-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Section header rows (icon + label) ── */
+[dir="rtl"] .section-header-row {
+  flex-direction: row-reverse;
+}
+
+/* ── Profile info rows ── */
+[dir="rtl"] .profile-row {
+  flex-direction: row-reverse;
+}
+
+/* ── ID document row ── */
+[dir="rtl"] .doc-row {
+  flex-direction: row-reverse;
+}
+
+/* ── My requests row ── */
+[dir="rtl"] .request-row {
+  flex-direction: row-reverse;
 }
 
 /* ═══ Mobile FAB Stacking Rules ═══ */

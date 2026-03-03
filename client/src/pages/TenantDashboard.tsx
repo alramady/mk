@@ -176,9 +176,9 @@ export default function TenantDashboard() {
                   <Card key={b.id} className="card-hover transition-shadow">
                     <CardContent className="p-4">
                       {/* Booking header row */}
-                      <div className="flex items-center justify-between cursor-pointer" onClick={() => setLocation(`/property/${b.propertyId}`)}>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <div className="flex items-center justify-between cursor-pointer booking-header-row" onClick={() => setLocation(`/property/${b.propertyId}`)}>
+                        <div className="flex-1 min-w-0 booking-info">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap badge-row">
                             <span className="font-semibold">{isAr ? `حجز #${b.id}` : `Booking #${b.id}`}</span>
                             {statusBadge(b.status, lang)}
                           </div>
@@ -189,7 +189,7 @@ export default function TenantDashboard() {
                             {b.durationMonths} {t("booking.months")} • <span className="currency-amount">{Number(b.monthlyRent).toLocaleString()}</span> {t("payment.sar")}{t("property.perMonth")}
                           </div>
                         </div>
-                        <div className={isAr ? "text-start ms-4 shrink-0" : "text-end ms-4 shrink-0"}>
+                        <div className={`shrink-0 booking-amount ${isAr ? "text-start ms-4" : "text-end ms-4"}`}>
                           <div className="font-bold text-primary"><span className="currency-amount">{Number(b.totalAmount).toLocaleString()}</span> {t("payment.sar")}</div>
                           <div className="text-xs text-muted-foreground">{t("common.total")}</div>
                         </div>
@@ -197,7 +197,7 @@ export default function TenantDashboard() {
 
                       {/* Booking Timeline — RTL-aware */}
                       <div className="mt-3 pt-3 border-t">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 section-header-row">
                           <Clock className="h-3 w-3 shrink-0" />
                           <span>{isAr ? "الجدول الزمني" : "Timeline"}</span>
                         </div>
@@ -223,13 +223,13 @@ export default function TenantDashboard() {
                       {/* Ledger / Invoice Info */}
                       {(b as any).ledgerEntries?.length > 0 && (
                         <div className="mt-3 pt-3 border-t">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5 section-header-row">
                             <FileText className="h-3 w-3 shrink-0" />
                             <span>{isAr ? "الفاتورة" : "Invoice"}</span>
                           </div>
                           {(b as any).ledgerEntries.map((le: any) => (
-                            <div key={le.id} className="flex items-center justify-between text-xs p-2 rounded border bg-muted/30 mb-1">
-                              <div className="flex items-center gap-2">
+                            <div key={le.id} className="flex items-center justify-between text-xs p-2 rounded border bg-muted/30 mb-1 invoice-row">
+                              <div className="flex items-center gap-2 badge-row">
                                 <span className="font-mono invoice-code">{le.invoiceNumber}</span>
                                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
                                   le.status === 'PAID' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800' :
@@ -252,7 +252,7 @@ export default function TenantDashboard() {
                       {b.status === "approved" && (
                         <div className="mt-3 pt-3 border-t space-y-2">
                           <div className="p-2.5 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-sm">
-                            <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-medium mb-1">
+                            <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-medium mb-1 alert-row">
                               <CheckCircle className="h-3.5 w-3.5 shrink-0" />
                               {isAr ? "تم قبول طلبك! يرجى إكمال الدفع" : "Your request was approved! Please complete payment"}
                             </div>
@@ -279,7 +279,7 @@ export default function TenantDashboard() {
                             </Button>
                           ) : (
                             <div className="p-2.5 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm">
-                              <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-medium">
+                              <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-medium alert-row">
                                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                                 {isAr ? "الدفع الإلكتروني غير مفعّل حالياً — يرجى التواصل مع الإدارة" : "Online payment not configured — please contact admin"}
                               </div>
@@ -304,7 +304,7 @@ export default function TenantDashboard() {
                       {b.status === "active" && (
                         <div className="mt-3 pt-3 border-t">
                           <div className="p-2.5 rounded bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm">
-                            <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400 font-medium">
+                            <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400 font-medium alert-row">
                               <CheckCircle className="h-3.5 w-3.5 shrink-0" />
                               {isAr ? "الحجز نشط — تم تأكيد الدفع" : "Booking active — Payment confirmed"}
                             </div>
@@ -332,9 +332,9 @@ export default function TenantDashboard() {
               <div className="space-y-3">
                 {payments.data.map((p) => (
                   <Card key={p.id}>
-                    <CardContent className="p-4 flex items-center justify-between">
+                    <CardContent className="p-4 flex items-center justify-between payment-row">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap badge-row">
                           <span className="font-semibold">{t(`payment.${p.type}` as any)}</span>
                           {statusBadge(p.status, lang)}
                         </div>
@@ -385,8 +385,8 @@ export default function TenantDashboard() {
                 {maintenance.data.map((m) => (
                   <Card key={m.id}>
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center justify-between mb-2 flex-wrap gap-2 maintenance-row">
+                        <div className="flex items-center gap-2 flex-wrap badge-row">
                           <span className="font-semibold">{m.title}</span>
                           {statusBadge(m.status, lang)}
                         </div>
@@ -422,8 +422,8 @@ export default function TenantDashboard() {
               <div className="space-y-2">
                 {notifications.data.map((n) => (
                   <Card key={n.id} className={`${!n.isRead ? "border-primary/30 bg-primary/5" : ""}`}>
-                    <CardContent className="p-4 flex items-start gap-3">
-                      <div className={`h-2 w-2 rounded-full mt-2 shrink-0 ${!n.isRead ? "bg-primary" : "bg-transparent"}`} />
+                    <CardContent className="p-4 flex items-start gap-3 notification-row">
+                      <div className={`h-2 w-2 rounded-full mt-2 shrink-0 ${!n.isRead ? "bg-primary" : "bg-transparent"}`} style={isAr ? {order: 2} : undefined} />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm">{isAr ? n.titleAr : n.titleEn}</div>
                         {(n.contentEn || n.contentAr) && (
@@ -447,7 +447,7 @@ export default function TenantDashboard() {
           <TabsContent value="profile">
             <Card>
               <CardHeader>
-                <CardTitle className="font-heading flex items-center gap-2">
+                <CardTitle className="font-heading flex items-center gap-2 section-header-row">
                   <User className="h-5 w-5 text-[#3ECFC0]" />
                   {isAr ? "الملف الشخصي" : "Personal Profile"}
                 </CardTitle>
@@ -455,7 +455,7 @@ export default function TenantDashboard() {
               <CardContent className="space-y-6">
                 {/* Verification Status Badges */}
                 <div className="bg-muted/20 rounded-xl p-4 border">
-                  <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm section-header-row">
                     <CheckCircle className="h-4 w-4 text-[#3ECFC0] shrink-0" />
                     {isAr ? "حالة التحقق" : "Verification Status"}
                   </h4>
@@ -485,7 +485,7 @@ export default function TenantDashboard() {
 
                 {/* Avatar Upload Section */}
                 <div className="bg-muted/30 rounded-xl p-6 border border-dashed border-[#3ECFC0]/30">
-                  <h4 className="font-semibold mb-4 flex items-center gap-2 text-sm">
+                  <h4 className="font-semibold mb-4 flex items-center gap-2 text-sm section-header-row">
                     <Camera className="h-4 w-4 text-[#3ECFC0] shrink-0" />
                     {isAr ? "الصورة الشخصية" : "Profile Photo"}
                   </h4>
@@ -554,7 +554,7 @@ export default function TenantDashboard() {
 
                 {/* Contact Information */}
                 <div>
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 section-header-row">
                     <Phone className="h-4 w-4 text-[#3ECFC0] shrink-0" />
                     {isAr ? "معلومات التواصل" : "Contact Information"}
                   </h4>
@@ -578,7 +578,7 @@ export default function TenantDashboard() {
 
                 {/* Identity Information */}
                 <div>
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 section-header-row">
                     <FileText className="h-4 w-4 text-[#3ECFC0] shrink-0" />
                     {isAr ? "معلومات الهوية" : "Identity Information"}
                   </h4>
@@ -602,7 +602,7 @@ export default function TenantDashboard() {
 
                 {/* Emergency Contact */}
                 <div>
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 section-header-row">
                     <AlertCircle className="h-4 w-4 text-[#C9A96E] shrink-0" />
                     {isAr ? "جهة اتصال الطوارئ" : "Emergency Contact"}
                   </h4>
@@ -628,12 +628,12 @@ export default function TenantDashboard() {
 
                 {/* ID Document Upload */}
                 <div>
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 section-header-row">
                     <FileText className="h-4 w-4 text-[#C9A96E] shrink-0" />
                     {isAr ? "مستند الهوية" : "ID Document"}
                   </h4>
                   {(user as any)?.idDocumentUrl ? (
-                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 doc-row">
                       <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
                       <span className="text-sm flex-1">{isAr ? "تم رفع مستند الهوية" : "ID document uploaded"}</span>
                       <Button variant="outline" size="sm" className="shrink-0" onClick={() => docInputRef.current?.click()}>
@@ -641,7 +641,7 @@ export default function TenantDashboard() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors" onClick={() => docInputRef.current?.click()}>
+                    <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors doc-row" onClick={() => docInputRef.current?.click()}>
                       <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
                       <span className="text-sm flex-1">{isAr ? "يرجى رفع صورة الهوية / الإقامة" : "Please upload your ID / Iqama copy"}</span>
                       {uploadingDoc && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
@@ -668,7 +668,7 @@ export default function TenantDashboard() {
           <TabsContent value="inspections">
             <Card>
               <CardHeader>
-                <CardTitle className="font-heading flex items-center gap-2">
+                <CardTitle className="font-heading flex items-center gap-2 section-header-row">
                   <Eye className="h-5 w-5 text-[#3ECFC0]" />
                   {isAr ? "طلبات المعاينة" : "Inspection Requests"}
                 </CardTitle>
@@ -726,7 +726,7 @@ function TenantServicesTab({ lang, isAr }: { lang: string; isAr: boolean }) {
       {/* Available Services */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading flex items-center gap-2">
+          <CardTitle className="font-heading flex items-center gap-2 section-header-row">
             <Building2 className="h-5 w-5 text-[#3ECFC0]" />
             {isAr ? "الخدمات المتاحة" : "Available Services"}
           </CardTitle>
@@ -738,7 +738,7 @@ function TenantServicesTab({ lang, isAr }: { lang: string; isAr: boolean }) {
             <div className="grid gap-3 sm:grid-cols-2">
               {services.data.map((s) => (
                 <div key={s.id} className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedService?.id === s.id ? "border-[#3ECFC0] bg-[#3ECFC0]/5" : "hover:border-[#3ECFC0]/50"}`} onClick={() => setSelectedService(s)}>
-                  <div className="flex justify-between items-start gap-3">
+                  <div className="flex justify-between items-start gap-3 service-row">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold">{isAr ? s.nameAr : s.nameEn}</h4>
                       <p className="text-sm text-muted-foreground">{isAr ? s.descriptionAr : s.descriptionEn}</p>
@@ -772,7 +772,7 @@ function TenantServicesTab({ lang, isAr }: { lang: string; isAr: boolean }) {
             {myRequests.data.map((r) => {
               const st = statusLabels[r.status] || statusLabels.pending;
               return (
-                <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border flex-wrap gap-2">
+                <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border flex-wrap gap-2 request-row">
                   <div className="min-w-0">
                     <span className="font-medium">#{r.id} — {isAr ? `خدمة #${r.serviceId}` : `Service #${r.serviceId}`}</span>
                     <div className="text-sm text-muted-foreground">{new Date(r.createdAt).toLocaleDateString(isAr ? "ar-SA" : "en-US")}</div>
@@ -874,8 +874,8 @@ function TenantEmergencyTab({ lang, isAr }: { lang: string; isAr: boolean }) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <CardTitle className="font-heading flex items-center gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-3 emergency-row">
+            <CardTitle className="font-heading flex items-center gap-2 section-header-row">
               <AlertCircle className="h-5 w-5 text-red-500" />
               {isAr ? "طوارئ الصيانة" : "Emergency Maintenance"}
             </CardTitle>
@@ -1009,7 +1009,7 @@ function TenantEmergencyTab({ lang, isAr }: { lang: string; isAr: boolean }) {
                 const cat = categoryLabels[r.category] || categoryLabels.other;
                 return (
                   <div key={r.id} className="p-4 rounded-lg border">
-                    <div className="flex items-start justify-between flex-wrap gap-2">
+                    <div className="flex items-start justify-between flex-wrap gap-2 emergency-row">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className="font-bold">#{r.id}</span>
