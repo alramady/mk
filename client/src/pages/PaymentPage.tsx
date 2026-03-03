@@ -71,7 +71,7 @@ export default function PaymentPage() {
 
   if (booking.isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col" dir={dir}>
         <Navbar />
         <div className="container py-8 max-w-2xl">
           <Skeleton className="h-12 w-48 mb-6" />
@@ -84,7 +84,7 @@ export default function PaymentPage() {
 
   if (!b) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col" dir={dir}>
         <Navbar />
         <div className="container py-20 text-center">
           <p className="text-muted-foreground">{lang === "ar" ? "الحجز غير موجود" : "Booking not found"}</p>
@@ -97,7 +97,7 @@ export default function PaymentPage() {
 
   if (b.status !== "approved") {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col" dir={dir}>
         <Navbar />
         <div className="container py-20 text-center max-w-md mx-auto">
           <div className="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
@@ -198,7 +198,7 @@ export default function PaymentPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30" dir={dir}>
       <SEOHead title="Payment" titleAr="الدفع" path="/pay" noindex={true} />
       <Navbar />
       <div className="container py-6 max-w-2xl">

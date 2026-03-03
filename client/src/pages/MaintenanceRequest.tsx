@@ -80,7 +80,7 @@ export default function MaintenanceRequest() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col" dir={dir}>
       <SEOHead title="Maintenance Request" titleAr="طلب صيانة" path="/maintenance-request" noindex={true} />
       <Navbar />
       <div className="container py-6 max-w-2xl">

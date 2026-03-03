@@ -85,7 +85,7 @@ export default function BookingFlow() {
 
   if (property.isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col" dir={dir}>
       <SEOHead title="Book Property" titleAr="حجز عقار" path="/book" noindex={true} />
         <Navbar />
         <div className="container py-8"><Skeleton className="h-96 w-full" /></div>
@@ -95,7 +95,7 @@ export default function BookingFlow() {
 
   if (!prop) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col" dir={dir}>
         <Navbar />
         <div className="container py-20 text-center">
           <p className="text-muted-foreground">{lang === "ar" ? "العقار غير موجود" : "Property not found"}</p>
@@ -132,7 +132,7 @@ export default function BookingFlow() {
   today.setHours(0, 0, 0, 0);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30" dir={dir}>
       <Navbar />
       <div className="container py-6 max-w-2xl">
         <Button variant="ghost" size="sm" onClick={() => setLocation(`/property/${propertyId}`)} className="mb-4 hover:bg-muted/80">

@@ -64,7 +64,7 @@ export default function Messages() {
   const BackArrow = dir === "rtl" ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col" dir={dir}>
       <SEOHead title="Messages" titleAr="الرسائل" path="/messages" noindex={true} />
       <Navbar />
       <div className="container py-4 flex-1 flex flex-col">
