@@ -18,9 +18,9 @@ import {
   Heart, Share2, MapPin, BedDouble, Bath, Maximize2, Building, Building2, Calendar,
   CheckCircle, Star, MessageSquare, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight,
   Wifi, Car, Dumbbell, Shield, Wind, Droplets, Zap, Flame, Tv, Shirt,
-  Phone, UserCog, Clock, Eye, Calculator, X
+  Phone, UserCog, Clock, Eye, Calculator, X, Expand, Navigation
 } from "lucide-react";
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { MediaLightbox, type LightboxPropertyInfo } from "@/components/MediaLightbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -73,6 +73,10 @@ export default function PropertyDetail() {
   const mapRef = useRef<MapInstance | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [mapModalView, setMapModalView] = useState<'roadmap' | 'satellite' | 'streetview'>('roadmap');
+  const mapModalRef = useRef<HTMLDivElement>(null);
+  const mapModalInstanceRef = useRef<MapInstance | null>(null);
   const touchStartX = useRef<number | null>(null);
 
   const id = Number(params?.id);
@@ -582,7 +586,7 @@ export default function PropertyDetail() {
 
             {/* Map with property info — privacy-aware */}
             {showMap && (
-              <Card>
+              <Card className="overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -595,12 +599,24 @@ export default function PropertyDetail() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <MapView
-                    className="h-[350px] rounded-lg"
-                    initialCenter={{ lat, lng }}
-                    initialZoom={isApproximate ? 13 : 15}
-                    onMapReady={handleMapReady}
-                  />
+                  {/* Inline map with expand overlay */}
+                  <div className="relative group">
+                    <MapView
+                      className="h-[300px] rounded-xl"
+                      initialCenter={{ lat, lng }}
+                      initialZoom={isApproximate ? 13 : 15}
+                      onMapReady={handleMapReady}
+                    />
+                    {/* Expand button overlay */}
+                    <button
+                      onClick={() => setMapModalOpen(true)}
+                      className="absolute top-3 end-3 z-10 h-9 w-9 rounded-lg bg-white/90 dark:bg-black/70 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-black/90 transition-all hover:scale-105 active:scale-95"
+                      title={lang === "ar" ? "توسيع الخريطة" : "Expand map"}
+                    >
+                      <Expand className="h-4 w-4 text-gray-700 dark:text-gray-200" />
+                    </button>
+                  </div>
+                  {/* Location info + Directions */}
                   <div className="mt-3 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4 text-primary shrink-0" />
@@ -619,7 +635,7 @@ export default function PropertyDetail() {
                           window.open(url, "_blank");
                         }}
                       >
-                        <MapPin className="h-3.5 w-3.5" />
+                        <Navigation className="h-3.5 w-3.5" />
                         {lang === "ar" ? "الاتجاهات" : "Directions"}
                       </Button>
                     )}
@@ -627,6 +643,73 @@ export default function PropertyDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* ===== Map Modal — realestate.com.au style ===== */}
+            {showMap && mapModalOpen && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center">
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setMapModalOpen(false); setMapModalView('roadmap'); }} />
+                {/* Modal */}
+                <div className="relative z-10 w-[95vw] max-w-4xl bg-white dark:bg-[#1a1a2e] rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="font-semibold text-base text-gray-900 dark:text-gray-100 truncate" dir={dir}>
+                      {title || (district ? `${district}، ${city}` : city)}
+                    </h3>
+                    <button
+                      onClick={() => { setMapModalOpen(false); setMapModalView('roadmap'); }}
+                      className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0"
+                    >
+                      <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    </button>
+                  </div>
+                  {/* Map body */}
+                  <div className="flex-1 relative" style={{ minHeight: '55vh' }}>
+                    {mapModalView === 'streetview' ? (
+                      <iframe
+                        className="w-full h-full absolute inset-0"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://www.google.com/maps/embed/v1/streetview?key=${(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8')}&location=${lat},${lng}&heading=210&pitch=10&fov=90`}
+                      />
+                    ) : (
+                      <iframe
+                        className="w-full h-full absolute inset-0"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://www.google.com/maps/embed/v1/place?key=${(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8')}&q=${lat},${lng}&zoom=15&maptype=${mapModalView === 'satellite' ? 'satellite' : 'roadmap'}&language=${lang}`}
+                      />
+                    )}
+                  </div>
+                  {/* Footer — Map / Satellite / Street view tabs */}
+                  <div className="flex items-center justify-center gap-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a2e]">
+                    {[
+                      { key: 'roadmap' as const, label: lang === 'ar' ? 'خريطة' : 'Map' },
+                      { key: 'satellite' as const, label: lang === 'ar' ? 'قمر صناعي' : 'Satellite' },
+                      { key: 'streetview' as const, label: lang === 'ar' ? 'التجوّل الافتراضي' : 'Street view' },
+                    ].map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setMapModalView(tab.key)}
+                        className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+                          mapModalView === tab.key
+                            ? 'text-[#0B1E2D] dark:text-white bg-gray-100 dark:bg-gray-700/50'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/30'
+                        }`}
+                      >
+                        {tab.label}
+                        {mapModalView === tab.key && (
+                          <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-[#3ECFC0] rounded-full" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Hidden location — show text only */}
             {!showMap && locData?.reason !== "maps_disabled" && (
               <Card>
