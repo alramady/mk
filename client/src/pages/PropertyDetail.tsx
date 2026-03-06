@@ -717,7 +717,7 @@ export default function PropertyDetail() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-20 space-y-4">
+            <div className="lg:sticky lg:top-20 space-y-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:scrollbar-thin lg:scrollbar-thumb-muted-foreground/20 lg:scrollbar-track-transparent lg:pe-1">
 
               {/* Booking Card — hidden when calculator is open */}
               {!showCalculator && (
