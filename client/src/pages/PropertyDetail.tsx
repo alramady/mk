@@ -74,9 +74,7 @@ export default function PropertyDetail() {
   const [showCalculator, setShowCalculator] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [mapModalOpen, setMapModalOpen] = useState(false);
-  const [mapModalView, setMapModalView] = useState<'roadmap' | 'satellite' | 'streetview'>('roadmap');
-  const mapModalRef = useRef<HTMLDivElement>(null);
-  const mapModalInstanceRef = useRef<MapInstance | null>(null);
+  const mapModalMapRef = useRef<MapInstance | null>(null);
   const touchStartX = useRef<number | null>(null);
 
   const id = Number(params?.id);
@@ -648,7 +646,7 @@ export default function PropertyDetail() {
             {showMap && mapModalOpen && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center">
                 {/* Overlay */}
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setMapModalOpen(false); setMapModalView('roadmap'); }} />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMapModalOpen(false)} />
                 {/* Modal */}
                 <div className="relative z-10 w-[95vw] max-w-4xl bg-white dark:bg-[#1a1a2e] rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
                   {/* Header */}
@@ -657,54 +655,71 @@ export default function PropertyDetail() {
                       {title || (district ? `${district}، ${city}` : city)}
                     </h3>
                     <button
-                      onClick={() => { setMapModalOpen(false); setMapModalView('roadmap'); }}
+                      onClick={() => setMapModalOpen(false)}
                       className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0"
                     >
                       <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                     </button>
                   </div>
-                  {/* Map body */}
+                  {/* Map body — uses the same MapView component (Leaflet or Google) */}
                   <div className="flex-1 relative" style={{ minHeight: '55vh' }}>
-                    {mapModalView === 'streetview' ? (
-                      <iframe
-                        className="w-full h-full absolute inset-0"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={`https://www.google.com/maps/embed/v1/streetview?key=${(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8')}&location=${lat},${lng}&heading=210&pitch=10&fov=90`}
-                      />
-                    ) : (
-                      <iframe
-                        className="w-full h-full absolute inset-0"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={`https://www.google.com/maps/embed/v1/place?key=${(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8')}&q=${lat},${lng}&zoom=15&maptype=${mapModalView === 'satellite' ? 'satellite' : 'roadmap'}&language=${lang}`}
-                      />
-                    )}
+                    <MapView
+                      className="w-full h-full"
+                      initialCenter={{ lat: lat ?? 24.7136, lng: lng ?? 46.6753 }}
+                      initialZoom={isApproximate ? 14 : 16}
+                      onMapReady={(mapInst) => {
+                        mapModalMapRef.current = mapInst;
+                        // Add marker
+                        const titleText = lang === "ar" ? prop.titleAr : prop.titleEn;
+                        const cityText = lang === "ar" ? prop.cityAr : prop.city;
+                        const districtText = lang === "ar" ? prop.districtAr : prop.district;
+                        const locationText = districtText ? `${districtText}، ${cityText}` : cityText;
+                        const rentText = `${Number(prop.monthlyRent).toLocaleString()} ${lang === "ar" ? "ر.س" : "SAR"}`;
+                        const monthLabel = lang === "ar" ? "شهرياً" : "/month";
+                        const popupContent = `
+                          <div style="font-family:'Tajawal',sans-serif;direction:${dir};padding:8px;min-width:200px;">
+                            <div style="font-weight:700;font-size:14px;color:#0B1E2D;margin-bottom:4px;">${titleText || ""}</div>
+                            <div style="font-size:12px;color:#666;margin-bottom:6px;">${locationText || ""}</div>
+                            <div style="background:linear-gradient(135deg,#0B1E2D,#132d42);color:#3ECFC0;padding:6px 10px;border-radius:8px;text-align:center;">
+                              <span style="font-size:16px;font-weight:700;">${rentText}</span>
+                              <span style="font-size:11px;color:#8ecfc4;margin-${dir === "rtl" ? "right" : "left"}:4px;">${monthLabel}</span>
+                            </div>
+                          </div>
+                        `;
+                        const marker = mapInst.addMarker(lat ?? 24.7136, lng ?? 46.6753, {
+                          color: "#3ECFC0",
+                          label: rentText,
+                          title: titleText || "",
+                        });
+                        mapInst.addPopup(marker, popupContent);
+                      }}
+                    />
                   </div>
-                  {/* Footer — Map / Satellite / Street view tabs */}
+                  {/* Footer — Directions + Open in Google Maps */}
                   <div className="flex items-center justify-center gap-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a2e]">
-                    {[
-                      { key: 'roadmap' as const, label: lang === 'ar' ? 'خريطة' : 'Map' },
-                      { key: 'satellite' as const, label: lang === 'ar' ? 'قمر صناعي' : 'Satellite' },
-                      { key: 'streetview' as const, label: lang === 'ar' ? 'التجوّل الافتراضي' : 'Street view' },
-                    ].map((tab) => (
-                      <button
-                        key={tab.key}
-                        onClick={() => setMapModalView(tab.key)}
-                        className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
-                          mapModalView === tab.key
-                            ? 'text-[#0B1E2D] dark:text-white bg-gray-100 dark:bg-gray-700/50'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/30'
-                        }`}
-                      >
-                        {tab.label}
-                        {mapModalView === tab.key && (
-                          <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-[#3ECFC0] rounded-full" />
-                        )}
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => {
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                        const url = isIOS
+                          ? `maps://maps.apple.com/?daddr=${lat},${lng}`
+                          : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+                        window.open(url, "_blank");
+                      }}
+                      className="flex-1 py-3 text-sm font-medium text-[#3ECFC0] hover:bg-[#3ECFC0]/5 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Navigation className="h-4 w-4" />
+                      {lang === "ar" ? "الاتجاهات" : "Directions"}
+                    </button>
+                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
+                    <button
+                      onClick={() => {
+                        window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
+                      }}
+                      className="flex-1 py-3 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      {lang === "ar" ? "فتح في Google Maps" : "Open in Google Maps"}
+                    </button>
                   </div>
                 </div>
               </div>
