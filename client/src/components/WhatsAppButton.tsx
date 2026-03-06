@@ -204,7 +204,7 @@ export default function WhatsAppButton({
     >
       {/* Tooltip bubble */}
       <div
-        className={`bg-white rounded-2xl shadow-2xl px-4 py-2.5 text-sm font-medium text-gray-800 border border-gray-100 transition-all duration-500 whitespace-nowrap ${
+        className={`bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl px-4 py-2.5 text-sm font-medium text-gray-800 dark:text-white border border-gray-100 dark:border-gray-700 transition-all duration-500 whitespace-nowrap ${
           showTooltip
             ? "opacity-100 translate-x-0 scale-100"
             : "opacity-0 translate-x-4 scale-90 pointer-events-none"
@@ -214,7 +214,7 @@ export default function WhatsAppButton({
           <span className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse" />
           {tooltipText}
         </div>
-        <div className="absolute -start-2 bottom-3 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-e-[8px] border-e-white" />
+        <div className="absolute -start-2 bottom-3 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-e-[8px] border-e-white dark:border-e-[#1e293b]" />
       </div>
 
       {/* WhatsApp Button */}

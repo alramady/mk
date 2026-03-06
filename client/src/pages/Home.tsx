@@ -453,11 +453,11 @@ function HeroSearchBar({ lang, cities, onSearch }: {
               <div className="w-10 h-1 rounded-full bg-gray-300" />
             </div>
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-              <h3 className="font-bold text-[#0B1E2D] text-lg">
+              <h3 className="font-bold text-[#0B1E2D] dark:text-white text-lg">
                 {lang === "ar" ? "خيارات إضافية" : "More Options"}
               </h3>
-              <button type="button" onClick={() => setMobileSheet(false)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                <X className="h-5 w-5 text-gray-500" />
+              <button type="button" onClick={() => setMobileSheet(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <X className="h-5 w-5 text-gray-500 dark:text-gray-300" />
               </button>
             </div>
             <div className="px-5 py-4">
@@ -662,7 +662,7 @@ export default function Home() {
               />
             )}
             {/* Gradient overlay for text readability: top darker → bottom lighter */}
-            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/55 via-black/30 to-black/20 pointer-events-none" />
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/70 via-black/50 to-black/40 pointer-events-none" />
           </>
         ) : s("hero.bgImage") ? (
           <>
@@ -678,7 +678,7 @@ export default function Home() {
                 opacity: parseInt(s("hero.overlayOpacity", "60")) / 100
               }}
             />
-            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/55 via-black/25 to-black/15 pointer-events-none" />
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/70 via-black/50 to-black/40 pointer-events-none" />
           </>
         ) : (
           <>
@@ -690,7 +690,7 @@ export default function Home() {
                 opacity: parseInt(s("hero.overlayOpacity", "60")) / 100
               }}
             />
-            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/55 via-black/25 to-black/15 pointer-events-none" />
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/70 via-black/50 to-black/40 pointer-events-none" />
           </>  
         )}
         
@@ -725,7 +725,7 @@ export default function Home() {
             </div>
 
             {/* Animated Badge */}
-            <div className="inline-flex items-center gap-2 border border-[#C5A55A]/30 rounded-full px-4 py-1.5 mb-6 animate-slide-left glass-card">
+            <div className="inline-flex items-center gap-2 border border-[#C5A55A]/30 rounded-full px-4 py-1.5 mb-6 animate-slide-left glass-card" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)', backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }}>
               <span className="w-2 h-2 rounded-full bg-[#C5A55A] animate-pulse" />
               <span className="text-sm text-[#C5A55A]">
                 {lang === "ar" ? "خبير الإيجار الشهري الآن في السعودية" : "Monthly Rental Expert in Saudi Arabia"}
@@ -733,12 +733,12 @@ export default function Home() {
               <Sparkles className="h-3.5 w-3.5 text-[#C5A55A] animate-pulse" />
             </div>
 
-            <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-heading font-extrabold mb-4 sm:mb-6 leading-snug sm:leading-tight">
+            <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-heading font-extrabold mb-4 sm:mb-6 leading-snug sm:leading-tight" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.5)' }}>
               {sl("hero.title", lang) || (lang === "ar"
                 ? "إدارة إيجارات شهرية متميزة"
                 : "Premium Monthly Rental Management")}
             </h1>
-            <p className="text-sm sm:text-lg md:text-xl text-white/85 mb-6 sm:mb-10 leading-relaxed max-w-2xl mx-auto fade-up visible" style={{ animationDelay: '0.3s' }}>
+            <p className="text-sm sm:text-lg md:text-xl text-white mb-6 sm:mb-10 leading-relaxed max-w-2xl mx-auto fade-up visible" style={{ animationDelay: '0.3s', textShadow: '0 2px 6px rgba(0,0,0,0.7), 0 0 16px rgba(0,0,0,0.4)' }}>
               {sl("hero.subtitle", lang) || (lang === "ar"
                 ? "إدارة إيجارات شهرية متميزة | الرياض • جدة • المدينة المنورة"
                 : "Premium monthly rental management | Riyadh • Jeddah • Madinah")}
