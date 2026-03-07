@@ -818,14 +818,43 @@ export default function PropertyDetail() {
             <div className="lg:sticky lg:top-20 space-y-4">
 
               {/* Booking Card — hidden when calculator is open */}
-              {!showCalculator && (
+              {!showCalculator && (() => {
+                // Calculate grand total for 1 month (min stay) to show upfront
+                const _rent = Number(prop.monthlyRent);
+                const _cfg = calcConfig.data;
+                const _minMonths = (() => {
+                  const allowed = _cfg?.allowedMonths;
+                  const propMin = prop.minStayMonths || 1;
+                  return allowed && allowed.length > 0 ? Math.min(...allowed) : propMin;
+                })();
+                const _insuranceAmt = _cfg
+                  ? (_cfg.insuranceMode === "fixed"
+                    ? Math.round(_cfg.insuranceFixedAmount || 0)
+                    : Math.round(_rent * ((_cfg.insuranceRate || 10) / 100)))
+                  : Math.round(_rent * 0.1);
+                const _serviceFeeAmt = _cfg
+                  ? Math.round(_rent * _minMonths * ((_cfg.serviceFeeRate || 5) / 100))
+                  : Math.round(_rent * _minMonths * 0.05);
+                const _subtotal = (_rent * _minMonths) + _insuranceAmt + _serviceFeeAmt;
+                const _vatAmt = _cfg
+                  ? Math.round(_subtotal * ((_cfg.vatRate || 15) / 100))
+                  : Math.round(_subtotal * 0.15);
+                const _grandTotal = _subtotal + _vatAmt;
+                const _minLabel = _minMonths === 1 ? (lang === "ar" ? "شهر" : "month") : _minMonths === 2 ? (lang === "ar" ? "شهرين" : "months") : (lang === "ar" ? "أشهر" : "months");
+
+                return (
                 <Card className="shadow-lg">
                   <CardContent className="p-6 space-y-4">
                     <div>
                       <div className="text-2xl sm:text-3xl font-bold text-primary font-heading">
-                        {Number(prop.monthlyRent).toLocaleString()} {t("payment.sar")}
+                        {_grandTotal.toLocaleString()} {t("payment.sar")}
                       </div>
-                      <span className="text-muted-foreground text-sm">{t("property.perMonth")}</span>
+                      <span className="text-muted-foreground text-sm">
+                        {lang === "ar" ? `إجمالي ${_minMonths} ${_minLabel} شامل الضريبة` : `Total for ${_minMonths} ${_minLabel} incl. VAT`}
+                      </span>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {Number(prop.monthlyRent).toLocaleString()} {t("payment.sar")} {t("property.perMonth")}
+                      </div>
                     </div>
 
                     <Separator />
@@ -1042,7 +1071,8 @@ export default function PropertyDetail() {
                     )}
                   </CardContent>
                 </Card>
-              )}
+              );
+              })()}
 
               {/* Finance Calculator — backend-driven component */}
               {showCalculator && (
