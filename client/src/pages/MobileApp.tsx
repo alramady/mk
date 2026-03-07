@@ -2,11 +2,14 @@
  * MobileApp — Full mobile app preview inside a phone frame
  * Design: "Oasis" — Organic Saudi Tech
  * Arabic-first RTL, deep navy, frosted glass, Tajawal typography
+ * Auth: Supabase Auth (real email/password)
  */
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Search, CalendarDays, User, ChevronRight, MapPin, BedDouble, Bath, Maximize, Wifi, Car, Wind, Star, ArrowRight, Heart, Bell, Filter, X, Check, CreditCard, Building2, ChevronLeft } from "lucide-react";
+import { Home, Search, CalendarDays, User, ChevronRight, MapPin, BedDouble, Bath, Maximize, Wifi, Car, Wind, Star, Heart, Bell, Filter, X, Check, CreditCard, Building2, ChevronLeft, Loader2, Eye, EyeOff, Mail, Lock, UserPlus, LogIn } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 // ─── Image URLs ───
 const IMAGES = {
@@ -157,6 +160,7 @@ const amenityLabels: Record<string, string> = {
 
 // ─── Main Component ───
 export default function MobileApp() {
+  const { user, isLoggedIn, isLoading: authLoading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [screen, setScreen] = useState<ScreenId>("tabs");
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
@@ -165,7 +169,6 @@ export default function MobileApp() {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
@@ -204,11 +207,34 @@ export default function MobileApp() {
     });
   }, []);
 
+  const handleLogout = useCallback(async () => {
+    await signOut();
+    setScreen("tabs");
+    setActiveTab("home");
+    toast.success("تم تسجيل الخروج بنجاح");
+  }, [signOut]);
+
+  const handleLoginSuccess = useCallback(() => {
+    if (selectedProperty) {
+      setBookingStep(0);
+      setBookingConfirmed(false);
+      setScreen("booking-flow");
+    } else {
+      setScreen("tabs");
+    }
+    toast.success("تم تسجيل الدخول بنجاح");
+  }, [selectedProperty]);
+
   const filteredProperties = PROPERTIES.filter((p) => {
     if (selectedCity && p.city !== selectedCity) return false;
     if (searchQuery && !p.titleAr.includes(searchQuery) && !p.district.includes(searchQuery)) return false;
     return true;
   });
+
+  // Get user display info
+  const userDisplayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "مستخدم";
+  const userEmail = user?.email || "";
+  const userInitials = userDisplayName.slice(0, 2);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 md:p-8" style={{ background: "linear-gradient(135deg, #050A15 0%, #0B1426 40%, #0D1A33 100%)" }}>
@@ -260,7 +286,10 @@ export default function MobileApp() {
                     <ProfileTab
                       isLoggedIn={isLoggedIn}
                       onLogin={() => setScreen("login")}
-                      onLogout={() => setIsLoggedIn(false)}
+                      onLogout={handleLogout}
+                      userName={userDisplayName}
+                      userEmail={userEmail}
+                      userInitials={userInitials}
                     />
                   )}
                 </div>
@@ -357,16 +386,7 @@ export default function MobileApp() {
                 className="h-full"
               >
                 <LoginScreen
-                  onLogin={() => {
-                    setIsLoggedIn(true);
-                    if (selectedProperty) {
-                      setBookingStep(0);
-                      setBookingConfirmed(false);
-                      setScreen("booking-flow");
-                    } else {
-                      setScreen("tabs");
-                    }
-                  }}
+                  onSuccess={handleLoginSuccess}
                   onBack={goBack}
                 />
               </motion.div>
@@ -402,68 +422,62 @@ function HomeTab({
           alt="الرياض"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 20%, rgba(11,20,38,0.85) 80%, rgba(11,20,38,1) 100%)" }} />
-        <div className="absolute bottom-0 right-0 left-0 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-accent pulse-dot" />
-            <span className="text-accent text-xs font-medium">متاح الآن</span>
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(11,20,38,0.3) 0%, rgba(11,20,38,0.8) 80%)" }} />
+        <div className="absolute bottom-6 right-4 left-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs text-emerald-400 font-medium">متاح الآن</span>
           </div>
           <h1 className="text-2xl font-bold text-white mb-1">المفتاح الشهري</h1>
-          <p className="text-sm text-white/60">اكتشف أفضل العقارات للإيجار الشهري في المملكة</p>
+          <p className="text-sm text-white/70">اكتشف أفضل العقارات للإيجار الشهري في المملكة</p>
         </div>
       </div>
 
-      {/* Quick Cities */}
+      {/* City Pills */}
       <div className="px-4 py-4">
-        <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+        <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {CITIES.map((city) => (
-            <button
-              key={city}
-              className="flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium glass transition-all hover:bg-primary/20"
-            >
+            <button key={city} className="px-4 py-2 rounded-full text-xs font-medium glass whitespace-nowrap transition-all hover:bg-card/80">
               {city}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Featured Section */}
+      {/* Featured */}
       <div className="px-4 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold">عقارات مميزة</h2>
-          <button className="text-primary text-xs font-medium flex items-center gap-1">
-            عرض الكل
-            <ChevronLeft className="w-3 h-3" />
+          <h2 className="text-base font-bold">عقارات مميزة</h2>
+          <button className="text-xs text-primary flex items-center gap-0.5">
+            عرض الكل <ChevronLeft className="w-3 h-3" />
           </button>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+        <div className="flex gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {featured.map((property, i) => (
             <motion.div
               key={property.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="flex-shrink-0 w-[260px]"
+              className="min-w-[260px]"
             >
               <PropertyCard
                 property={property}
                 onPress={() => onOpenProperty(property)}
                 isFavorite={favorites.has(property.id)}
                 onToggleFavorite={() => onToggleFavorite(property.id)}
-                size="large"
               />
             </motion.div>
           ))}
         </div>
       </div>
 
-      {/* Popular Section */}
+      {/* Popular */}
       <div className="px-4 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold">الأعلى تقييماً</h2>
-          <button className="text-primary text-xs font-medium flex items-center gap-1">
-            عرض الكل
-            <ChevronLeft className="w-3 h-3" />
+          <h2 className="text-base font-bold">الأكثر طلباً</h2>
+          <button className="text-xs text-primary flex items-center gap-0.5">
+            عرض الكل <ChevronLeft className="w-3 h-3" />
           </button>
         </div>
         <div className="flex flex-col gap-3">
@@ -472,7 +486,7 @@ function HomeTab({
               key={property.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
+              transition={{ delay: i * 0.1 }}
             >
               <PropertyCard
                 property={property}
@@ -1110,10 +1124,16 @@ function ProfileTab({
   isLoggedIn,
   onLogin,
   onLogout,
+  userName,
+  userEmail,
+  userInitials,
 }: {
   isLoggedIn: boolean;
   onLogin: () => void;
   onLogout: () => void;
+  userName: string;
+  userEmail: string;
+  userInitials: string;
 }) {
   if (!isLoggedIn) {
     return (
@@ -1138,11 +1158,11 @@ function ProfileTab({
       <div className="pt-4 pb-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>
-            أم
+            {userInitials}
           </div>
           <div>
-            <h2 className="text-lg font-bold">أحمد محمد</h2>
-            <p className="text-sm text-muted-foreground">tenant@test.sa</p>
+            <h2 className="text-lg font-bold">{userName}</h2>
+            <p className="text-sm text-muted-foreground">{userEmail}</p>
           </div>
         </div>
       </div>
@@ -1180,10 +1200,67 @@ function ProfileTab({
   );
 }
 
-// ─── Login Screen ───
-function LoginScreen({ onLogin, onBack }: { onLogin: () => void; onBack: () => void }) {
+// ─── Login Screen (Real Supabase Auth) ───
+function LoginScreen({ onSuccess, onBack }: { onSuccess: () => void; onBack: () => void }) {
+  const { signIn, signUp } = useAuth();
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    setError(null);
+
+    if (!email.trim()) {
+      setError("يرجى إدخال البريد الإلكتروني");
+      return;
+    }
+    if (!password.trim() || password.length < 6) {
+      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (mode === "login") {
+        const { error: authError } = await signIn(email, password);
+        if (authError) {
+          if (authError.message.includes("Invalid login")) {
+            setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+          } else {
+            setError(authError.message);
+          }
+          return;
+        }
+        onSuccess();
+      } else {
+        if (!fullName.trim()) {
+          setError("يرجى إدخال الاسم الكامل");
+          setLoading(false);
+          return;
+        }
+        const { error: authError } = await signUp(email, password, fullName);
+        if (authError) {
+          if (authError.message.includes("already registered")) {
+            setError("هذا البريد الإلكتروني مسجل بالفعل");
+          } else {
+            setError(authError.message);
+          }
+          return;
+        }
+        toast.success("تم إنشاء الحساب بنجاح! تحقق من بريدك الإلكتروني لتأكيد الحساب.");
+        setMode("login");
+      }
+    } catch {
+      setError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -1195,46 +1272,139 @@ function LoginScreen({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
       </div>
 
       <div className="flex-1 px-6 flex flex-col justify-center">
+        {/* Title */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">مرحباً بك</h1>
-          <p className="text-sm text-muted-foreground">سجل الدخول للمتابعة</p>
+          <h1 className="text-2xl font-bold mb-2">
+            {mode === "login" ? "مرحباً بك" : "إنشاء حساب جديد"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {mode === "login" ? "سجل الدخول للمتابعة" : "أنشئ حسابك للبدء في استخدام المفتاح الشهري"}
+          </p>
         </div>
 
+        {/* Error Message */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 p-3 rounded-xl text-sm font-medium"
+              style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}
+            >
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Form */}
         <div className="space-y-4">
+          {/* Full Name (signup only) */}
+          <AnimatePresence>
+            {mode === "signup" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <label className="text-xs text-muted-foreground mb-1.5 block">الاسم الكامل</label>
+                <div className="relative">
+                  <UserPlus className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="أحمد محمد"
+                    className="w-full h-12 pr-10 pl-4 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
+                    dir="rtl"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Email */}
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">البريد الإلكتروني</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@example.com"
-              className="w-full h-12 px-4 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
-              dir="ltr"
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                placeholder="email@example.com"
+                className="w-full h-12 px-10 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
+                dir="ltr"
+              />
+            </div>
           </div>
+
+          {/* Password */}
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">كلمة المرور</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full h-12 px-4 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
-              dir="ltr"
-            />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                placeholder="••••••••"
+                className="w-full h-12 pl-10 pr-12 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
+                dir="ltr"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Submit Button */}
         <button
-          onClick={onLogin}
-          className="w-full h-12 rounded-xl font-bold text-white text-base mt-6 transition-all active:scale-[0.98]"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full h-12 rounded-xl font-bold text-white text-base mt-6 transition-all active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100 flex items-center justify-center gap-2"
           style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}
         >
-          تسجيل الدخول
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>جاري {mode === "login" ? "تسجيل الدخول" : "إنشاء الحساب"}...</span>
+            </>
+          ) : (
+            <>
+              {mode === "login" ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+              <span>{mode === "login" ? "تسجيل الدخول" : "إنشاء حساب"}</span>
+            </>
+          )}
         </button>
 
+        {/* Toggle Mode */}
         <p className="text-center text-xs text-muted-foreground mt-4">
-          ليس لديك حساب؟ <button className="text-primary font-medium">إنشاء حساب</button>
+          {mode === "login" ? (
+            <>
+              ليس لديك حساب؟{" "}
+              <button onClick={() => { setMode("signup"); setError(null); }} className="text-primary font-medium">
+                إنشاء حساب
+              </button>
+            </>
+          ) : (
+            <>
+              لديك حساب بالفعل؟{" "}
+              <button onClick={() => { setMode("login"); setError(null); }} className="text-primary font-medium">
+                تسجيل الدخول
+              </button>
+            </>
+          )}
         </p>
       </div>
     </div>
