@@ -20,5 +20,12 @@ export default defineConfig({
     port: 3000,
     strictPort: false,
     host: true,
+    proxy: {
+      "/api/trpc": {
+        target: "https://monthlykey.com",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
 });
