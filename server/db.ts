@@ -24,6 +24,8 @@ import {
   aiDocuments, InsertAiDocument,
   propertySubmissions, InsertPropertySubmission, submissionPhotos, InsertSubmissionPhoto,
   cmsContentVersions, InsertCmsContentVersion, cmsMedia, InsertCmsMedia,
+  hiddenProperties, InsertHiddenProperty,
+  propertyEnquiries, InsertPropertyEnquiry,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -517,6 +519,29 @@ export async function getDb() {
         )`);
       } catch (e: any) {
         if (e?.errno !== 1050) console.warn("[Database] integration_credentials table note:", e?.message?.substring(0, 120));
+      }
+      // Auto-migrate: hidden_properties and property_enquiries tables
+      try {
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS hidden_properties (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          userId int NOT NULL,
+          propertyId int NOT NULL,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_hidden (userId, propertyId),
+          INDEX idx_hidden_user (userId)
+        )`);
+        await _pool.execute(`CREATE TABLE IF NOT EXISTS property_enquiries (
+          id int AUTO_INCREMENT PRIMARY KEY,
+          userId int NOT NULL,
+          propertyId int NOT NULL,
+          message text,
+          status enum('sent','read','replied') NOT NULL DEFAULT 'sent',
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_enquiry_user (userId),
+          INDEX idx_enquiry_property (propertyId)
+        )`);
+      } catch (e: any) {
+        console.warn("[Database] collections tables note:", e?.message?.substring(0, 120));
       }
       // Auto-migrate: extend audit_log enums (migration 0025)
       try {
@@ -2664,4 +2689,66 @@ export async function updateWhatsAppMessageStatus(providerMsgId: string, status:
   } catch {
     // Silently ignore - delivery status is best-effort
   }
+}
+
+
+// ─── Hidden Properties ──────────────────────────────────────────────
+export async function hideProperty(userId: number, propertyId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const exists = await db.select().from(hiddenProperties)
+    .where(and(eq(hiddenProperties.userId, userId), eq(hiddenProperties.propertyId, propertyId))).limit(1);
+  if (exists.length === 0) {
+    await db.insert(hiddenProperties).values({ userId, propertyId } as any);
+  }
+}
+export async function unhideProperty(userId: number, propertyId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(hiddenProperties)
+    .where(and(eq(hiddenProperties.userId, userId), eq(hiddenProperties.propertyId, propertyId)));
+}
+export async function isPropertyHidden(userId: number, propertyId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.select().from(hiddenProperties)
+    .where(and(eq(hiddenProperties.userId, userId), eq(hiddenProperties.propertyId, propertyId))).limit(1);
+  return result.length > 0;
+}
+export async function getUserHiddenProperties(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const hidden = await db.select().from(hiddenProperties).where(eq(hiddenProperties.userId, userId));
+  if (hidden.length === 0) return [];
+  const propIds = hidden.map(h => h.propertyId);
+  return db.select().from(properties).where(inArray(properties.id, propIds));
+}
+
+// ─── Property Enquiries ─────────────────────────────────────────────
+export async function createPropertyEnquiry(userId: number, propertyId: number, message?: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(propertyEnquiries).values({ userId, propertyId, message } as any);
+  return result[0].insertId;
+}
+export async function getUserEnquiries(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const enquiries = await db.select().from(propertyEnquiries)
+    .where(eq(propertyEnquiries.userId, userId))
+    .orderBy(desc(propertyEnquiries.createdAt));
+  if (enquiries.length === 0) return [];
+  const propIds = [...new Set(enquiries.map(e => e.propertyId))];
+  const props = await db.select().from(properties).where(inArray(properties.id, propIds));
+  return enquiries.map(e => ({
+    ...e,
+    property: props.find(p => p.id === e.propertyId) || null,
+  }));
+}
+export async function getPropertyEnquiries(propertyId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(propertyEnquiries)
+    .where(eq(propertyEnquiries.propertyId, propertyId))
+    .orderBy(desc(propertyEnquiries.createdAt));
 }

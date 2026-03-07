@@ -13,7 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import {
   Home, Calendar, CreditCard, Heart, Wrench, Bell, Settings, User,
   Loader2, Building2, Clock, CheckCircle, XCircle, AlertCircle,
-  Phone, Mail, MapPin, FileText, Camera, Save, Eye, Upload, X, ImageIcon, Video, Play
+  Phone, Mail, MapPin, FileText, Camera, Save, Eye, Upload, X, ImageIcon, Video, Play,
+  EyeOff, MessageSquare
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { normalizeMediaUrl } from "@/lib/utils";
@@ -24,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 
@@ -150,7 +151,7 @@ export default function TenantDashboard() {
           </p>
         </div>
 
-        <Tabs defaultValue="bookings" className="space-y-6">
+        <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") || "bookings"} className="space-y-6">
           {/* ─── Tab Navigation ─── */}
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <TabsList className="inline-flex h-auto gap-1 p-1 w-max min-w-full sm:min-w-0 sm:flex-wrap">
@@ -163,6 +164,8 @@ export default function TenantDashboard() {
               <TabsTrigger value="inspections" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Eye className="h-4 w-4 shrink-0" />{isAr ? "طلبات المعاينة" : "Inspections"}</TabsTrigger>
               <TabsTrigger value="services" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Building2 className="h-4 w-4 shrink-0" />{isAr ? "الخدمات" : "Services"}</TabsTrigger>
               <TabsTrigger value="emergency" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><AlertCircle className="h-4 w-4 shrink-0" />{isAr ? "طوارئ الصيانة" : "Emergency"}</TabsTrigger>
+              <TabsTrigger value="enquiries" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><MessageSquare className="h-4 w-4 shrink-0" />{isAr ? "الاستفسارات" : "Enquiries"}</TabsTrigger>
+              <TabsTrigger value="hidden" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><EyeOff className="h-4 w-4 shrink-0" />{isAr ? "المخفية" : "Hidden"}</TabsTrigger>
             </TabsList>
           </div>
 
@@ -691,6 +694,16 @@ export default function TenantDashboard() {
           <TabsContent value="emergency">
             <TenantEmergencyTab lang={lang} isAr={isAr} />
           </TabsContent>
+
+          {/* ═══════════ ENQUIRIES TAB ═══════════ */}
+          <TabsContent value="enquiries">
+            <TenantEnquiriesTab lang={lang} isAr={isAr} />
+          </TabsContent>
+
+          {/* ═══════════ HIDDEN PROPERTIES TAB ═══════════ */}
+          <TabsContent value="hidden">
+            <TenantHiddenTab lang={lang} isAr={isAr} />
+          </TabsContent>
         </Tabs>
       </div>
       <Footer />
@@ -1060,6 +1073,124 @@ function TenantEmergencyTab({ lang, isAr }: { lang: string; isAr: boolean }) {
         </CardContent>
       </Card>
       <MediaLightbox items={lightboxItems} initialIndex={lightboxIndex} open={lightboxOpen} onClose={() => setLightboxOpen(false)} />
+    </div>
+  );
+}
+
+
+// ─── Tenant Enquiries Tab ─────────────────────────────────────────────
+function TenantEnquiriesTab({ lang, isAr }: { lang: string; isAr: boolean }) {
+  const enquiries = trpc.enquiry.list.useQuery();
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-[#3ECFC0]" />
+            {isAr ? "الاستفسارات" : "Enquiries"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {enquiries.isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          ) : !enquiries.data || enquiries.data.length === 0 ? (
+            <div className="text-center py-12">
+              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+              <p className="text-muted-foreground">{isAr ? "لا توجد استفسارات بعد" : "No enquiries yet"}</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">
+                {isAr ? "عند استفسارك عن أي عقار ستظهر هنا" : "When you enquire about a property, it will appear here"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {enquiries.data.map((e: any) => (
+                <div key={e.id} className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm">
+                      {e.property ? (isAr ? (e.property.titleAr || e.property.title) : e.property.title) : (isAr ? "عقار محذوف" : "Deleted property")}
+                    </h4>
+                    {e.message && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{e.message}</p>}
+                    <p className="text-xs text-muted-foreground/60 mt-2">
+                      {new Date(e.createdAt).toLocaleDateString(isAr ? "ar-SA" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
+                    </p>
+                  </div>
+                  {e.property && (
+                    <a href={`/property/${e.propertyId}`} className="text-xs text-[#3ECFC0] hover:underline whitespace-nowrap">
+                      {isAr ? "عرض العقار" : "View Property"}
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Tenant Hidden Properties Tab ─────────────────────────────────────
+function TenantHiddenTab({ lang, isAr }: { lang: string; isAr: boolean }) {
+  const hidden = trpc.hidden.list.useQuery();
+  const toggleHidden = trpc.hidden.toggle.useMutation({
+    onSuccess: () => {
+      hidden.refetch();
+      toast.success(isAr ? "تم إظهار العقار" : "Property unhidden");
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <EyeOff className="h-5 w-5 text-[#3ECFC0]" />
+            {isAr ? "العقارات المخفية" : "Hidden Properties"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hidden.isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          ) : !hidden.data || hidden.data.length === 0 ? (
+            <div className="text-center py-12">
+              <EyeOff className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+              <p className="text-muted-foreground">{isAr ? "لا توجد عقارات مخفية" : "No hidden properties"}</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">
+                {isAr ? "العقارات التي تخفيها لن تظهر في نتائج البحث" : "Properties you hide won't appear in search results"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {hidden.data.map((p: any) => (
+                <div key={p.id} className="relative group">
+                  <PropertyCard property={p} lang={lang} />
+                  <div className="absolute top-2 end-2 z-10">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                      onClick={() => toggleHidden.mutate({ propertyId: p.id })}
+                      disabled={toggleHidden.isPending}
+                    >
+                      <Eye className="h-3.5 w-3.5 me-1" />
+                      {isAr ? "إظهار" : "Unhide"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -18,7 +18,7 @@ import {
   Heart, Share2, MapPin, BedDouble, Bath, Maximize2, Building, Building2, Calendar,
   CheckCircle, Star, MessageSquare, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight,
   Wifi, Car, Dumbbell, Shield, Wind, Droplets, Zap, Flame, Tv, Shirt,
-  Phone, UserCog, Clock, Eye, Calculator, X, Expand, Navigation
+  Phone, UserCog, Clock, Eye, EyeOff, Calculator, X, Expand, Navigation
 } from "lucide-react";
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { MediaLightbox, type LightboxPropertyInfo } from "@/components/MediaLightbox";
@@ -87,6 +87,18 @@ export default function PropertyDetail() {
     onSuccess: () => {
       trpc.useUtils().favorite.check.invalidate({ propertyId: id });
     },
+  });
+  const hiddenCheck = trpc.hidden.check.useQuery({ propertyId: id }, { enabled: isAuthenticated && !!id });
+  const toggleHidden = trpc.hidden.toggle.useMutation({
+    onSuccess: () => {
+      trpc.useUtils().hidden.check.invalidate({ propertyId: id });
+    },
+  });
+  const createEnquiry = trpc.enquiry.create.useMutation({
+    onSuccess: () => {
+      toast.success(lang === "ar" ? "تم إرسال الاستفسار بنجاح" : "Enquiry sent successfully");
+    },
+    onError: (err: any) => toast.error(err.message),
   });
 
   const { get: siteSetting } = useSiteSettings();
@@ -399,6 +411,15 @@ export default function PropertyDetail() {
                     aria-label={lang === "ar" ? "إضافة للمفضلة" : "Add to favorites"}
                   >
                     <Heart className={`h-4 w-4 ${favCheck.data?.isFavorite ? "fill-white text-white" : "text-white"}`} />
+                  </button>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; } toggleHidden.mutate({ propertyId: id }); }}
+                    data-action="true"
+                    className="h-11 w-11 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
+                    style={{ backgroundColor: hiddenCheck.data?.isHidden ? '#f59e0b' : 'rgba(30,41,59,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
+                    aria-label={lang === "ar" ? "إخفاء العقار" : "Hide property"}
+                  >
+                    <EyeOff className={`h-4 w-4 ${hiddenCheck.data?.isHidden ? "text-white" : "text-white"}`} />
                   </button>
                 </div>
                 {/* Verified badge */}

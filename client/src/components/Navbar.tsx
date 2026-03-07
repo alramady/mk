@@ -21,7 +21,8 @@ import { trpc } from "@/lib/trpc";
 import {
   Home, Search, Bell, MessageSquare, Menu, X, Globe, User,
   LogOut, LayoutDashboard, KeyRound, Plus, ChevronDown, MapPin,
-  CheckCheck, Trash2, CreditCard, CalendarCheck, AlertCircle, BellRing, Package
+  CheckCheck, Trash2, CreditCard, CalendarCheck, AlertCircle, BellRing, Package,
+  Star, ClipboardList, Mail, EyeOff, Bookmark
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -201,6 +202,69 @@ function NotificationDropdown() {
   );
 }
 
+function CollectionsDropdown() {
+  const { t, lang } = useI18n();
+  const [, navigate] = useLocation();
+  const [open, setOpen] = useState(false);
+
+  const items = [
+    {
+      key: "saved",
+      icon: Star,
+      label: t("collections.saved"),
+      href: "/tenant?tab=favorites",
+    },
+    {
+      key: "inspections",
+      icon: ClipboardList,
+      label: t("collections.inspections"),
+      href: "/tenant?tab=inspections",
+    },
+    {
+      key: "enquired",
+      icon: Mail,
+      label: t("collections.enquired"),
+      href: "/tenant?tab=enquiries",
+    },
+    {
+      key: "hidden",
+      icon: EyeOff,
+      label: t("collections.hidden"),
+      href: "/tenant?tab=hidden",
+    },
+  ];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative h-9 w-9 text-white/90 hover:text-white hover:bg-white/10">
+          <Bookmark className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-0" sideOffset={8}>
+        <div className="px-4 py-3 border-b bg-muted/30">
+          <h3 className="font-semibold text-sm">{t("nav.collections")}</h3>
+        </div>
+        <div className="py-1">
+          {items.map((item) => (
+            <button
+              key={item.key}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm hover:bg-muted/50 transition-colors border-b last:border-b-0 text-foreground"
+              onClick={() => {
+                setOpen(false);
+                navigate(item.href);
+              }}
+            >
+              <item.icon className="h-5 w-5 text-muted-foreground" />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ThemeToggle() {
   const { theme, toggleTheme, switchable } = useTheme();
   if (!switchable || !toggleTheme) return null;
@@ -313,6 +377,9 @@ export default function Navbar() {
               <Globe className="h-4 w-4" />
               <span className="text-xs">{lang === "ar" ? "EN" : "AR"}</span>
             </Button>
+
+            {/* Collections Dropdown */}
+            {isAuthenticated && <CollectionsDropdown />}
 
             {/* Notifications Dropdown */}
             {isAuthenticated && <NotificationDropdown />}

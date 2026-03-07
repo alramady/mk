@@ -78,6 +78,41 @@ export const userRouterDefs = {
       }),
   }),
 
+  hidden: router({
+    toggle: protectedProcedure
+      .input(z.object({ propertyId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const isHidden = await db.isPropertyHidden(ctx.user.id, input.propertyId);
+        if (isHidden) {
+          await db.unhideProperty(ctx.user.id, input.propertyId);
+          return { isHidden: false };
+        } else {
+          await db.hideProperty(ctx.user.id, input.propertyId);
+          return { isHidden: true };
+        }
+      }),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserHiddenProperties(ctx.user.id);
+    }),
+    check: protectedProcedure
+      .input(z.object({ propertyId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return { isHidden: await db.isPropertyHidden(ctx.user.id, input.propertyId) };
+      }),
+  }),
+
+  enquiry: router({
+    create: protectedProcedure
+      .input(z.object({ propertyId: z.number(), message: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.createPropertyEnquiry(ctx.user.id, input.propertyId, input.message);
+        return { success: true, id };
+      }),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserEnquiries(ctx.user.id);
+    }),
+  }),
+
   review: router({
     create: protectedProcedure
       .input(z.object({

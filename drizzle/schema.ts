@@ -1042,3 +1042,25 @@ export const integrationCredentials = mysqlTable("integration_credentials", {
 });
 export type IntegrationCredential = typeof integrationCredentials.$inferSelect;
 export type InsertIntegrationCredential = typeof integrationCredentials.$inferInsert;
+
+// ─── Hidden Properties (user hides properties from their feed) ──────
+export const hiddenProperties = mysqlTable("hidden_properties", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  propertyId: int("propertyId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type HiddenProperty = typeof hiddenProperties.$inferSelect;
+export type InsertHiddenProperty = typeof hiddenProperties.$inferInsert;
+
+// ─── Property Enquiries (user enquired about a property) ────────────
+export const propertyEnquiries = mysqlTable("property_enquiries", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  propertyId: int("propertyId").notNull(),
+  message: text("message"),
+  status: mysqlEnum("status", ["sent", "read", "replied"]).default("sent").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PropertyEnquiry = typeof propertyEnquiries.$inferSelect;
+export type InsertPropertyEnquiry = typeof propertyEnquiries.$inferInsert;
