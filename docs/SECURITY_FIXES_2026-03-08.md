@@ -129,16 +129,54 @@ All fixes from the API Security Audit have been applied. This document tracks ea
 
 ---
 
+## Supplementary Fixes (Pass 2)
+
+### Fix A: Startup Guards for Webhook Secrets
+**Files:** `server/_core/index.ts`
+**Gap:** Webhook handlers rejected requests when secrets were missing, but the server still started — leaving a window where unverified webhooks could be processed during startup race conditions.
+**Fix:** Added fatal startup guards that throw and terminate the process if `MOYASAR_WEBHOOK_SECRET`, `TABBY_WEBHOOK_SECRET`, or `TAMARA_WEBHOOK_SECRET` are not set in production. The server will not start without them.
+
+### Fix B: Enforce Redis in Production
+**Files:** `server/_core/index.ts`
+**Gap:** The in-memory fallback for rate limiting and token blacklisting was silently used in production when `REDIS_URL` was not set. In-memory state is lost on restart, allowing blacklisted tokens to become valid again.
+**Fix:** Added fatal startup guard: `REDIS_URL` is required in production. The in-memory fallback is only acceptable in `development` and `test` environments.
+
+### Fix C: Strip `recoveryEmail` from All Responses
+**Files:** `server/routers/auth.router.ts`, `server/db.ts`
+**Gap:** `recoveryEmail` was returned in `auth.me`, `auth.getFullProfile`, and the admin user list endpoint.
+**Fix:**
+- Extended `sanitizeUser()` in `auth.router.ts` to strip both `passwordHash` and `recoveryEmail` from all auth responses.
+- Removed `recoveryEmail` from the `getAllUsers()` select fields in `db.ts` so the admin panel never receives it.
+
+### Fix D: Route-Specific Body Parser Limits
+**Files:** `server/_core/index.ts`
+**Gap:** Global body parser limit was 10MB for all routes, allowing large payload DoS on non-upload endpoints.
+**Fix:**
+- Global default reduced to **1MB**.
+- 10MB limit applied only to specific upload routes:
+  - `/trpc/submission.uploadPhoto`
+  - `/trpc/submission.create`
+  - `/trpc/property.uploadImages`
+  - `/trpc/property.update`
+  - `/trpc/cms.mediaUpload`
+  - `/trpc/manager.uploadPhoto`
+  - `/trpc/manager.uploadSelfPhoto`
+  - `/trpc/auth.updateProfile`
+  - `/trpc/integration.kyc.submit`
+
+---
+
 ## Environment Variables Required
 
-The following new environment variables should be set in production:
+The following environment variables must be set in production. The server will **not start** without the ones marked as FATAL.
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
-| `TABBY_WEBHOOK_SECRET` | HMAC secret for Tabby payment webhooks | Yes (if using Tabby) |
-| `TAMARA_WEBHOOK_SECRET` | HMAC secret for Tamara payment webhooks | Yes (if using Tamara) |
-| `MOYASAR_WEBHOOK_SECRET` | HMAC secret for Moyasar payment webhooks | Yes (mandatory) |
-| `WHATSAPP_APP_SECRET` | Meta App Secret for WhatsApp webhook verification | Yes (if using WhatsApp) |
+| `MOYASAR_WEBHOOK_SECRET` | HMAC secret for Moyasar payment webhooks | **FATAL** — server won't start |
+| `TABBY_WEBHOOK_SECRET` | HMAC secret for Tabby payment webhooks | **FATAL** — server won't start |
+| `TAMARA_WEBHOOK_SECRET` | HMAC secret for Tamara payment webhooks | **FATAL** — server won't start |
+| `REDIS_URL` | Redis connection URL for rate limiting and token blacklisting | **FATAL** — server won't start |
+| `WHATSAPP_APP_SECRET` | Meta App Secret for WhatsApp webhook verification | Recommended |
 | `SETTINGS_ENCRYPTION_KEY` | 64 hex chars (32 bytes) for AES-256-GCM encryption | Strongly recommended |
 
 Generate encryption key: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
@@ -153,4 +191,5 @@ Generate encryption key: `node -e "console.log(require('crypto').randomBytes(32)
 | P1 (High) | 7 | Done |
 | P2 (Medium) | 6 | Done |
 | P3 (Low) | 4 | Done |
-| **Total** | **21** | **All Applied** |
+| Supplementary (A–D) | 4 | Done |
+| **Total** | **25** | **All Applied** |

@@ -675,7 +675,7 @@ export async function getAllUsers(limit = 50, offset = 0, search?: string, role?
     email: users.email, phone: users.phone, whatsapp: users.whatsapp,
     role: users.role, avatarUrl: users.avatarUrl, isVerified: users.isVerified,
     createdAt: users.createdAt, lastSignedIn: users.lastSignedIn,
-    recoveryEmail: users.recoveryEmail,
+    // recoveryEmail stripped — sensitive field not exposed to admin panel
     isRootAdmin: adminPermissions.isRootAdmin,
   }).from(users)
     .leftJoin(adminPermissions, eq(users.id, adminPermissions.userId));

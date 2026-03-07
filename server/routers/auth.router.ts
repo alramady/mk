@@ -34,10 +34,10 @@ import {
 // Extracted from server/routers.ts — DO NOT modify procedure names/shapes
 
 /** Strip passwordHash (and any other sensitive fields) before returning user to client */
-function sanitizeUser<T extends Record<string, any>>(user: T | null): Omit<T, 'passwordHash'> | null {
+function sanitizeUser<T extends Record<string, any>>(user: T | null): Omit<T, 'passwordHash' | 'recoveryEmail'> | null {
   if (!user) return null;
-  const { passwordHash, ...safe } = user;
-  return safe as Omit<T, 'passwordHash'>;
+  const { passwordHash, recoveryEmail, ...safe } = user;
+  return safe as Omit<T, 'passwordHash' | 'recoveryEmail'>;
 }
 
 export const authRouterDefs = {

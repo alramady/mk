@@ -98,6 +98,22 @@ async function loadStorageConfigFromDb(): Promise<void> {
 }
 
 async function startServer() {
+  // ─── Production Startup Guards ──────────────────────────────────────
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.MOYASAR_WEBHOOK_SECRET) {
+      throw new Error('[FATAL] MOYASAR_WEBHOOK_SECRET is required in production. Server will not start.');
+    }
+    if (!process.env.TABBY_WEBHOOK_SECRET) {
+      throw new Error('[FATAL] TABBY_WEBHOOK_SECRET is required in production. Server will not start.');
+    }
+    if (!process.env.TAMARA_WEBHOOK_SECRET) {
+      throw new Error('[FATAL] TAMARA_WEBHOOK_SECRET is required in production. Server will not start.');
+    }
+    if (!process.env.REDIS_URL) {
+      throw new Error('[FATAL] REDIS_URL is required in production. In-memory fallback is not safe for token blacklisting.');
+    }
+  }
+
   const app = express();
   const server = createServer(app);
 
@@ -107,9 +123,21 @@ async function startServer() {
   // ─── Compression (Gzip/Brotli) ────────────────────────────────────
   app.use(compressionMiddleware);
 
-  // Configure body parser with size limit (10mb covers base64 images, prevents DoS)
-  app.use(express.json({ limit: "10mb" }));
-  app.use(express.urlencoded({ limit: "10mb", extended: true }));
+  // ─── Body Parser (route-specific limits) ───────────────────────────
+  // Global default: 1MB (prevents large payload DoS)
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ limit: "1mb", extended: true }));
+  // Upload-specific routes: 10MB for base64 image/file uploads
+  const uploadJsonParser = express.json({ limit: "10mb" });
+  app.use('/trpc/submission.uploadPhoto', uploadJsonParser);
+  app.use('/trpc/submission.create', uploadJsonParser);
+  app.use('/trpc/property.uploadImages', uploadJsonParser);
+  app.use('/trpc/property.update', uploadJsonParser);
+  app.use('/trpc/cms.mediaUpload', uploadJsonParser);
+  app.use('/trpc/manager.uploadPhoto', uploadJsonParser);
+  app.use('/trpc/manager.uploadSelfPhoto', uploadJsonParser);
+  app.use('/trpc/auth.updateProfile', uploadJsonParser);
+  app.use('/trpc/integration.kyc.submit', uploadJsonParser);
 
   // Serve uploaded files from local storage
   const uploadDir = path.resolve(process.env.UPLOAD_DIR || "uploads");
