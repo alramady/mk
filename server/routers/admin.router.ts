@@ -241,8 +241,8 @@ export const adminRouterDefs = {
         // 3. Photos check
         const hasPhotos = prop.photos && (prop.photos as string[]).length > 0;
         if (!hasPhotos) errors.push({ en: 'Property must have at least one photo', ar: 'يجب أن يكون للعقار صورة واحدة على الأقل' });
-        // 4. Cover photo check
-        if (hasPhotos && !(prop as any).coverPhoto) errors.push({ en: 'Cover photo must be set', ar: 'يجب تعيين صورة الغلاف' });
+        // 4. Cover photo check — first photo in the photos array is the cover by design
+        // No separate coverPhoto column exists; the array order determines the cover.
         // 5. Location check
         if (!prop.city && !prop.cityAr) errors.push({ en: 'Property must have a city/location', ar: 'يجب تحديد مدينة/موقع العقار' });
         if (errors.length > 0) {

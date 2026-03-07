@@ -1501,7 +1501,7 @@ export async function setAdminPermissions(userId: number, perms: string[], isRoo
   const db = await getDb();
   if (!db) return;
   await db.insert(adminPermissions).values({ userId, permissions: perms, isRootAdmin: isRoot })
-    .onDuplicateKeyUpdate({ set: { permissions: perms } });
+    .onDuplicateKeyUpdate({ set: { permissions: perms, isRootAdmin: isRoot } });
 }
 
 export async function getAllAdminPermissions() {
