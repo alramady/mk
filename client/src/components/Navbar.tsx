@@ -252,7 +252,7 @@ function CollectionsDropdown() {
               className="flex items-center gap-3 w-full px-4 py-3 text-sm hover:bg-muted/50 transition-colors border-b last:border-b-0 text-foreground"
               onClick={() => {
                 setOpen(false);
-                navigate(item.href);
+                window.location.href = item.href;
               }}
             >
               <item.icon className="h-5 w-5 text-muted-foreground" />

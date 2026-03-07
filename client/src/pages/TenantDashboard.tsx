@@ -57,7 +57,10 @@ export default function TenantDashboard() {
   const { user, isAuthenticated, loading } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Profile state
+  // Tab state from URL
+  const [activeTab, setActiveTab] = useState(() => new URLSearchParams(window.location.search).get("tab") || "bookings");
+
+  // Profile statee
   const [profileForm, setProfileForm] = useState({
     phone: "", nationalId: "", dateOfBirth: "", nationality: "",
     emergencyContact: "", emergencyPhone: "",
@@ -151,7 +154,7 @@ export default function TenantDashboard() {
           </p>
         </div>
 
-        <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") || "bookings"} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); window.history.replaceState(null, "", `/tenant?tab=${val}`); }} className="space-y-6">
           {/* ─── Tab Navigation ─── */}
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <TabsList className="inline-flex h-auto gap-1 p-1 w-max min-w-full sm:min-w-0 sm:flex-wrap">
