@@ -20,7 +20,7 @@ import {
   ArrowUpDown, ArrowUp, ArrowDown,
   Wallet, ThumbsUp, Globe, HelpCircle, FileText, Shield,
   Users, Share2, BarChart3, ShieldCheck, UserCog, Briefcase,
-  Calendar, ChevronDown,
+  Calendar, ChevronDown, MoreHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -452,7 +452,7 @@ export default function MobileApp() {
                       { id: "search" as TabId, icon: Search, label: "البحث" },
                       { id: "favorites" as TabId, icon: Heart, label: "المفضلة" },
                       { id: "bookings" as TabId, icon: CalendarDays, label: "حجوزاتي" },
-                      { id: "profile" as TabId, icon: User, label: "حسابي" },
+                      { id: "profile" as TabId, icon: MoreHorizontal, label: "المزيد" },
                     ]).map((tab) => (
                       <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="flex flex-col items-center gap-1 transition-all duration-200 relative">
                         <tab.icon className={`w-5 h-5 transition-colors ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"} ${tab.id === "favorites" && favorites.size > 0 ? (activeTab === tab.id ? "fill-primary" : "") : ""}`} />
@@ -1732,13 +1732,103 @@ function ProfileTab({
 }) {
   const [showHostSheet, setShowHostSheet] = useState(false);
 
+  // Guest menu items (shown when not logged in)
+  const guestMenuItems: { label: string; icon: React.ReactNode; action?: () => void; requiresAuth?: boolean }[] = [
+    { label: "استضف معنا (سجّل عقارك)", icon: <Building2 className="w-5 h-5" />, action: () => setShowHostSheet(true) },
+    { label: "الأسئلة الشائعة", icon: <HelpCircle className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "شروط الاستخدام", icon: <FileText className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "سياسة الخصوصية", icon: <Shield className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "تغيير اللغة", icon: <Globe className="w-5 h-5" />, action: () => toast.info("قريباً") },
+  ];
+
   if (!isLoggedIn) {
     return (
-      <div className="pt-12 flex flex-col items-center justify-center h-full px-8">
-        <User className="w-16 h-16 text-muted-foreground/30 mb-4" />
-        <h2 className="text-lg font-bold mb-2">حسابي</h2>
-        <p className="text-sm text-muted-foreground text-center mb-6">سجل الدخول للوصول إلى حسابك</p>
-        <button onClick={onLogin} className="px-8 py-3 rounded-xl font-bold text-white text-sm transition-all active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>تسجيل الدخول</button>
+      <div className="pt-12 h-full overflow-y-auto pb-24">
+        {/* Login prompt header */}
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden" style={{ background: "linear-gradient(135deg, #6B21A8, #7C3AED)" }}>
+              <img src={MK_LOGO} alt="MK" className="w-10 h-10 object-contain" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-bold">مرحباً</h2>
+              <p className="text-xs text-muted-foreground">سجل الدخول للوصول إلى حسابك</p>
+            </div>
+          </div>
+          <button onClick={onLogin} className="w-full mt-4 py-3 rounded-xl font-bold text-white text-sm transition-all active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #6B21A8, #7C3AED)" }}>تسجيل الدخول</button>
+        </div>
+
+        {/* Guest Menu Items */}
+        <div className="px-4 mt-2">
+          {guestMenuItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className="w-full flex items-center justify-between py-4 border-b border-border/20 transition-all active:bg-card/50"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-muted-foreground">{item.icon}</span>
+                <span className="text-sm">{item.label}</span>
+              </div>
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+            </button>
+          ))}
+        </div>
+
+        {/* Footer - Commercial Info */}
+        <div className="px-4 mt-6 mb-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">السجل التجاري</span>
+            <span className="text-xs font-medium">7007384501</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">رخصة وزارة السياحة</span>
+            <span className="text-xs font-medium">73102999</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">تصنيف الرخصة</span>
+            <span className="text-xs font-medium">حجز وحدات سكنية</span>
+          </div>
+          <p className="text-center text-xs text-muted-foreground/60 mt-4">v 9.13.1 (838)</p>
+        </div>
+
+        {/* Host With Us Bottom Sheet */}
+        <AnimatePresence>
+          {showHostSheet && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 z-50"
+                onClick={() => setShowHostSheet(false)}
+              />
+              <motion.div
+                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-2xl p-6"
+              >
+                <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
+                <p className="text-center text-sm leading-relaxed mb-6">
+                  أضف عقارك مع المفتاح الشهري، واستضف بانتظام وزد دخلك.
+                  سيتم توجيهك إلى تطبيق المفتاح الشهري للأعمال لتسجيل عقارك.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { window.open("https://monthlykey.com", "_blank"); setShowHostSheet(false); }}
+                    className="flex-1 py-3 rounded-xl font-bold text-white text-sm" style={{ background: "#6B21A8" }}
+                  >
+                    موافق
+                  </button>
+                  <button
+                    onClick={() => setShowHostSheet(false)}
+                    className="flex-1 py-3 rounded-xl font-bold text-sm border-2" style={{ borderColor: "#6B21A8", color: "#6B21A8" }}
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     );
   }

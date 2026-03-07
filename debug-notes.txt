@@ -1,0 +1,12 @@
+Debug: "More" tab issue
+- The bottom nav shows 5 tabs: الرئيسية, البحث, المفضلة, حجوزاتي, حسابي
+- The last tab is labeled "حسابي" (My Account), NOT "المزيد" (More) like Gathern
+- When clicking "حسابي" tab while NOT logged in, it shows a login prompt
+- The user wants the tab to be labeled "المزيد" (More) like in Gathern screenshots
+- Also the ProfileTab should show the full Gathern-style menu even when not logged in (with login prompt at top)
+- The Gathern screenshots show: "More" tab with full menu visible regardless of login state
+
+Issues to fix:
+1. Rename tab from "حسابي" to "المزيد" (More) to match Gathern
+2. Show the full ProfileTab menu even when not logged in (just disable certain items)
+3. The ProfileTab currently shows only a login button when not authenticated - needs to show full menu like Gathern

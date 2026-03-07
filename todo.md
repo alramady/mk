@@ -137,3 +137,8 @@
 ## Feature: Logo Blending in Profile Header
 - [x] Upload MK logo SVG to CDN (CloudFront)
 - [x] Blend logo into ProfileTab header (transparent background, rounded avatar style)
+
+## Bug: More Tab Not Visible
+- [x] Renamed tab from "حسابي" to "المزيد" (More) with MoreHorizontal icon
+- [x] Fixed not-logged-in state to show full Gathern-style menu (logo, login button, guest menu items, footer)
+- [x] Guest menu shows: Host with us, FAQ, Terms, Privacy, Change language

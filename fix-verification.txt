@@ -1,0 +1,8 @@
+Fix verified:
+1. "المزيد" (More) tab now shows in bottom navigation with MoreHorizontal icon
+2. When not logged in, shows full Gathern-style menu with:
+   - MK logo avatar + "مرحباً" greeting
+   - Login button
+   - Guest menu items (Host with us, FAQ, Terms, Privacy, Language)
+   - Commercial registration footer
+3. Tab is highlighted in primary color when active
