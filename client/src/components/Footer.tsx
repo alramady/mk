@@ -184,8 +184,12 @@ export default function Footer() {
 function FooterCities({ lang }: { lang: string }) {
   const citiesQuery = trpc.cities.all.useQuery({ activeOnly: false });
   const allCities = citiesQuery.data || [];
-  const activeCities = allCities.filter((c: any) => c.isActive !== false);
-  // Only show active cities — hide "Coming Soon" cities to avoid misleading users
+  // Only Riyadh is active, Jeddah/Madinah shown as coming soon
+  const riyadh = allCities.filter((c: any) => c.nameEn?.toLowerCase() === "riyadh");
+  const comingSoon = allCities.filter((c: any) => {
+    const name = c.nameEn?.toLowerCase();
+    return name === "jeddah" || name === "madinah";
+  });
 
   return (
     <div>
@@ -193,7 +197,7 @@ function FooterCities({ lang }: { lang: string }) {
         {lang === "ar" ? "المدن" : "Cities"}
       </h4>
       <ul className="space-y-2.5 text-xs text-white/75">
-        {activeCities.map((city: any) => (
+        {riyadh.map((city: any) => (
           <li key={city.id}>
             <Link
               href={`/search?city=${city.nameEn?.toLowerCase()}`}
@@ -201,6 +205,12 @@ function FooterCities({ lang }: { lang: string }) {
             >
               {lang === "ar" ? city.nameAr : city.nameEn}
             </Link>
+          </li>
+        ))}
+        {comingSoon.map((city: any) => (
+          <li key={city.id} className="text-white/40">
+            {lang === "ar" ? city.nameAr : city.nameEn}
+            <span className="text-[10px] ms-1 text-[#C9A96E]">({lang === "ar" ? "قريباً" : "Soon"})</span>
           </li>
         ))}
       </ul>

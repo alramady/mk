@@ -469,17 +469,23 @@ function HeroSearchBar({ lang, cities, onSearch }: {
 
       {/* Quick city tags */}
       <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-        {["الرياض", "جدة", "المدينة المنورة", "الدمام"].map((cityName, i) => {
-          const cityEn = ["Riyadh", "Jeddah", "Madinah", "Dammam"][i];
+        {["الرياض", "جدة", "المدينة المنورة"].map((cityName, i) => {
+          const cityEn = ["Riyadh", "Jeddah", "Madinah"][i];
+          const isComingSoon = i > 0; // Only Riyadh is active
           return (
             <button
               key={cityName}
               type="button"
-              onClick={() => { setCity(cityEn); onSearch("", cityEn, "", ""); }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/10 hover:border-white/25 transition-all duration-200 backdrop-blur-sm"
+              onClick={() => { if (!isComingSoon) { setCity(cityEn); onSearch("", cityEn, "", ""); } }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 backdrop-blur-sm ${
+                isComingSoon
+                  ? "bg-white/5 text-white/40 border-white/5 cursor-not-allowed"
+                  : "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border-white/10 hover:border-white/25"
+              }`}
             >
               <MapPin className="h-3 w-3" />
               {lang === "ar" ? cityName : cityEn}
+              {isComingSoon && <span className="text-[10px] opacity-60">{lang === "ar" ? "قريباً" : "Soon"}</span>}
             </button>
           );
         })}
@@ -499,8 +505,17 @@ export default function Home() {
   const featured = trpc.property.featured.useQuery();
   // Fetch ALL cities so we can show inactive ones as "coming soon" from DB
   const citiesQuery = trpc.cities.all.useQuery({ activeOnly: false });
-  const activeCities = useMemo(() => (citiesQuery.data || []).filter((c: any) => c.isActive !== false), [citiesQuery.data]);
-  const comingSoonCitiesDB = useMemo(() => (citiesQuery.data || []).filter((c: any) => c.isActive === false), [citiesQuery.data]);
+  // Only show Riyadh as active, Jeddah/Madinah as coming soon
+  const allowedCityNames = ["riyadh", "jeddah", "madinah"];
+  const activeCities = useMemo(() => (citiesQuery.data || []).filter((c: any) => c.isActive !== false && c.nameEn?.toLowerCase() === "riyadh"), [citiesQuery.data]);
+  const comingSoonCitiesDB = useMemo(() => {
+    const allCities = citiesQuery.data || [];
+    // Jeddah/Madinah are coming soon regardless of DB isActive
+    return allCities.filter((c: any) => {
+      const name = c.nameEn?.toLowerCase();
+      return name === "jeddah" || name === "madinah";
+    });
+  }, [citiesQuery.data]);
 
   // Parallax mouse tracking for hero
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -626,8 +641,8 @@ export default function Home() {
       <SEOHead
         title="Monthly Rental Platform in Saudi Arabia"
         titleAr="منصة التأجير الشهري في السعودية"
-        description="Find furnished apartments, studios, and villas for monthly rent in Riyadh, Jeddah, Dammam and all Saudi cities. Easy booking with secure digital contracts."
-        descriptionAr="اكتشف أفضل الشقق المفروشة، الاستوديوهات، والفلل للإيجار الشهري في الرياض، جدة، الدمام وجميع المدن السعودية. حجز سهل وعقود رقمية آمنة."
+        description="Find furnished apartments, studios, and villas for monthly rent in Riyadh. Jeddah and Madinah coming soon. Easy booking with secure digital contracts."
+        descriptionAr="اكتشف أفضل الشقق المفروشة، الاستوديوهات، والفلل للإيجار الشهري في الرياض. جدة والمدينة المنورة قريباً. حجز سهل وعقود رقمية آمنة."
         path="/"
         jsonLd={_homeJsonLd}
       />
@@ -740,8 +755,8 @@ export default function Home() {
             </h1>
             <p className="text-sm sm:text-lg md:text-xl text-white mb-6 sm:mb-10 leading-relaxed max-w-2xl mx-auto fade-up visible" style={{ animationDelay: '0.3s', textShadow: '0 2px 6px rgba(0,0,0,0.7), 0 0 16px rgba(0,0,0,0.4)' }}>
               {sl("hero.subtitle", lang) || (lang === "ar"
-                ? "إدارة إيجارات شهرية متميزة | الرياض • جدة • المدينة المنورة"
-                : "Premium monthly rental management | Riyadh • Jeddah • Madinah")}
+                ? "إدارة إيجارات شهرية متميزة | الرياض"
+                : "Premium monthly rental management | Riyadh")}
             </p>
 
             {/* Hero Search Bar */}

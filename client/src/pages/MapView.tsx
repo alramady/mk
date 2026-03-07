@@ -60,7 +60,7 @@ export default function MapViewPage() {
   const isAr = lang === "ar";
 
   // Filters
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState("Riyadh");
   const [propertyType, setPropertyType] = useState("");
   const [minPrice, setMinPrice] = useState<number | undefined>();
   const [maxPrice, setMaxPrice] = useState<number | undefined>();
@@ -83,7 +83,8 @@ export default function MapViewPage() {
     if (!districtsQuery.data) return [];
     const cityMap = new Map<string, { city: string; cityAr: string }>();
     (districtsQuery.data as any[]).forEach((d: any) => {
-      if (!cityMap.has(d.city)) cityMap.set(d.city, { city: d.city, cityAr: d.cityAr });
+      // Only show Riyadh for now
+      if (!cityMap.has(d.city) && d.city.toLowerCase() === "riyadh") cityMap.set(d.city, { city: d.city, cityAr: d.cityAr });
     });
     return Array.from(cityMap.values()).sort((a, b) => a.city.localeCompare(b.city));
   }, [districtsQuery.data]);

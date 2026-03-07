@@ -23,7 +23,7 @@ export default function Search() {
   // Read URL query parameters on mount
   const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
   const [searchText, setSearchText] = useState(urlParams.get('q') || "");
-  const [city, setCity] = useState(urlParams.get('city') || "");
+  const [city, setCity] = useState(urlParams.get('city') || "riyadh");
   const [district, setDistrict] = useState("");
   const [propertyType, setPropertyType] = useState(urlParams.get('type') || "");
   const [minPrice, setMinPrice] = useState<number | undefined>();
@@ -77,11 +77,15 @@ export default function Search() {
         cityMap.set(s.name_en, { city: s.name_en, cityAr: s.name_ar, status: "coming_soon" });
       }
     });
-    return Array.from(cityMap.values()).sort((a, b) => {
-      if (a.status === "active" && b.status !== "active") return -1;
-      if (a.status !== "active" && b.status === "active") return 1;
-      return a.city.localeCompare(b.city);
-    });
+    // Only show Riyadh (active) + Jeddah/Madinah (coming_soon)
+    const allowedCities = ["riyadh", "jeddah", "madinah"];
+    return Array.from(cityMap.values())
+      .filter(c => allowedCities.includes(c.city.toLowerCase()))
+      .sort((a, b) => {
+        if (a.status === "active" && b.status !== "active") return -1;
+        if (a.status !== "active" && b.status === "active") return 1;
+        return a.city.localeCompare(b.city);
+      });
   }, [districtsQuery.data]);
 
   const selectedCityStatus = useMemo(() => {
@@ -130,10 +134,10 @@ export default function Search() {
   ];
 
   const clearFilters = () => {
-    setSearchText(""); setCity(""); setDistrict(""); setPropertyType(""); setMinPrice(undefined); setMaxPrice(undefined);
+    setSearchText(""); setCity("riyadh"); setDistrict(""); setPropertyType(""); setMinPrice(undefined); setMaxPrice(undefined);
     setBedrooms(undefined); setPage(0);
-    // Clear URL params
-    window.history.replaceState({}, '', '/search');
+    // Clear URL params but keep Riyadh as default
+    window.history.replaceState({}, '', '/search?city=riyadh');
   };
 
   const closeFilters = useCallback(() => {
@@ -147,8 +151,8 @@ export default function Search() {
       <SEOHead
         title="Search Properties for Monthly Rent"
         titleAr="البحث عن عقارات للإيجار الشهري"
-        description="Search furnished apartments, studios, villas, and duplexes for monthly rent in Riyadh, Jeddah, Dammam and all Saudi cities."
-        descriptionAr="ابحث عن شقق مفروشة، استوديوهات، فلل، ودوبلكس للإيجار الشهري في الرياض، جدة، الدمام وجميع المدن السعودية."
+        description="Search furnished apartments, studios, villas, and duplexes for monthly rent in Riyadh. Jeddah and Madinah coming soon."
+        descriptionAr="ابحث عن شقق مفروشة، استوديوهات، فلل، ودوبلكس للإيجار الشهري في الرياض. جدة والمدينة المنورة قريباً."
         path="/search"
       />
       <Navbar />
@@ -281,7 +285,7 @@ export default function Search() {
                       </SelectTrigger>
                       <SelectContent>
                         {cities.map(c => (
-                          <SelectItem key={c.city} value={c.city.toLowerCase()}>
+                          <SelectItem key={c.city} value={c.city.toLowerCase()} disabled={c.status === "coming_soon"}>
                             {lang === "ar" ? c.cityAr : c.city}
                             {c.status === "coming_soon" ? ` (${lang === "ar" ? "قريباً" : "Soon"})` : ""}
                           </SelectItem>
@@ -440,7 +444,7 @@ export default function Search() {
                     </SelectTrigger>
                     <SelectContent>
                       {cities.map(c => (
-                        <SelectItem key={c.city} value={c.city.toLowerCase()}>
+                        <SelectItem key={c.city} value={c.city.toLowerCase()} disabled={c.status === "coming_soon"}>
                           {lang === "ar" ? c.cityAr : c.city}
                           {c.status === "coming_soon" ? ` (${lang === "ar" ? "قريباً" : "Soon"})` : ""}
                         </SelectItem>
