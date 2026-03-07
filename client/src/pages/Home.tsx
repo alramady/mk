@@ -1,10 +1,5 @@
-import { useLocation } from "wouter";
-import { useEffect } from "react";
+import MobileApp from "./MobileApp";
 
 export default function Home() {
-  const [, setLocation] = useLocation();
-  useEffect(() => {
-    setLocation("/");
-  }, [setLocation]);
-  return null;
+  return <MobileApp />;
 }

@@ -5,9 +5,9 @@
  * In production, set VITE_API_BASE to your API URL or use a reverse proxy
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE
-  ? `${import.meta.env.VITE_API_BASE}/api/trpc`
-  : "/api/trpc";
+// Use server-side proxy to avoid CORS issues
+// /api/mk/* → monthlykey.com/api/trpc/* (proxied by Express server)
+const API_BASE = "/api/mk";
 
 // ─── Types matching the real API response shapes ───
 

@@ -2,17 +2,19 @@
  * MobileApp — Full mobile app preview inside a phone frame
  * Design: "Oasis" — Organic Saudi Tech
  * Arabic-first RTL, deep navy, frosted glass, Tajawal typography
- * Auth: Supabase Auth (real email/password)
- * Data: Real API from monthlykey.com (tRPC)
+ * Auth: Supabase Auth (email/password + phone OTP)
+ * Data: Real API from monthlykey.com via server proxy
+ * Features: Interactive map, bookings tracking, phone OTP login
  */
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Search, CalendarDays, User, ChevronRight, MapPin, BedDouble, Bath,
   Maximize, Wifi, Car, Wind, Star, Heart, Bell, Filter, X, Check,
   CreditCard, Building2, ChevronLeft, Loader2, Eye, EyeOff, Mail, Lock,
-  UserPlus, LogIn, RefreshCw, ImageOff,
+  UserPlus, LogIn, RefreshCw, ImageOff, Phone, MapPinned, Navigation,
+  Clock, CheckCircle2, XCircle, AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -49,6 +51,25 @@ function getPropertyImage(property: ApiProperty, index = 0): string {
 type TabId = "home" | "search" | "bookings" | "profile";
 type ScreenId = "tabs" | "property-detail" | "booking-flow" | "login";
 
+// ─── Booking Status Types ───
+interface UserBooking {
+  id: string;
+  property: ApiProperty;
+  months: number;
+  totalAmount: number;
+  status: "pending" | "confirmed" | "active" | "completed" | "cancelled";
+  createdAt: Date;
+  startDate?: Date;
+}
+
+const bookingStatusLabels: Record<string, { label: string; color: string; icon: typeof Clock }> = {
+  pending: { label: "قيد المراجعة", color: "#F59E0B", icon: Clock },
+  confirmed: { label: "مؤكد", color: "#10B981", icon: CheckCircle2 },
+  active: { label: "نشط", color: "#2563EB", icon: CheckCircle2 },
+  completed: { label: "مكتمل", color: "#6B7280", icon: Check },
+  cancelled: { label: "ملغي", color: "#EF4444", icon: XCircle },
+};
+
 // ─── Amenity Icon Map ───
 function AmenityIcon({ type }: { type: string }) {
   const t = type.toLowerCase();
@@ -72,8 +93,60 @@ const amenityLabels: Record<string, string> = {
   laundry: "غسالة",
 };
 
-// ─── Known cities for quick filter (from the website) ───
+// ─── Known cities for quick filter ───
 const QUICK_CITIES = ["الرياض", "جدة", "المدينة المنورة", "الدمام", "مكة المكرمة", "الخبر"];
+
+// ─── Interactive Map Component ───
+function PropertyMap({ latitude, longitude, title, googleMapsUrl }: {
+  latitude: string | null;
+  longitude: string | null;
+  title: string;
+  googleMapsUrl: string | null;
+}) {
+  const lat = latitude ? parseFloat(latitude) : null;
+  const lng = longitude ? parseFloat(longitude) : null;
+
+  if (!lat || !lng) {
+    return (
+      <div className="glass rounded-2xl p-4 flex flex-col items-center justify-center h-[200px]">
+        <MapPinned className="w-8 h-8 text-muted-foreground/40 mb-2" />
+        <p className="text-xs text-muted-foreground">الموقع غير متاح على الخريطة</p>
+      </div>
+    );
+  }
+
+  // Use OpenStreetMap embed (no API key needed, fully independent)
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.008},${lng + 0.01},${lat + 0.008}&layer=mapnik&marker=${lat},${lng}`;
+  const fullMapUrl = googleMapsUrl || `https://www.google.com/maps?q=${lat},${lng}`;
+
+  return (
+    <div className="rounded-2xl overflow-hidden border border-border/50">
+      <div className="relative h-[200px]">
+        <iframe
+          src={mapUrl}
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          allowFullScreen
+          loading="lazy"
+          title={`موقع ${title}`}
+        />
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "linear-gradient(to bottom, rgba(11,20,38,0.1) 0%, transparent 20%, transparent 80%, rgba(11,20,38,0.3) 100%)"
+        }} />
+      </div>
+      <a
+        href={fullMapUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 py-3 glass text-sm font-medium text-primary transition-all hover:bg-card/80"
+      >
+        <Navigation className="w-4 h-4" />
+        <span>فتح في خرائط جوجل</span>
+      </a>
+    </div>
+  );
+}
 
 // ─── Main Component ───
 export default function MobileApp() {
@@ -86,6 +159,7 @@ export default function MobileApp() {
   const [bookingMonths, setBookingMonths] = useState(1);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [userBookings, setUserBookings] = useState<UserBooking[]>([]);
 
   // API data state
   const [featuredProperties, setFeaturedProperties] = useState<ApiProperty[]>([]);
@@ -150,7 +224,6 @@ export default function MobileApp() {
     setSelectedPropertyId(property.id);
     setSelectedPropertyData(property);
     setScreen("property-detail");
-    // Fetch full details (includes view count increment)
     setLoadingDetail(true);
     try {
       const full = await getPropertyById(property.id);
@@ -197,6 +270,7 @@ export default function MobileApp() {
     await signOut();
     setScreen("tabs");
     setActiveTab("home");
+    setUserBookings([]);
     toast.success("تم تسجيل الخروج بنجاح");
   }, [signOut]);
 
@@ -211,8 +285,20 @@ export default function MobileApp() {
     toast.success("تم تسجيل الدخول بنجاح");
   }, [selectedPropertyData]);
 
+  const handleBookingComplete = useCallback((property: ApiProperty, months: number, totalAmount: number) => {
+    const newBooking: UserBooking = {
+      id: `BK-${Date.now()}`,
+      property,
+      months,
+      totalAmount,
+      status: "pending",
+      createdAt: new Date(),
+    };
+    setUserBookings((prev) => [newBooking, ...prev]);
+  }, []);
+
   const userDisplayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "مستخدم";
-  const userEmail = user?.email || "";
+  const userEmail = user?.email || user?.phone || "";
   const userInitials = userDisplayName.slice(0, 2);
 
   return (
@@ -256,7 +342,12 @@ export default function MobileApp() {
                     />
                   )}
                   {activeTab === "bookings" && (
-                    <BookingsTab isLoggedIn={isLoggedIn} onLogin={() => setScreen("login")} />
+                    <BookingsTab
+                      isLoggedIn={isLoggedIn}
+                      onLogin={() => setScreen("login")}
+                      bookings={userBookings}
+                      onOpenProperty={openProperty}
+                    />
                   )}
                   {activeTab === "profile" && (
                     <ProfileTab isLoggedIn={isLoggedIn} onLogin={() => setScreen("login")} onLogout={handleLogout} userName={userDisplayName} userEmail={userEmail} userInitials={userInitials} />
@@ -303,7 +394,11 @@ export default function MobileApp() {
                   onMonthsChange={setBookingMonths}
                   onNext={() => {
                     if (bookingStep < 3) setBookingStep((s) => s + 1);
-                    if (bookingStep === 2) setBookingConfirmed(true);
+                    if (bookingStep === 2) {
+                      setBookingConfirmed(true);
+                      const breakdown = calculateBookingTotal(parseFloat(selectedPropertyData.monthlyRent), bookingMonths);
+                      handleBookingComplete(selectedPropertyData, bookingMonths, breakdown.grandTotal);
+                    }
                   }}
                   onBack={goBack}
                   confirmed={bookingConfirmed}
@@ -335,13 +430,11 @@ function HomeTab({
   onToggleFavorite: (id: number) => void;
   onRetry: () => void;
 }) {
-  // Split into "new" (recent) and "popular" (by view count)
   const recent = useMemo(() => [...properties].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4), [properties]);
   const popular = useMemo(() => [...properties].sort((a, b) => b.viewCount - a.viewCount), [properties]);
 
   return (
     <div className="pt-12">
-      {/* Hero Section */}
       <div className="relative h-[280px] overflow-hidden">
         <img src={HERO_IMAGE} alt="الرياض" className="w-full h-full object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(11,20,38,0.3) 0%, rgba(11,20,38,0.8) 80%)" }} />
@@ -355,7 +448,6 @@ function HomeTab({
         </div>
       </div>
 
-      {/* City Pills */}
       <div className="px-4 py-4">
         <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {QUICK_CITIES.map((city) => (
@@ -364,7 +456,6 @@ function HomeTab({
         </div>
       </div>
 
-      {/* Loading / Error */}
       {loading && (
         <div className="flex flex-col items-center py-12">
           <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
@@ -383,7 +474,6 @@ function HomeTab({
 
       {!loading && !error && (
         <>
-          {/* Featured / Recent */}
           <div className="px-4 mb-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-bold">عقارات مميزة</h2>
@@ -398,7 +488,6 @@ function HomeTab({
             </div>
           </div>
 
-          {/* Popular */}
           <div className="px-4 mb-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-bold">الأكثر مشاهدة</h2>
@@ -417,7 +506,7 @@ function HomeTab({
   );
 }
 
-// ─── Property Card (uses real API data) ───
+// ─── Property Card ───
 function PropertyCard({
   property, onPress, isFavorite, onToggleFavorite, size = "large",
 }: {
@@ -521,7 +610,6 @@ function SearchTab({
   favorites: Set<number>;
   onToggleFavorite: (id: number) => void;
 }) {
-  // Debounce search
   const [localQuery, setLocalQuery] = useState(searchQuery);
   useEffect(() => {
     const t = setTimeout(() => onSearchChange(localQuery), 400);
@@ -598,7 +686,7 @@ function SearchTab({
   );
 }
 
-// ─── Property Detail (real API data) ───
+// ─── Property Detail with Interactive Map ───
 function PropertyDetail({
   property, loading, onBack, onBook, isFavorite, onToggleFavorite,
 }: {
@@ -622,14 +710,12 @@ function PropertyDetail({
           <img src={photos[photoIndex]} alt={property.titleAr} className="w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(11,20,38,0.4) 0%, transparent 30%, rgba(11,20,38,0.9) 90%)" }} />
 
-          {/* Photo counter */}
           {photos.length > 1 && (
             <div className="absolute top-12 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full glass text-[10px] text-white">
               {photoIndex + 1} / {photos.length}
             </div>
           )}
 
-          {/* Photo navigation */}
           {photos.length > 1 && (
             <>
               <button onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full glass flex items-center justify-center">
@@ -641,7 +727,6 @@ function PropertyDetail({
             </>
           )}
 
-          {/* Top Bar */}
           <div className="absolute top-12 right-4 flex items-center gap-2">
             <button onClick={onBack} className="w-10 h-10 rounded-full glass flex items-center justify-center">
               <ChevronRight className="w-5 h-5 text-white" />
@@ -653,7 +738,6 @@ function PropertyDetail({
             </button>
           </div>
 
-          {/* Bottom Info */}
           <div className="absolute bottom-4 right-4 left-4">
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>
@@ -707,6 +791,22 @@ function PropertyDetail({
             <p className="text-sm text-muted-foreground leading-relaxed">{property.descriptionAr}</p>
           </div>
         )}
+
+        {/* Interactive Map */}
+        <div className="px-4 mt-5">
+          <h3 className="text-base font-bold mb-3">
+            <span className="flex items-center gap-2">
+              <MapPinned className="w-4 h-4 text-primary" />
+              الموقع على الخريطة
+            </span>
+          </h3>
+          <PropertyMap
+            latitude={property.latitude}
+            longitude={property.longitude}
+            title={property.titleAr}
+            googleMapsUrl={property.googleMapsUrl}
+          />
+        </div>
 
         {/* Amenities */}
         {property.amenities && property.amenities.length > 0 && (
@@ -786,7 +886,7 @@ function PropertyDetail({
   );
 }
 
-// ─── Booking Flow (uses real calculator) ───
+// ─── Booking Flow ───
 function BookingFlow({
   property, step, months, onMonthsChange, onNext, onBack, confirmed,
 }: {
@@ -845,15 +945,15 @@ function BookingFlow({
               </div>
               <div className="glass rounded-2xl p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <img src={getPropertyImage(property)} alt="" className="w-14 h-14 rounded-xl object-cover" />
+                  <img src={getPropertyImage(property)} alt="" className="w-12 h-12 rounded-xl object-cover" />
                   <div>
                     <h4 className="text-sm font-bold">{property.titleAr}</h4>
                     <p className="text-[11px] text-muted-foreground">{property.cityAr} - {property.districtAr}</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">الإيجار الشهري</span>
-                  <span className="font-bold">{formatPrice(rent)}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{months} {months === 1 ? "شهر" : "أشهر"} × {formatPrice(rent)}</span>
+                  <span className="font-bold gradient-text">{formatPrice(rent * months)}</span>
                 </div>
               </div>
             </motion.div>
@@ -864,34 +964,31 @@ function BookingFlow({
               <h3 className="text-lg font-bold mb-4">تفاصيل التكلفة</h3>
               <div className="glass rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">الإيجار الأساسي ({months} {months === 1 ? "شهر" : "أشهر"})</span>
+                  <span className="text-muted-foreground">الإيجار ({months} {months === 1 ? "شهر" : "أشهر"})</span>
                   <span className="font-medium">{formatPrice(breakdown.baseRentTotal)}</span>
                 </div>
-                {breakdown.displayInsurance > 0 && (
+                {!breakdown.hideInsuranceFromTenant && breakdown.insuranceAmount > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">التأمين ({breakdown.appliedRates.insuranceRate}%)</span>
-                    <span className="font-medium">{formatPrice(breakdown.displayInsurance)}</span>
+                    <span className="text-muted-foreground">تأمين ({breakdown.appliedRates.insuranceRate}%)</span>
+                    <span className="font-medium">{formatPrice(breakdown.insuranceAmount)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">رسوم الخدمة ({breakdown.appliedRates.serviceFeeRate}%)</span>
                   <span className="font-medium">{formatPrice(breakdown.serviceFeeAmount)}</span>
                 </div>
-                <div className="h-px bg-border/50" />
+                <div className="border-t border-border/50 pt-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">المجموع الفرعي</span>
+                  <span className="font-medium">{formatPrice(breakdown.subtotal)}</span>
+                </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">ضريبة القيمة المضافة ({breakdown.appliedRates.vatRate}%)</span>
                   <span className="font-medium">{formatPrice(breakdown.vatAmount)}</span>
                 </div>
-                <div className="h-px bg-border/50" />
-                <div className="flex items-center justify-between">
-                  <span className="font-bold">المجموع</span>
+                <div className="border-t border-border/50 pt-3 flex items-center justify-between">
+                  <span className="font-bold">المجموع الكلي</span>
                   <span className="text-xl font-bold gradient-text">{formatPrice(breakdown.grandTotal)}</span>
                 </div>
-              </div>
-              <div className="mt-4 glass rounded-xl p-3">
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  ضريبة القيمة المضافة محسوبة على المبلغ الإجمالي. مبلغ التأمين قابل للاسترداد عند انتهاء العقد.
-                </p>
               </div>
             </motion.div>
           )}
@@ -964,8 +1061,13 @@ function BookingFlow({
   );
 }
 
-// ─── Bookings Tab ───
-function BookingsTab({ isLoggedIn, onLogin }: { isLoggedIn: boolean; onLogin: () => void }) {
+// ─── Bookings Tab (Real bookings tracking) ───
+function BookingsTab({ isLoggedIn, onLogin, bookings, onOpenProperty }: {
+  isLoggedIn: boolean;
+  onLogin: () => void;
+  bookings: UserBooking[];
+  onOpenProperty: (p: ApiProperty) => void;
+}) {
   if (!isLoggedIn) {
     return (
       <div className="pt-12 flex flex-col items-center justify-center h-full px-8">
@@ -979,13 +1081,69 @@ function BookingsTab({ isLoggedIn, onLogin }: { isLoggedIn: boolean; onLogin: ()
     );
   }
 
+  if (bookings.length === 0) {
+    return (
+      <div className="pt-12 px-4">
+        <h1 className="text-xl font-bold mb-4 pt-4">حجوزاتي</h1>
+        <div className="text-center py-12">
+          <CalendarDays className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">لا توجد حجوزات حالياً</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">ابدأ بالبحث عن عقار وحجز إقامتك</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pt-12 px-4">
       <h1 className="text-xl font-bold mb-4 pt-4">حجوزاتي</h1>
-      <div className="text-center py-12">
-        <CalendarDays className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">لا توجد حجوزات حالياً</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">ابدأ بالبحث عن عقار وحجز إقامتك</p>
+      <div className="flex flex-col gap-3 pb-4">
+        {bookings.map((booking, i) => {
+          const statusInfo = bookingStatusLabels[booking.status];
+          const StatusIcon = statusInfo.icon;
+          return (
+            <motion.div
+              key={booking.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <button
+                onClick={() => onOpenProperty(booking.property)}
+                className="w-full glass rounded-2xl p-4 text-right transition-all hover:bg-card/80 active:scale-[0.98]"
+              >
+                <div className="flex gap-3 mb-3">
+                  <img
+                    src={getPropertyImage(booking.property)}
+                    alt={booking.property.titleAr}
+                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-bold leading-tight mb-1">{booking.property.titleAr}</h3>
+                    <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                      <MapPin className="w-3 h-3" />
+                      <span className="text-[11px]">{booking.property.cityAr} - {booking.property.districtAr}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <StatusIcon className="w-3.5 h-3.5" style={{ color: statusInfo.color }} />
+                      <span className="text-[11px] font-medium" style={{ color: statusInfo.color }}>{statusInfo.label}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="w-3 h-3" />
+                      {booking.months} {booking.months === 1 ? "شهر" : "أشهر"}
+                    </span>
+                    <span>رقم الحجز: {booking.id}</span>
+                  </div>
+                  <span className="text-sm font-bold gradient-text">{formatPrice(booking.totalAmount)}</span>
+                </div>
+              </button>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1055,18 +1213,21 @@ function ProfileTab({
   );
 }
 
-// ─── Login Screen (Real Supabase Auth) ───
+// ─── Login Screen (Supabase Auth: Email + Phone OTP) ───
 function LoginScreen({ onSuccess, onBack }: { onSuccess: () => void; onBack: () => void }) {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const { signIn, signUp, signInWithPhone, verifyOtp } = useAuth();
+  const [mode, setMode] = useState<"login" | "signup" | "phone" | "otp">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const otpInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async () => {
+  const handleEmailSubmit = async () => {
     setError(null);
     if (!email.trim()) { setError("يرجى إدخال البريد الإلكتروني"); return; }
     if (!password.trim() || password.length < 6) { setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
@@ -1097,17 +1258,91 @@ function LoginScreen({ onSuccess, onBack }: { onSuccess: () => void; onBack: () 
     }
   };
 
+  const handlePhoneSubmit = async () => {
+    setError(null);
+    const cleanPhone = phoneNumber.replace(/\s/g, "");
+    if (!cleanPhone || cleanPhone.length < 9) {
+      setError("يرجى إدخال رقم جوال صحيح");
+      return;
+    }
+
+    const fullPhone = cleanPhone.startsWith("+") ? cleanPhone : `+966${cleanPhone.startsWith("0") ? cleanPhone.slice(1) : cleanPhone}`;
+
+    setLoading(true);
+    try {
+      const { error: authError } = await signInWithPhone(fullPhone);
+      if (authError) {
+        setError(authError.message.includes("Phone") ? "رقم الجوال غير صحيح أو الخدمة غير مفعلة" : authError.message);
+        return;
+      }
+      setMode("otp");
+      toast.success("تم إرسال رمز التحقق إلى جوالك");
+      setTimeout(() => otpInputRef.current?.focus(), 300);
+    } catch {
+      setError("حدث خطأ. يرجى المحاولة مرة أخرى.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpVerify = async () => {
+    setError(null);
+    if (!otpCode || otpCode.length !== 6) {
+      setError("يرجى إدخال رمز التحقق المكون من 6 أرقام");
+      return;
+    }
+
+    const cleanPhone = phoneNumber.replace(/\s/g, "");
+    const fullPhone = cleanPhone.startsWith("+") ? cleanPhone : `+966${cleanPhone.startsWith("0") ? cleanPhone.slice(1) : cleanPhone}`;
+
+    setLoading(true);
+    try {
+      const { error: authError } = await verifyOtp(fullPhone, otpCode);
+      if (authError) {
+        setError("رمز التحقق غير صحيح أو منتهي الصلاحية");
+        return;
+      }
+      onSuccess();
+    } catch {
+      setError("حدث خطأ. يرجى المحاولة مرة أخرى.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="pt-12 px-4 pb-3">
-        <button onClick={onBack} className="w-9 h-9 rounded-full glass flex items-center justify-center">
+        <button onClick={mode === "otp" ? () => setMode("phone") : onBack} className="w-9 h-9 rounded-full glass flex items-center justify-center">
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
       <div className="flex-1 px-6 flex flex-col justify-center">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">{mode === "login" ? "مرحباً بك" : "إنشاء حساب جديد"}</h1>
-          <p className="text-sm text-muted-foreground">{mode === "login" ? "سجل الدخول للمتابعة" : "أنشئ حسابك للبدء في استخدام المفتاح الشهري"}</p>
+          {mode === "login" && (
+            <>
+              <h1 className="text-2xl font-bold mb-2">مرحباً بك</h1>
+              <p className="text-sm text-muted-foreground">سجل الدخول للمتابعة</p>
+            </>
+          )}
+          {mode === "signup" && (
+            <>
+              <h1 className="text-2xl font-bold mb-2">إنشاء حساب جديد</h1>
+              <p className="text-sm text-muted-foreground">أنشئ حسابك للبدء في استخدام المفتاح الشهري</p>
+            </>
+          )}
+          {mode === "phone" && (
+            <>
+              <h1 className="text-2xl font-bold mb-2">الدخول برقم الجوال</h1>
+              <p className="text-sm text-muted-foreground">أدخل رقم جوالك وسنرسل لك رمز تحقق</p>
+            </>
+          )}
+          {mode === "otp" && (
+            <>
+              <h1 className="text-2xl font-bold mb-2">رمز التحقق</h1>
+              <p className="text-sm text-muted-foreground">أدخل الرمز المرسل إلى {phoneNumber}</p>
+            </>
+          )}
         </div>
 
         <AnimatePresence>
@@ -1118,54 +1353,149 @@ function LoginScreen({ onSuccess, onBack }: { onSuccess: () => void; onBack: () 
           )}
         </AnimatePresence>
 
-        <div className="space-y-4">
-          <AnimatePresence>
-            {mode === "signup" && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                <label className="text-xs text-muted-foreground mb-1.5 block">الاسم الكامل</label>
-                <div className="relative">
-                  <UserPlus className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="أحمد محمد" className="w-full h-12 pr-10 pl-4 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground" dir="rtl" />
+        {/* Email/Password Form */}
+        {(mode === "login" || mode === "signup") && (
+          <div className="space-y-4">
+            <AnimatePresence>
+              {mode === "signup" && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                  <label className="text-xs text-muted-foreground mb-1.5 block">الاسم الكامل</label>
+                  <div className="relative">
+                    <UserPlus className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="أحمد محمد" className="w-full h-12 pr-10 pl-4 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground" dir="rtl" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">البريد الإلكتروني</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} placeholder="email@example.com" className="w-full h-12 px-10 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground" dir="ltr" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">كلمة المرور</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => { setPassword(e.target.value); setError(null); }} placeholder="••••••••" className="w-full h-12 px-10 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground" dir="ltr" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
+                </button>
+              </div>
+            </div>
+
+            <button onClick={handleEmailSubmit} disabled={loading} className="w-full h-12 rounded-xl font-bold text-white text-base transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>
+              {loading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /><span>جاري {mode === "login" ? "تسجيل الدخول" : "إنشاء الحساب"}...</span></>
+              ) : (
+                <>{mode === "login" ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}<span>{mode === "login" ? "تسجيل الدخول" : "إنشاء حساب"}</span></>
+              )}
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 my-2">
+              <div className="flex-1 h-px bg-border/50" />
+              <span className="text-[11px] text-muted-foreground">أو</span>
+              <div className="flex-1 h-px bg-border/50" />
+            </div>
+
+            {/* Phone OTP Button */}
+            <button onClick={() => { setMode("phone"); setError(null); }} className="w-full h-12 rounded-xl font-bold text-sm glass flex items-center justify-center gap-2 transition-all hover:bg-card/80">
+              <Phone className="w-5 h-5 text-primary" />
+              <span>الدخول برقم الجوال</span>
+            </button>
+
+            <p className="text-center text-xs text-muted-foreground mt-2">
+              {mode === "login" ? (
+                <>ليس لديك حساب؟{" "}<button onClick={() => { setMode("signup"); setError(null); }} className="text-primary font-medium">إنشاء حساب</button></>
+              ) : (
+                <>لديك حساب بالفعل؟{" "}<button onClick={() => { setMode("login"); setError(null); }} className="text-primary font-medium">تسجيل الدخول</button></>
+              )}
+            </p>
+          </div>
+        )}
+
+        {/* Phone Number Input */}
+        {mode === "phone" && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">رقم الجوال</label>
+              <div className="flex gap-2">
+                <div className="flex items-center gap-1.5 px-3 h-12 rounded-xl glass text-sm font-medium flex-shrink-0">
+                  <span>🇸🇦</span>
+                  <span dir="ltr">+966</span>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">البريد الإلكتروني</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} placeholder="email@example.com" className="w-full h-12 px-10 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground" dir="ltr" />
+                <div className="relative flex-1">
+                  <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => { setPhoneNumber(e.target.value.replace(/[^\d\s]/g, "")); setError(null); }}
+                    placeholder="5XX XXX XXXX"
+                    className="w-full h-12 pr-10 pl-4 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
+                    dir="ltr"
+                    maxLength={12}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">كلمة المرور</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => { setPassword(e.target.value); setError(null); }} placeholder="••••••••" className="w-full h-12 pl-10 pr-12 rounded-xl glass bg-transparent text-sm outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground" dir="ltr" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
-                {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
-              </button>
+            <button onClick={handlePhoneSubmit} disabled={loading} className="w-full h-12 rounded-xl font-bold text-white text-base transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>
+              {loading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /><span>جاري الإرسال...</span></>
+              ) : (
+                <><Phone className="w-5 h-5" /><span>إرسال رمز التحقق</span></>
+              )}
+            </button>
+
+            <div className="flex items-center gap-3 my-2">
+              <div className="flex-1 h-px bg-border/50" />
+              <span className="text-[11px] text-muted-foreground">أو</span>
+              <div className="flex-1 h-px bg-border/50" />
             </div>
+
+            <button onClick={() => { setMode("login"); setError(null); }} className="w-full h-12 rounded-xl font-bold text-sm glass flex items-center justify-center gap-2 transition-all hover:bg-card/80">
+              <Mail className="w-5 h-5 text-primary" />
+              <span>الدخول بالبريد الإلكتروني</span>
+            </button>
           </div>
-        </div>
+        )}
 
-        <button onClick={handleSubmit} disabled={loading} className="w-full h-12 rounded-xl font-bold text-white text-base mt-6 transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>
-          {loading ? (
-            <><Loader2 className="w-5 h-5 animate-spin" /><span>جاري {mode === "login" ? "تسجيل الدخول" : "إنشاء الحساب"}...</span></>
-          ) : (
-            <>{mode === "login" ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}<span>{mode === "login" ? "تسجيل الدخول" : "إنشاء حساب"}</span></>
-          )}
-        </button>
+        {/* OTP Verification */}
+        {mode === "otp" && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">رمز التحقق (6 أرقام)</label>
+              <input
+                ref={otpInputRef}
+                type="text"
+                inputMode="numeric"
+                value={otpCode}
+                onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setError(null); }}
+                placeholder="000000"
+                className="w-full h-14 rounded-xl glass bg-transparent text-2xl text-center font-bold tracking-[0.5em] outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground/30"
+                dir="ltr"
+                maxLength={6}
+                autoComplete="one-time-code"
+              />
+            </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          {mode === "login" ? (
-            <>ليس لديك حساب؟{" "}<button onClick={() => { setMode("signup"); setError(null); }} className="text-primary font-medium">إنشاء حساب</button></>
-          ) : (
-            <>لديك حساب بالفعل؟{" "}<button onClick={() => { setMode("login"); setError(null); }} className="text-primary font-medium">تسجيل الدخول</button></>
-          )}
-        </p>
+            <button onClick={handleOtpVerify} disabled={loading || otpCode.length !== 6} className="w-full h-12 rounded-xl font-bold text-white text-base transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>
+              {loading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /><span>جاري التحقق...</span></>
+              ) : (
+                <><Check className="w-5 h-5" /><span>تأكيد</span></>
+              )}
+            </button>
+
+            <button onClick={handlePhoneSubmit} disabled={loading} className="w-full text-center text-xs text-primary font-medium mt-2">
+              لم يصلك الرمز؟ إعادة الإرسال
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
