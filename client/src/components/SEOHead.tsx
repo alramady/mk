@@ -43,7 +43,9 @@ export default function SEOHead({
       const pageTitle = lang === "ar" ? (titleAr || title) : (title || titleAr);
       fullTitle = `${pageTitle} - ${siteName}`;
     } else {
-      fullTitle = `${siteName} | ${tagline}`;
+      fullTitle = lang === "ar" 
+        ? `المفتاح الشهري - Monthly Key`
+        : `Monthly Key - المفتاح الشهري`;
     }
 
     const fullDesc =
