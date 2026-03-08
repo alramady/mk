@@ -584,6 +584,11 @@ async function startServer() {
   app.get("/api/webhooks/whatsapp", handleWhatsAppVerification);
   app.post("/api/webhooks/whatsapp", handleWhatsAppWebhook);
 
+  // ─── Taqnyat Webhook Routes (SMS & WhatsApp callbacks) ──────────
+  const { handleTaqnyatSmsWebhook, handleTaqnyatWhatsAppWebhook } = await import("../taqnyat");
+  app.post("/api/webhooks/taqnyat/sms", handleTaqnyatSmsWebhook);
+  app.post("/api/webhooks/taqnyat/whatsapp", handleTaqnyatWhatsAppWebhook);
+
   // Local authentication routes (login, register, change-password)
   registerAuthRoutes(app);
   // tRPC API

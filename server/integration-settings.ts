@@ -61,6 +61,22 @@ export const INTEGRATION_REGISTRY: Record<string, {
       { key: "webhookVerifyToken", label: "Webhook Verify Token", labelAr: "رمز تحقق الويب هوك", isSecret: true },
     ],
   },
+  "taqnyat_sms": {
+    providerName: "Taqnyat SMS (تقنيات)",
+    fields: [
+      { key: "bearerToken", label: "Bearer Token (API Key)", labelAr: "رمز الوصول (Bearer Token)", isSecret: true },
+      { key: "senderName", label: "Sender Name", labelAr: "اسم المرسل", isSecret: false },
+      { key: "webhookSafePhrase", label: "Webhook Safe Phrase", labelAr: "عبارة التأكيد للويب هوك", isSecret: false },
+    ],
+  },
+  "taqnyat_whatsapp": {
+    providerName: "Taqnyat WhatsApp (تقنيات)",
+    fields: [
+      { key: "bearerToken", label: "Bearer Token (API Key)", labelAr: "رمز الوصول (Bearer Token)", isSecret: true },
+      { key: "webhookMode", label: "Webhook Mode", labelAr: "وضع الويب هوك", isSecret: false },
+      { key: "defaultCountryCode", label: "Default Country Code", labelAr: "رمز الدولة الافتراضي", isSecret: false },
+    ],
+  },
 };
 
 /**

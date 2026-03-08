@@ -32,6 +32,8 @@ const INTEGRATION_ICONS: Record<string, string> = {
   maps: "🗺️",
   storage: "☁️",
   shomoos: "🏛️",
+  taqnyat_sms: "📨",
+  taqnyat_whatsapp: "📱",
 };
 
 const LOG_STATUS_COLORS: Record<string, string> = {

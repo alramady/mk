@@ -23,6 +23,8 @@ const DEFAULT_INTEGRATIONS = [
   { integrationKey: 'storage', displayName: 'File Storage (S3/R2)', displayNameAr: 'تخزين الملفات (S3/R2)' },
   { integrationKey: 'ga4', displayName: 'Google Analytics (GA4)', displayNameAr: 'تحليلات جوجل (GA4)' },
   { integrationKey: 'shomoos', displayName: 'Shomoos (شموس)', displayNameAr: 'شموس - وزارة الداخلية' },
+  { integrationKey: 'taqnyat_sms', displayName: 'Taqnyat SMS (تقنيات)', displayNameAr: 'تقنيات - رسائل SMS' },
+  { integrationKey: 'taqnyat_whatsapp', displayName: 'Taqnyat WhatsApp (تقنيات)', displayNameAr: 'تقنيات - واتساب' },
 ];
 
 // Mask a secret string: show first 4 and last 4 chars
@@ -130,6 +132,18 @@ function getConfigFields(key: string): { name: string; label: string; labelAr: s
         { name: 'facilityLicense', label: 'Facility License Number', labelAr: 'رقم ترخيص المنشأة', isSecret: false },
         { name: 'commercialReg', label: 'Commercial Registration (السجل التجاري)', labelAr: 'رقم السجل التجاري', isSecret: false },
         { name: 'moiNumber', label: 'MOI Number (optional, for large companies)', labelAr: 'رقم وزارة الداخلية (اختياري)', isSecret: false },
+      ];
+    case 'taqnyat_sms':
+      return [
+        { name: 'bearerToken', label: 'Bearer Token (API Key)', labelAr: 'رمز الوصول (Bearer Token)', isSecret: true },
+        { name: 'senderName', label: 'Sender Name (e.g. MonthlyKey)', labelAr: 'اسم المرسل (مثال: MonthlyKey)', isSecret: false },
+        { name: 'webhookSafePhrase', label: 'Webhook Safe Phrase (for delivery callbacks)', labelAr: 'عبارة التأكيد للويب هوك', isSecret: false },
+      ];
+    case 'taqnyat_whatsapp':
+      return [
+        { name: 'bearerToken', label: 'Bearer Token (API Key)', labelAr: 'رمز الوصول (Bearer Token)', isSecret: true },
+        { name: 'webhookMode', label: 'Webhook Mode (chatbot_livechat / livechat_only / other)', labelAr: 'وضع الويب هوك (chatbot_livechat / livechat_only / other)', isSecret: false },
+        { name: 'defaultCountryCode', label: 'Default Country Code (e.g. +966)', labelAr: 'رمز الدولة الافتراضي (مثال: +966)', isSecret: false },
       ];
     default:
       return [];
@@ -383,6 +397,34 @@ export const integrationRouter = router({
               testResult = await testShomoos();
             } catch (e: any) {
               testResult = { success: false, message: `Shomoos test error: ${e.message}` };
+            }
+            break;
+          }
+          case 'taqnyat_sms': {
+            const token = config.bearerToken;
+            if (!token) {
+              testResult = { success: false, message: 'Bearer Token is required' };
+              break;
+            }
+            try {
+              const { testTaqnyatSmsConnection } = await import('./taqnyat');
+              testResult = await testTaqnyatSmsConnection(token);
+            } catch (e: any) {
+              testResult = { success: false, message: `Taqnyat SMS test error: ${e.message}` };
+            }
+            break;
+          }
+          case 'taqnyat_whatsapp': {
+            const waToken = config.bearerToken;
+            if (!waToken) {
+              testResult = { success: false, message: 'Bearer Token is required' };
+              break;
+            }
+            try {
+              const { testTaqnyatWhatsAppConnection } = await import('./taqnyat');
+              testResult = await testTaqnyatWhatsAppConnection(waToken);
+            } catch (e: any) {
+              testResult = { success: false, message: `Taqnyat WhatsApp test error: ${e.message}` };
             }
             break;
           }

@@ -28,6 +28,9 @@ export const FLAG_DEFAULTS: Record<string, string> = {
   "verification.requireForPayment": "false",
   // SMS routing: +966 -> Unifonic, others -> Twilio
   "verification.smsRoutingEnabled": "false",
+  // Taqnyat integration switches
+  "TAQNYAT_SMS_ENABLED": "false",
+  "TAQNYAT_WHATSAPP_ENABLED": "false",
   // KYC gates
   "kyc.enableGating": "false",
   "kyc.enableSubmission": "false",

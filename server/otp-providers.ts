@@ -181,6 +181,10 @@ export function getSmsProvider(): SmsProvider {
       return new UnifonicSmsProvider();
     case "twilio":
       return new TwilioSmsProvider();
+    case "taqnyat": {
+      const { TaqnyatSmsProvider } = require("./taqnyat");
+      return new TaqnyatSmsProvider();
+    }
     case "dev":
     default:
       return new DevSmsProvider();
