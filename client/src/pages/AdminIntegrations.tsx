@@ -51,6 +51,7 @@ export default function AdminIntegrations() {
   const [testingId, setTestingId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("settings");
   const [showLogDetails, setShowLogDetails] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: integrations, isLoading, refetch } = trpc.integration.list.useQuery();
 
@@ -126,8 +127,18 @@ export default function AdminIntegrations() {
               {isAr ? "إدارة الاتصالات الخارجية وبوابات الدفع" : "Manage external connections and payment gateways"}
             </p>
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" /> {isAr ? "تحديث" : "Refresh"}
+          <Button variant="outline" disabled={isRefreshing} onClick={async () => {
+            setIsRefreshing(true);
+            try {
+              await refetch();
+              toast.success(isAr ? "تم تحديث البيانات بنجاح" : "Data refreshed successfully");
+            } catch {
+              toast.error(isAr ? "فشل في تحديث البيانات" : "Failed to refresh data");
+            } finally {
+              setIsRefreshing(false);
+            }
+          }}>
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} /> {isAr ? "تحديث" : "Refresh"}
           </Button>
         </div>
 
