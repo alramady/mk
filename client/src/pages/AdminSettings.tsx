@@ -536,7 +536,8 @@ export default function AdminSettings() {
                         >
                           {/* Preview image */}
                           <div className="relative h-28 w-full">
-                            <img loading="lazy"                               src={`/api/img-proxy?url=${encodeURIComponent(preset.bgImage)}`}
+                            <img
+                              src={preset.bgImage}
                               alt={lang === "ar" ? preset.labelAr : preset.labelEn}
                               className="w-full h-full object-cover"
                               loading="lazy"

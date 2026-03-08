@@ -523,11 +523,13 @@ async function startServer() {
     "beds24.com",
     "www.beds24.com",
     "api.beds24.com",
+    "d2xsxph8kpxj0f.cloudfront.net",
   ];
   // Also allow any *.r2.dev subdomain
   function isAllowedProxyDomain(hostname: string): boolean {
     if (IMG_PROXY_ALLOWED_DOMAINS.includes(hostname)) return true;
     if (hostname.endsWith(".r2.dev")) return true;
+    if (hostname.endsWith(".cloudfront.net")) return true;
     // Allow the configured S3 public base URL domain
     const s3Base = process.env.S3_PUBLIC_BASE_URL;
     if (s3Base) {
