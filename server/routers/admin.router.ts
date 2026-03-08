@@ -1019,6 +1019,128 @@ export const adminRouterDefs = {
           bookingSourceBreakdown,
         };
       }),
+
+    // ─── Purge Test / Transactional Data (ROOT ADMIN ONLY) ─────────────
+    purgeTestData: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        confirmPhrase: z.string(),
+        categories: z.array(z.enum([
+          'financial',    // payments, payment_ledger
+          'bookings',     // bookings, booking_extensions
+          'maintenance',  // maintenanceRequests, maintenance_updates, emergency_maintenance
+          'messages',     // conversations, messages, whatsapp_messages
+          'reviews',      // reviews
+          'notifications',// notifications
+          'activities',   // userActivities, audit_log
+          'shomoos',      // shomoos_submissions
+          'otp',          // otp_codes
+          'all',          // everything above
+        ])).min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // STRICT: Root admin only
+        const perms = await db.getAdminPermissions(ctx.user!.id);
+        if (!perms?.isRootAdmin) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'فقط المسؤول الرئيسي (Root Admin) يمكنه مسح البيانات' });
+        }
+
+        // Safety: require exact confirmation phrase
+        if (input.confirmPhrase !== 'أؤكد مسح البيانات التجريبية') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'عبارة التأكيد غير صحيحة. اكتب: أؤكد مسح البيانات التجريبية' });
+        }
+
+        const pool = db.getPool();
+        if (!pool) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
+
+        const cats = new Set(input.categories);
+        const isAll = cats.has('all');
+        const results: Record<string, number> = {};
+
+        // Helper to delete and track count
+        async function purgeTable(tableName: string) {
+          try {
+            const [countResult] = await pool!.execute(`SELECT COUNT(*) as cnt FROM \`${tableName}\``) as any;
+            const count = countResult?.[0]?.cnt ?? 0;
+            if (count > 0) {
+              await pool!.execute(`DELETE FROM \`${tableName}\``);
+            }
+            results[tableName] = count;
+          } catch (e: any) {
+            // Table might not exist, skip silently
+            results[tableName] = -1; // -1 means table not found
+          }
+        }
+
+        // Disable FK checks temporarily for safe deletion order
+        await pool.execute('SET FOREIGN_KEY_CHECKS = 0');
+
+        try {
+          if (isAll || cats.has('financial')) {
+            await purgeTable('payment_ledger');
+            await purgeTable('payments');
+            await purgeTable('payment_method_settings');
+          }
+
+          if (isAll || cats.has('bookings')) {
+            await purgeTable('booking_extensions');
+            await purgeTable('bookings');
+          }
+
+          if (isAll || cats.has('maintenance')) {
+            await purgeTable('maintenance_updates');
+            await purgeTable('emergency_maintenance');
+            await purgeTable('maintenanceRequests');
+          }
+
+          if (isAll || cats.has('messages')) {
+            await purgeTable('whatsapp_messages');
+            await purgeTable('messages');
+            await purgeTable('conversations');
+          }
+
+          if (isAll || cats.has('reviews')) {
+            await purgeTable('reviews');
+          }
+
+          if (isAll || cats.has('notifications')) {
+            await purgeTable('notifications');
+            await purgeTable('push_subscriptions');
+          }
+
+          if (isAll || cats.has('activities')) {
+            await purgeTable('userActivities');
+            await purgeTable('audit_log');
+          }
+
+          if (isAll || cats.has('shomoos')) {
+            await purgeTable('shomoos_submissions');
+          }
+
+          if (isAll || cats.has('otp')) {
+            await purgeTable('otp_codes');
+          }
+        } finally {
+          await pool.execute('SET FOREIGN_KEY_CHECKS = 1');
+        }
+
+        // Log this action (after re-enabling FK checks)
+        try {
+          await logAudit({
+            action: 'PURGE_TEST_DATA',
+            entityType: 'system',
+            entityId: 0,
+            userId: ctx.user!.id,
+            userName: auditUserName(ctx),
+            changes: { categories: input.categories, results },
+          });
+        } catch {}
+
+        return {
+          success: true,
+          purged: results,
+          message: 'تم مسح البيانات التجريبية بنجاح',
+        };
+      }),
   }),
 
 };
