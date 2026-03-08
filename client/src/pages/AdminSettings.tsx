@@ -19,7 +19,7 @@ import {
   Settings, Image, Palette, DollarSign, FileText, Users, Shield, BarChart3,
   ArrowRight, ArrowLeft, Save, Upload, RefreshCw, Globe, MapPin, BookOpen, Building2,
   ChevronDown, ChevronUp, Eye, Trash2, Plus, Search, MessageCircle, Phone,
-  CreditCard, LayoutGrid, Home as HomeIcon, Video, Calendar, Clock, HelpCircle, ToggleLeft, ToggleRight, Copy, Lock, Download, ImageIcon
+  CreditCard, LayoutGrid, Home as HomeIcon, Video, Calendar, Clock, HelpCircle, ToggleLeft, ToggleRight, Copy, Lock, Download, ImageIcon, Share2
 } from "lucide-react";
 
 export default function AdminSettings() {
@@ -1409,6 +1409,18 @@ export default function AdminSettings() {
                         <Download className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
                         {lang === "ar" ? "\u062a\u062d\u0645\u064a\u0644 \u0643\u0635\u0648\u0631\u0629" : "Download as Image"}
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = window.location.origin + "/bank";
+                          navigator.clipboard.writeText(url);
+                          toast.success(lang === "ar" ? "تم نسخ رابط المشاركة" : "Share link copied");
+                        }}
+                      >
+                        <Share2 className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                        {lang === "ar" ? "نسخ رابط المشاركة" : "Copy Share Link"}
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1591,6 +1603,18 @@ export default function AdminSettings() {
                       >
                         <Download className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
                         {lang === "ar" ? "\u062a\u062d\u0645\u064a\u0644 \u0643\u0635\u0648\u0631\u0629" : "Download as Image"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = window.location.origin + "/bank";
+                          navigator.clipboard.writeText(url);
+                          toast.success(lang === "ar" ? "تم نسخ رابط المشاركة" : "Share link copied");
+                        }}
+                      >
+                        <Share2 className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                        {lang === "ar" ? "نسخ رابط المشاركة" : "Copy Share Link"}
                       </Button>
                     </div>
                   </div>
