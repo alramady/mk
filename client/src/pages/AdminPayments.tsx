@@ -25,6 +25,7 @@ import { getLoginUrl } from "@/const";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { SendWhatsAppDialog } from "./AdminWhatsApp";
+import { exportToExcel, PAYMENT_COLUMNS } from "@/lib/exportToExcel";
 
 const STATUS_COLORS: Record<string, string> = {
   DUE: "bg-amber-100 text-amber-800 border-amber-200",
@@ -133,6 +134,34 @@ export default function AdminPayments() {
               </p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-primary/30 hover:bg-primary/10 text-primary"
+            disabled={!data?.entries?.length}
+            onClick={() => {
+              if (!data?.entries?.length) return;
+              const totalAmount = data.entries.reduce((sum: number, e: any) => sum + parseFloat(e.amount || "0"), 0);
+              const paidAmount = data.entries.filter((e: any) => e.status === "PAID").reduce((sum: number, e: any) => sum + parseFloat(e.amount || "0"), 0);
+              exportToExcel({
+                data: data.entries,
+                columns: PAYMENT_COLUMNS,
+                sheetName: lang === "ar" ? "المدفوعات" : "Payments",
+                fileName: lang === "ar" ? "تقرير_المدفوعات" : "Payments_Report",
+                lang,
+                title: lang === "ar" ? "تقرير المدفوعات - المفتاح الشهري" : "Payments Report - Monthly Key",
+                summaryRows: [
+                  { label: lang === "ar" ? "إجمالي السجلات" : "Total Entries", value: data.entries.length },
+                  { label: lang === "ar" ? "إجمالي المبالغ (ر.س)" : "Total Amount (SAR)", value: totalAmount.toLocaleString() },
+                  { label: lang === "ar" ? "المبالغ المدفوعة (ر.س)" : "Paid Amount (SAR)", value: paidAmount.toLocaleString() },
+                ],
+              });
+              toast.success(lang === "ar" ? "تم تصدير التقرير بنجاح" : "Report exported successfully");
+            }}
+          >
+            <Download className="h-4 w-4" />
+            {lang === "ar" ? "تصدير Excel" : "Export Excel"}
+          </Button>
         </div>
 
         {/* Filters */}

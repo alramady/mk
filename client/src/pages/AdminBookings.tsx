@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarCheck, Search, CheckCircle, XCircle, BanknoteIcon, Clock, Filter, FileText, AlertTriangle, CreditCard, ShieldAlert, MessageCircle, RotateCcw, Calculator, DollarSign, ArrowRight } from "lucide-react";
+import { CalendarCheck, Search, CheckCircle, XCircle, BanknoteIcon, Clock, Filter, FileText, AlertTriangle, CreditCard, ShieldAlert, MessageCircle, RotateCcw, Calculator, DollarSign, ArrowRight, Download } from "lucide-react";
 import { SendWhatsAppDialog } from "./AdminWhatsApp";
+import { exportToExcel, BOOKING_COLUMNS } from "@/lib/exportToExcel";
 
 const STATUS_MAP: Record<string, { label: string; labelAr: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Pending Approval", labelAr: "بانتظار الموافقة", variant: "secondary" },
@@ -162,6 +163,32 @@ export default function AdminBookings() {
                 : (isAr ? "التأكيد اليدوي معطّل" : "Manual Override OFF")}
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-primary/30 hover:bg-primary/10 text-primary"
+            disabled={!filtered?.length}
+            onClick={() => {
+              if (!filtered?.length) return;
+              const totalRevenue = filtered.reduce((sum: number, b: any) => sum + Number(b.totalAmount || b.monthlyRent || 0), 0);
+              exportToExcel({
+                data: filtered,
+                columns: BOOKING_COLUMNS,
+                sheetName: isAr ? "الحجوزات" : "Bookings",
+                fileName: isAr ? "تقرير_الحجوزات" : "Bookings_Report",
+                lang,
+                title: isAr ? "تقرير الحجوزات - المفتاح الشهري" : "Bookings Report - Monthly Key",
+                summaryRows: [
+                  { label: isAr ? "إجمالي الحجوزات" : "Total Bookings", value: filtered.length },
+                  { label: isAr ? "إجمالي الإيرادات (ر.س)" : "Total Revenue (SAR)", value: totalRevenue.toLocaleString() },
+                ],
+              });
+              toast.success(isAr ? "تم تصدير التقرير بنجاح" : "Report exported successfully");
+            }}
+          >
+            <Download className="h-4 w-4" />
+            {isAr ? "تصدير Excel" : "Export Excel"}
+          </Button>
         </div>
 
         {/* KPI Cards */}

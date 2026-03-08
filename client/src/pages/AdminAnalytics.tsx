@@ -11,9 +11,11 @@ import {
   BarChart3, TrendingUp, Users, Building2, Calendar, CreditCard,
   Loader2, Shield, ArrowLeft, Activity, PieChart as PieChartIcon,
   Home, Wrench, AlertTriangle, DollarSign, Eye, Clock,
-  ChevronUp, ChevronDown, MapPin, Percent, FileText, Info
+  ChevronUp, ChevronDown, MapPin, Percent, FileText, Info, Download
 } from "lucide-react";
 import { Link } from "wouter";
+import { toast } from "sonner";
+import { exportMultiSheet, ANALYTICS_REVENUE_COLUMNS, ANALYTICS_BOOKINGS_COLUMNS } from "@/lib/exportToExcel";
 import { getLoginUrl } from "@/const";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -247,6 +249,74 @@ export default function AdminAnalytics() {
               </Button>
             ))}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-primary/30 hover:bg-primary/10 text-primary"
+            disabled={!data}
+            onClick={() => {
+              if (!data) return;
+              const sheets = [];
+              if (data.revenueByMonth?.length) {
+                sheets.push({
+                  name: lang === "ar" ? "الإيرادات" : "Revenue",
+                  data: data.revenueByMonth,
+                  columns: ANALYTICS_REVENUE_COLUMNS,
+                  lang,
+                });
+              }
+              if (data.bookingsByMonth?.length) {
+                sheets.push({
+                  name: lang === "ar" ? "الحجوزات" : "Bookings",
+                  data: data.bookingsByMonth,
+                  columns: ANALYTICS_BOOKINGS_COLUMNS,
+                  lang,
+                });
+              }
+              if (data.bookingStatusDist?.length) {
+                sheets.push({
+                  name: lang === "ar" ? "توزيع الحالات" : "Status Distribution",
+                  data: data.bookingStatusDist,
+                  columns: [
+                    { key: "status", headerAr: "الحالة", headerEn: "Status", width: 18 },
+                    { key: "count", headerAr: "العدد", headerEn: "Count", width: 12, format: (v: any) => Number(v) || 0 },
+                  ],
+                  lang,
+                });
+              }
+              if (stats.data) {
+                sheets.push({
+                  name: lang === "ar" ? "ملخص" : "Summary",
+                  data: [
+                    { metric: lang === "ar" ? "إجمالي المستخدمين" : "Total Users", value: stats.data.userCount ?? 0 },
+                    { metric: lang === "ar" ? "العقارات النشطة" : "Active Properties", value: stats.data.activeProperties ?? 0 },
+                    { metric: lang === "ar" ? "الحجوزات النشطة" : "Active Bookings", value: stats.data.activeBookings ?? 0 },
+                    { metric: lang === "ar" ? "إجمالي الإيرادات (ر.س)" : "Total Revenue (SAR)", value: Number(stats.data.totalRevenue ?? 0) },
+                    { metric: lang === "ar" ? "نسبة الإشغال" : "Occupancy Rate", value: `${stats.data.occupancyRate ?? 0}%` },
+                  ],
+                  columns: [
+                    { key: "metric", headerAr: "المؤشر", headerEn: "Metric", width: 25 },
+                    { key: "value", headerAr: "القيمة", headerEn: "Value", width: 18 },
+                  ],
+                  lang,
+                });
+              }
+              if (sheets.length > 0) {
+                exportMultiSheet(
+                  sheets,
+                  lang === "ar" ? "تقرير_التحليلات" : "Analytics_Report",
+                  lang,
+                  lang === "ar" ? "تقرير التحليلات - المفتاح الشهري" : "Analytics Report - Monthly Key",
+                );
+                toast.success(lang === "ar" ? "تم تصدير التقرير بنجاح" : "Report exported successfully");
+              } else {
+                toast.error(lang === "ar" ? "لا توجد بيانات للتصدير" : "No data to export");
+              }
+            }}
+          >
+            <Download className="h-4 w-4" />
+            {lang === "ar" ? "تصدير Excel" : "Export Excel"}
+          </Button>
         </div>
 
         {analytics.isLoading ? (
