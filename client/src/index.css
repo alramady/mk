@@ -725,3 +725,26 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ═══ Password & Autofill Input Visibility Fix ═══ */
+/* Ensure password dots/text are always clearly visible in dark mode */
+.dark input[type="password"],
+.dark input[type="text"][data-slot="input"] {
+  color: oklch(0.95 0.005 0) !important;
+  -webkit-text-fill-color: oklch(0.95 0.005 0);
+}
+
+/* Override browser autofill background that makes text invisible */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: inherit;
+  transition: background-color 5000s ease-in-out 0s;
+}
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-text-fill-color: oklch(0.95 0.005 0) !important;
+  -webkit-box-shadow: 0 0 0px 1000px oklch(0.26 0.04 240) inset !important;
+  caret-color: oklch(0.95 0.005 0);
+}
