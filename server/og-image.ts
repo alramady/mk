@@ -3,7 +3,7 @@
  * 
  * Generates premium 1200x630 Open Graph images using Sharp + SVG overlay.
  * Two types:
- *   1. Homepage: branded hero with logo, tagline, and property types
+ *   1. Homepage: branded hero with logo prominently centered, tagline, and property types
  *   2. Property: property photo background with dark overlay + text details
  * 
  * Arabic text is rendered via system Noto Sans Arabic font.
@@ -88,22 +88,24 @@ function getLogoPath(): string {
 
 /**
  * Generate the homepage OG image
- * Premium branded design with gradient background, logo, and tagline
+ * Premium branded design with logo prominently centered, gradient background, and tagline
  */
 export async function generateHomepageOG(): Promise<Buffer> {
   const cacheKey = "og:homepage";
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
+  // Load and resize logo — prominently centered and large
   let logoComposite: sharp.OverlayOptions[] = [];
   try {
     const logoPath = getLogoPath();
     if (fs.existsSync(logoPath)) {
       const logoBuf = await sharp(logoPath)
-        .resize(90, 90, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .resize(140, 140, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png()
         .toBuffer();
-      logoComposite = [{ input: logoBuf, top: HEIGHT - 110, left: 40 }];
+      // Center the logo horizontally, position at top area
+      logoComposite = [{ input: logoBuf, top: 50, left: Math.round((WIDTH - 140) / 2) }];
     }
   } catch (e) {
     console.warn("[OG] Logo load failed:", e);
@@ -112,39 +114,82 @@ export async function generateHomepageOG(): Promise<Buffer> {
   const svg = [
     `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">`,
     `<defs>`,
+    // Premium dark gradient background
     `<linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">`,
     `<stop offset="0%" style="stop-color:#0A1628;stop-opacity:1" />`,
-    `<stop offset="50%" style="stop-color:#0f2240;stop-opacity:1" />`,
+    `<stop offset="40%" style="stop-color:#0f2240;stop-opacity:1" />`,
     `<stop offset="100%" style="stop-color:#132040;stop-opacity:1" />`,
     `</linearGradient>`,
-    `<linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">`,
-    `<stop offset="0%" style="stop-color:#3ECFC0;stop-opacity:1" />`,
-    `<stop offset="100%" style="stop-color:#C5A55A;stop-opacity:1" />`,
+    // Gold accent gradient
+    `<linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">`,
+    `<stop offset="0%" style="stop-color:#C5A55A;stop-opacity:0" />`,
+    `<stop offset="30%" style="stop-color:#C5A55A;stop-opacity:0.6" />`,
+    `<stop offset="50%" style="stop-color:#D4B96E;stop-opacity:1" />`,
+    `<stop offset="70%" style="stop-color:#C5A55A;stop-opacity:0.6" />`,
+    `<stop offset="100%" style="stop-color:#C5A55A;stop-opacity:0" />`,
     `</linearGradient>`,
+    // Teal accent gradient
+    `<linearGradient id="teal" x1="0%" y1="0%" x2="100%" y2="0%">`,
+    `<stop offset="0%" style="stop-color:#3ECFC0;stop-opacity:0" />`,
+    `<stop offset="50%" style="stop-color:#3ECFC0;stop-opacity:0.5" />`,
+    `<stop offset="100%" style="stop-color:#3ECFC0;stop-opacity:0" />`,
+    `</linearGradient>`,
+    // Glow effect for logo area
+    `<radialGradient id="glow" cx="50%" cy="25%" r="30%">`,
+    `<stop offset="0%" style="stop-color:#C5A55A;stop-opacity:0.08" />`,
+    `<stop offset="100%" style="stop-color:#C5A55A;stop-opacity:0" />`,
+    `</radialGradient>`,
     `</defs>`,
+
     // Background
     `<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#bg)"/>`,
-    // Top accent bar
-    `<rect x="0" y="0" width="${WIDTH}" height="5" fill="url(#accent)"/>`,
-    // Bottom accent bar
-    `<rect x="0" y="${HEIGHT - 5}" width="${WIDTH}" height="5" fill="url(#accent)"/>`,
-    // Subtle geometric decoration
-    `<rect x="80" y="140" width="3" height="350" fill="#3ECFC0" opacity="0.15"/>`,
-    `<rect x="${WIDTH - 83}" y="140" width="3" height="350" fill="#C5A55A" opacity="0.15"/>`,
-    // Brand name (Arabic)
-    `<text x="${WIDTH / 2}" y="240" text-anchor="middle" font-size="76" font-weight="bold" fill="#ffffff" font-family="Noto Sans Arabic">${esc("المفتاح الشهري")}</text>`,
+
+    // Subtle glow behind logo
+    `<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#glow)"/>`,
+
+    // Top gold accent line
+    `<rect x="0" y="0" width="${WIDTH}" height="3" fill="url(#gold)"/>`,
+
+    // Subtle vertical side accents
+    `<rect x="60" y="100" width="2" height="430" fill="#C5A55A" opacity="0.08"/>`,
+    `<rect x="${WIDTH - 62}" y="100" width="2" height="430" fill="#C5A55A" opacity="0.08"/>`,
+
+    // Corner decorations (subtle L-shapes)
+    `<path d="M 80 80 L 80 110 M 80 80 L 110 80" stroke="#C5A55A" stroke-width="1.5" fill="none" opacity="0.15"/>`,
+    `<path d="M ${WIDTH - 80} 80 L ${WIDTH - 80} 110 M ${WIDTH - 80} 80 L ${WIDTH - 110} 80" stroke="#C5A55A" stroke-width="1.5" fill="none" opacity="0.15"/>`,
+    `<path d="M 80 ${HEIGHT - 80} L 80 ${HEIGHT - 110} M 80 ${HEIGHT - 80} L 110 ${HEIGHT - 80}" stroke="#C5A55A" stroke-width="1.5" fill="none" opacity="0.15"/>`,
+    `<path d="M ${WIDTH - 80} ${HEIGHT - 80} L ${WIDTH - 80} ${HEIGHT - 110} M ${WIDTH - 80} ${HEIGHT - 80} L ${WIDTH - 110} ${HEIGHT - 80}" stroke="#C5A55A" stroke-width="1.5" fill="none" opacity="0.15"/>`,
+
+    // Space for logo (composited separately) — logo at y=50 to y=190
+
+    // Arabic brand name — large, bold, prominent
+    `<text x="${WIDTH / 2}" y="265" text-anchor="middle" font-size="80" font-weight="900" fill="#ffffff" font-family="Noto Sans Arabic">${esc("المفتاح الشهري")}</text>`,
+
+    // Gold separator line
+    `<rect x="${WIDTH / 2 - 80}" y="290" width="160" height="2" fill="url(#gold)"/>`,
+
+    // English brand name — elegant, spaced
+    `<text x="${WIDTH / 2}" y="335" text-anchor="middle" font-size="22" fill="#C5A55A" font-family="Noto Sans" letter-spacing="8" font-weight="600">MONTHLY KEY</text>`,
+
     // Tagline
-    `<text x="${WIDTH / 2}" y="320" text-anchor="middle" font-size="30" fill="#9CA3AF" font-family="Noto Sans Arabic">${esc("منصة التأجير الشهري الرائدة في السعودية")}</text>`,
-    // Property types
-    `<text x="${WIDTH / 2}" y="395" text-anchor="middle" font-size="22" fill="#C5A55A" font-family="Noto Sans Arabic">${esc("شقق مفروشة  ●  استوديوهات  ●  فلل  ●  دوبلكس  ●  شقق فندقية")}</text>`,
-    // English subtitle
-    `<text x="${WIDTH / 2}" y="450" text-anchor="middle" font-size="18" fill="#6B7280" font-family="Noto Sans">Monthly Key  —  Premium Monthly Rentals in Saudi Arabia</text>`,
-    // Decorative dots
-    `<circle cx="${WIDTH / 2 - 40}" cy="520" r="3" fill="#3ECFC0" opacity="0.4"/>`,
-    `<circle cx="${WIDTH / 2 - 20}" cy="520" r="3" fill="#3ECFC0" opacity="0.6"/>`,
-    `<circle cx="${WIDTH / 2}" cy="520" r="4" fill="#3ECFC0"/>`,
-    `<circle cx="${WIDTH / 2 + 20}" cy="520" r="3" fill="#3ECFC0" opacity="0.6"/>`,
-    `<circle cx="${WIDTH / 2 + 40}" cy="520" r="3" fill="#3ECFC0" opacity="0.4"/>`,
+    `<text x="${WIDTH / 2}" y="390" text-anchor="middle" font-size="26" fill="#8899B0" font-family="Noto Sans Arabic" font-weight="400">${esc("منصة التأجير الشهري الرائدة في السعودية")}</text>`,
+
+    // Property types with gold dots
+    `<text x="${WIDTH / 2}" y="445" text-anchor="middle" font-size="20" fill="#C5A55A" font-family="Noto Sans Arabic" opacity="0.8">${esc("شقق مفروشة  ●  استوديوهات  ●  فلل  ●  دوبلكس  ●  شقق فندقية")}</text>`,
+
+    // Decorative dots — centered
+    `<circle cx="${WIDTH / 2 - 30}" cy="500" r="3" fill="#C5A55A" opacity="0.25"/>`,
+    `<circle cx="${WIDTH / 2 - 10}" cy="500" r="3" fill="#C5A55A" opacity="0.45"/>`,
+    `<circle cx="${WIDTH / 2 + 10}" cy="500" r="4" fill="#C5A55A" opacity="0.7"/>`,
+    `<circle cx="${WIDTH / 2 + 30}" cy="500" r="3" fill="#C5A55A" opacity="0.45"/>`,
+    `<circle cx="${WIDTH / 2 + 50}" cy="500" r="3" fill="#C5A55A" opacity="0.25"/>`,
+
+    // Bottom teal accent line
+    `<rect x="0" y="${HEIGHT - 3}" width="${WIDTH}" height="3" fill="url(#teal)"/>`,
+
+    // Website URL — bottom center
+    `<text x="${WIDTH / 2}" y="${HEIGHT - 25}" text-anchor="middle" font-size="14" fill="#4B5E78" font-family="Noto Sans" letter-spacing="4" font-weight="400">monthlykey.com</text>`,
+
     `</svg>`,
   ].join("");
 
