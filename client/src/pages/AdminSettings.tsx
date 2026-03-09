@@ -125,7 +125,10 @@ export default function AdminSettings() {
   // Check if current user is root admin
   const isCurrentUserRootAdmin = useMemo(() => {
     if (!user || !permsQuery.data) return false;
-    return (permsQuery.data as any[]).some((p: any) => p.userId === user.id && p.isRootAdmin);
+    const data = permsQuery.data as any[];
+    if (!Array.isArray(data)) return false;
+    // Use loose equality (==) to handle string vs number id mismatch
+    return data.some((p: any) => String(p.userId) === String(user.id) && p.isRootAdmin);
   }, [user, permsQuery.data]);
 
   // Bank card refs for copy-as-image
