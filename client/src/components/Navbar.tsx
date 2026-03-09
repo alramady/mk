@@ -332,11 +332,11 @@ export default function Navbar() {
             {/* Thin separator line */}
             <div className="hidden sm:block h-7 md:h-8 w-px bg-gradient-to-b from-transparent via-[#3ECFC0]/40 to-transparent" />
             {/* Business name */}
-            <div className="flex flex-col justify-center leading-none">
-              <span className="text-[15px] sm:text-[17px] md:text-[19px] font-bold tracking-wide bg-gradient-to-r from-white via-[#e0e0e0] to-[#c0c0c0] bg-clip-text text-transparent group-hover:from-[#3ECFC0] group-hover:via-white group-hover:to-[#3ECFC0] transition-all duration-500" style={{ fontFamily: lang === 'ar' ? "'Cairo', 'Tajawal', sans-serif" : "'Inter', 'DM Sans', sans-serif" }}>
+            <div className="flex flex-col justify-center items-start leading-none" style={{ minWidth: 0 }}>
+              <span className="block text-[15px] sm:text-[17px] md:text-[19px] font-bold tracking-wide bg-gradient-to-r from-white via-[#e0e0e0] to-[#c0c0c0] bg-clip-text text-transparent group-hover:from-[#3ECFC0] group-hover:via-white group-hover:to-[#3ECFC0] transition-all duration-500 whitespace-nowrap" style={{ fontFamily: lang === 'ar' ? "'Cairo', 'Tajawal', sans-serif" : "'Inter', 'DM Sans', sans-serif" }}>
                 {lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
               </span>
-              <span className="text-[8px] sm:text-[9px] md:text-[10px] font-medium tracking-[0.2em] uppercase text-[#3ECFC0]/60 mt-0.5 group-hover:text-[#3ECFC0]/90 transition-colors duration-500">
+              <span className="block text-[8px] sm:text-[9px] md:text-[10px] font-medium tracking-[0.2em] uppercase text-[#3ECFC0]/60 mt-0.5 group-hover:text-[#3ECFC0]/90 transition-colors duration-500 whitespace-nowrap">
                 {lang === "ar" ? "MONTHLY KEY" : "المفتاح الشهري"}
               </span>
             </div>
