@@ -1074,16 +1074,16 @@ export default function Home() {
           </h2>
           <p className="text-white/90 mb-6 sm:mb-10 max-w-lg mx-auto text-sm sm:text-lg">
             {lang === "ar"
-              ? "احصل على تقييم إيجار مجاني واكتشف كم يمكن أن يحقق عقارك"
-              : "Get a free rental assessment and discover your property's earning potential"}
+              ? "سجّل عقارك معنا واحصل على مستأجرين موثوقين وتقييم إيجار مجاني"
+              : "List your property with us and get reliable tenants with a free rental assessment"}
           </p>
           <div className="flex items-center justify-center">
             <Button
               size="lg"
               className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 w-full sm:w-auto animate-glow"
-              onClick={() => setLocation("/search")}
+              onClick={() => setLocation("/submit-property")}
             >
-              {lang === "ar" ? "تصفح العقارات" : "Browse Properties"}
+              {lang === "ar" ? "أضف عقارك" : "List Your Property"}
             </Button>
           </div>
         </ScrollSection>

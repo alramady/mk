@@ -144,6 +144,8 @@ const CMS_SECTIONS = [
       { key: "terms.contentEn", labelAr: "الشروط والأحكام (إنجليزي)", labelEn: "Terms & Conditions (English)", type: "richtext" },
       { key: "privacy.contentAr", labelAr: "سياسة الخصوصية (عربي)", labelEn: "Privacy Policy (Arabic)", type: "richtext" },
       { key: "privacy.contentEn", labelAr: "سياسة الخصوصية (إنجليزي)", labelEn: "Privacy Policy (English)", type: "richtext" },
+      { key: "submitProperty.agreementAr", labelAr: "اتفاقية تقديم العقار (عربي)", labelEn: "Property Submission Agreement (Arabic)", type: "richtext" },
+      { key: "submitProperty.agreementEn", labelAr: "اتفاقية تقديم العقار (إنجليزي)", labelEn: "Property Submission Agreement (English)", type: "richtext" },
     ],
   },
 ];
