@@ -4,10 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link } from "wouter";
-import { Loader2, Eye, EyeOff, Check, Phone, Mail, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, Phone, Mail, ChevronLeft, ChevronRight, FileText, Shield } from "lucide-react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
+import DOMPurify from "dompurify";
 
 // ─── Country codes for phone input ──────────────────────────────────
 const COUNTRY_CODES = [
@@ -124,8 +129,12 @@ function StepIndicator({ currentStep, steps, lang }: { currentStep: number; step
 // ─── Main Register Component ────────────────────────────────────────
 export default function Register() {
   const { t, lang, dir } = useI18n();
+  const { get } = useSiteSettings();
 
   const [step, setStep] = useState(1);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
+  const [activeDialogTab, setActiveDialogTab] = useState<"terms" | "privacy">("terms");
   const [form, setForm] = useState({
     userId: "",
     password: "",
@@ -170,10 +179,23 @@ export default function Register() {
 
   const fullPhone = `${form.countryCode}${form.phone.replace(/^0+/, "")}`;
 
+  // ─── Terms & Privacy content from CMS ─────────────────────────
+  const termsContent = lang === "ar"
+    ? get("terms.contentAr", "<p>الشروط والأحكام - يرجى تعديل هذا المحتوى من لوحة التحكم.</p>")
+    : get("terms.contentEn", "<p>Terms & Conditions - Please edit this content from the admin panel.</p>");
+  const privacyContent = lang === "ar"
+    ? get("privacy.contentAr", "<p>سياسة الخصوصية - يرجى تعديل هذا المحتوى من لوحة التحكم.</p>")
+    : get("privacy.contentEn", "<p>Privacy Policy - Please edit this content from the admin panel.</p>");
+
   // ─── Step 1: Create Account ─────────────────────────────────────
   const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!agreedToTerms) {
+      setError(lang === "ar" ? "يجب الموافقة على الشروط والأحكام وسياسة الخصوصية للمتابعة" : "You must agree to the Terms & Conditions and Privacy Policy to continue");
+      return;
+    }
 
     if (form.password.length < 12) {
       setError(t("auth.passwordTooShort"));
@@ -514,10 +536,69 @@ export default function Register() {
                   />
                 </div>
 
+                {/* ─── Terms & Privacy Agreement ─────────────── */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-800/50">
+                    <Checkbox
+                      id="terms-agreement"
+                      checked={agreedToTerms}
+                      onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                      className="mt-0.5 data-[state=checked]:bg-[#3ECFC0] data-[state=checked]:border-[#3ECFC0]"
+                    />
+                    <label htmlFor="terms-agreement" className="text-xs leading-relaxed text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+                      {lang === "ar" ? (
+                        <>
+                          أوافق على{" "}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setActiveDialogTab("terms"); setShowTermsDialog(true); }}
+                            className="text-[#3ECFC0] hover:text-[#2ab5a6] font-semibold underline underline-offset-2"
+                          >
+                            الشروط والأحكام
+                          </button>
+                          {" "}و{" "}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setActiveDialogTab("privacy"); setShowTermsDialog(true); }}
+                            className="text-[#3ECFC0] hover:text-[#2ab5a6] font-semibold underline underline-offset-2"
+                          >
+                            سياسة الخصوصية
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          I agree to the{" "}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setActiveDialogTab("terms"); setShowTermsDialog(true); }}
+                            className="text-[#3ECFC0] hover:text-[#2ab5a6] font-semibold underline underline-offset-2"
+                          >
+                            Terms & Conditions
+                          </button>
+                          {" "}and{" "}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setActiveDialogTab("privacy"); setShowTermsDialog(true); }}
+                            className="text-[#3ECFC0] hover:text-[#2ab5a6] font-semibold underline underline-offset-2"
+                          >
+                            Privacy Policy
+                          </button>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                  {!agreedToTerms && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400">
+                      <Shield className="w-3 h-3" />
+                      <span>{lang === "ar" ? "يجب الموافقة على الشروط والأحكام للمتابعة" : "You must agree to the terms to continue"}</span>
+                    </div>
+                  )}
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full h-11 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-white text-base font-semibold mt-2"
-                  disabled={loading}
+                  disabled={loading || !agreedToTerms}
                 >
                   {loading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -530,6 +611,78 @@ export default function Register() {
                 </Button>
               </form>
             )}
+
+            {/* ─── Terms & Privacy Dialog ─────────────────────── */}
+            <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
+              <DialogContent className="max-w-lg max-h-[85vh] p-0 overflow-hidden" dir={dir}>
+                <DialogHeader className="px-6 pt-5 pb-0">
+                  <DialogTitle className="text-lg font-bold text-[#0B1E2D] dark:text-foreground">
+                    {activeDialogTab === "terms"
+                      ? (lang === "ar" ? "الشروط والأحكام" : "Terms & Conditions")
+                      : (lang === "ar" ? "سياسة الخصوصية" : "Privacy Policy")}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-gray-500">
+                    {lang === "ar" ? "يرجى قراءة المحتوى بعناية" : "Please read carefully"}
+                  </DialogDescription>
+                </DialogHeader>
+                {/* Tab switcher */}
+                <div className="flex border-b border-gray-200 dark:border-gray-700 px-6">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDialogTab("terms")}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                      activeDialogTab === "terms"
+                        ? "border-[#3ECFC0] text-[#3ECFC0]"
+                        : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    {lang === "ar" ? "الشروط والأحكام" : "Terms"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDialogTab("privacy")}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                      activeDialogTab === "privacy"
+                        ? "border-[#3ECFC0] text-[#3ECFC0]"
+                        : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    {lang === "ar" ? "سياسة الخصوصية" : "Privacy"}
+                  </button>
+                </div>
+                <ScrollArea className="h-[55vh] px-6 py-4">
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(
+                        activeDialogTab === "terms" ? termsContent : privacyContent
+                      ),
+                    }}
+                  />
+                </ScrollArea>
+                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTermsDialog(false)}
+                    className="text-sm"
+                  >
+                    {lang === "ar" ? "إغلاق" : "Close"}
+                  </Button>
+                  {!agreedToTerms && (
+                    <Button
+                      size="sm"
+                      className="bg-[#3ECFC0] hover:bg-[#2ab5a6] text-white text-sm"
+                      onClick={() => { setAgreedToTerms(true); setShowTermsDialog(false); }}
+                    >
+                      {lang === "ar" ? "أوافق على الشروط" : "I Agree"}
+                    </Button>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* ─── Step 2: Phone OTP ──────────────────────────────── */}
             {step === 2 && (
