@@ -343,7 +343,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className={`hidden md:flex items-center gap-1 ${lang === "ar" ? "flex-row-reverse" : ""}`}>
+          <div className="hidden md:flex items-center gap-1">
             <Link href="/">
               <Button variant="ghost" size="sm" className={`text-white/90 hover:text-white hover:bg-white/10 ${location === "/" ? "text-[#3ECFC0]" : ""}`}>
                 {t("nav.home")}
