@@ -1,0 +1,6 @@
+User from auth.me:
+- id: 1 (number)
+- name: "Khalid Abdullah"
+- role: "admin"
+
+Now need to check permissions.list to see if userId matches

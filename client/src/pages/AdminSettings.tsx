@@ -127,8 +127,8 @@ export default function AdminSettings() {
     if (!user || !permsQuery.data) return false;
     const data = permsQuery.data as any[];
     if (!Array.isArray(data)) return false;
-    // Use loose equality (==) to handle string vs number id mismatch
-    return data.some((p: any) => String(p.userId) === String(user.id) && p.isRootAdmin);
+    // permissions.list returns full user objects where id = numeric user id, userId = openId string
+    return data.some((p: any) => (p.id === user.id || String(p.id) === String(user.id)) && p.isRootAdmin);
   }, [user, permsQuery.data]);
 
   // Bank card refs for copy-as-image

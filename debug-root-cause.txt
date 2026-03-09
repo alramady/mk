@@ -1,0 +1,17 @@
+ROOT CAUSE FOUND:
+
+auth.me returns: user.id = 1 (number)
+permissions.list returns: item.id = 1 (same user), but NO "userId" field that is a number!
+
+The permissions.list returns the FULL user object merged with permissions.
+So the "id" field IS the user id, and "isRootAdmin" is true.
+
+But the code checks: p.userId === user.id
+The permissions.list data has "userId" = "Hobart" (the openId string), NOT the numeric user id!
+
+The user object from auth.me has: id = 1
+The permissions item has: id = 1, userId = "Hobart"
+
+So String(p.userId) = "Hobart" !== String(user.id) = "1"
+
+FIX: Change the comparison to use p.id instead of p.userId
