@@ -692,8 +692,11 @@
 
 /* ── Keep specific elements from double-reversing ── */
 /* Navigation bar should keep its own layout */
-[dir="rtl"] nav .flex {
+[dir="rtl"] nav .flex:not(.flex-col) {
   flex-direction: row-reverse;
+}
+[dir="rtl"] nav .flex.flex-col {
+  flex-direction: column !important;
 }
 /* Grid columns should not be affected */
 [dir="rtl"] .grid {
