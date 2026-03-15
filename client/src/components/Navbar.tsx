@@ -22,7 +22,7 @@ import {
   Home, Search, Bell, MessageSquare, Menu, X, Globe, User,
   LogOut, LayoutDashboard, KeyRound, Plus, ChevronDown, MapPin,
   CheckCheck, Trash2, CreditCard, CalendarCheck, AlertCircle, BellRing, Package,
-  Star, ClipboardList, Mail, EyeOff, Bookmark
+  Star, ClipboardList, Mail, EyeOff, Bookmark, Languages
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -265,18 +265,72 @@ function CollectionsDropdown() {
   );
 }
 
-function ThemeToggle() {
+function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu-row" }) {
   const { theme, toggleTheme, switchable } = useTheme();
+  const { lang } = useI18n();
   if (!switchable || !toggleTheme) return null;
+
+  if (variant === "menu-row") {
+    return (
+      <button
+        onClick={toggleTheme}
+        className={`flex items-center justify-between w-full px-4 py-3 text-white/90 hover:text-white hover:bg-white/10 transition-colors ${lang === "ar" ? "flex-row-reverse" : ""}`}
+      >
+        <span className={`flex items-center gap-2 ${lang === "ar" ? "flex-row-reverse" : ""}`}>
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          <span className="text-sm">{lang === "ar" ? "الوضع الليلي" : "Dark Mode"}</span>
+        </span>
+        {/* Toggle switch visual */}
+        <div className={`relative w-10 h-5 rounded-full transition-colors duration-300 ${theme === "dark" ? "bg-[#3ECFC0]" : "bg-white/20"}`}>
+          <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${theme === "dark" ? (lang === "ar" ? "translate-x-0.5" : "translate-x-5") : (lang === "ar" ? "translate-x-5" : "translate-x-0.5")}`} />
+        </div>
+      </button>
+    );
+  }
+
   return (
     <Button
       variant="ghost"
       size="sm"
       onClick={toggleTheme}
-      className="text-white/90 hover:text-white hover:bg-white/10 w-8 h-8 p-0"
+      className="text-white/90 hover:text-white hover:bg-white/10"
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
       {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </Button>
+  );
+}
+
+function LanguageToggle({ variant = "icon" }: { variant?: "icon" | "menu-row" }) {
+  const { lang, toggleLang } = useI18n();
+
+  if (variant === "menu-row") {
+    return (
+      <button
+        onClick={toggleLang}
+        className={`flex items-center justify-between w-full px-4 py-3 text-white/90 hover:text-white hover:bg-white/10 transition-colors ${lang === "ar" ? "flex-row-reverse" : ""}`}
+      >
+        <span className={`flex items-center gap-2 ${lang === "ar" ? "flex-row-reverse" : ""}`}>
+          <Languages className="h-4 w-4" />
+          <span className="text-sm">{lang === "ar" ? "اللغة" : "Language"}</span>
+        </span>
+        {/* Language pill toggle */}
+        <div className="flex items-center gap-0.5 bg-white/10 rounded-full p-0.5">
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-all duration-300 ${lang === "ar" ? "bg-[#3ECFC0] text-[#0B1E2D]" : "text-white/70"}`}>
+            AR
+          </span>
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-all duration-300 ${lang === "en" ? "bg-[#3ECFC0] text-[#0B1E2D]" : "text-white/70"}`}>
+            EN
+          </span>
+        </div>
+      </button>
+    );
+  }
+
+  return (
+    <Button variant="ghost" size="sm" onClick={toggleLang} className="text-white/90 hover:text-white hover:bg-white/10 gap-1.5">
+      <Globe className="h-4 w-4" />
+      <span className="text-xs">{lang === "ar" ? "EN" : "AR"}</span>
     </Button>
   );
 }
@@ -382,14 +436,15 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className={`flex items-center gap-2 ${lang === "ar" ? "flex-row-reverse" : ""}`}>
-            {/* Theme toggle */}
-            <ThemeToggle />
+            {/* Theme toggle — desktop only */}
+            <div className="hidden md:block">
+              <ThemeToggle variant="icon" />
+            </div>
 
-            {/* Language toggle */}
-            <Button variant="ghost" size="sm" onClick={toggleLang} className="text-white/90 hover:text-white hover:bg-white/10 gap-1.5">
-              <Globe className="h-4 w-4" />
-              <span className="text-xs">{lang === "ar" ? "EN" : "AR"}</span>
-            </Button>
+            {/* Language toggle — desktop only */}
+            <div className="hidden md:block">
+              <LanguageToggle variant="icon" />
+            </div>
 
             {/* Collections Dropdown */}
             {isAuthenticated && <CollectionsDropdown />}
@@ -466,7 +521,7 @@ export default function Navbar() {
         </div>
 
         {/* Mobile menu */}
-        <div className={`md:hidden border-t border-white/10 overflow-hidden transition-all duration-500 ease-out ${mobileMenuOpen ? "max-h-96 py-3 opacity-100" : "max-h-0 py-0 opacity-0"}`}>
+        <div className={`md:hidden border-t border-white/10 overflow-hidden transition-all duration-500 ease-out ${mobileMenuOpen ? "max-h-[500px] py-3 opacity-100" : "max-h-0 py-0 opacity-0"}`}>
           <div className="space-y-1">
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="ghost" className={`w-full ${lang === "ar" ? "justify-end" : "justify-start"} text-white/90 hover:text-white hover:bg-white/10`}>
@@ -511,6 +566,15 @@ export default function Navbar() {
                 )}
               </>
             )}
+
+            {/* Divider */}
+            <div className="my-2 mx-4 border-t border-white/10" />
+
+            {/* Dark mode toggle — mobile menu row */}
+            <ThemeToggle variant="menu-row" />
+
+            {/* Language switcher — mobile menu row */}
+            <LanguageToggle variant="menu-row" />
           </div>
         </div>
       </div>
